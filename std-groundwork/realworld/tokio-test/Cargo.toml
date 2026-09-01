@@ -1,0 +1,13 @@
+[package]
+name = "tokio-test-aros"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time", "sync"] }
+
+[profile.release]
+panic = "abort"
+
+[patch.crates-io]
+libc = { path = "../../rust-aros/std-groundwork/libc-aros" }

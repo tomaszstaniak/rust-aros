@@ -1,0 +1,11 @@
+include = ["../../../rust-aros/aros-env.toml"]
+
+[build]
+target = "../../rust-aros/x86_64-aros.json"
+
+[target.x86_64-aros]
+runner = "../../rust-aros/tools/aros-qemu-run.py"
+
+[unstable]
+build-std = ["std", "panic_abort"]
+json-target-spec = true

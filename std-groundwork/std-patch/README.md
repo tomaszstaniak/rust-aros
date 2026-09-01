@@ -58,6 +58,7 @@ stays reviewable:
 | null device | `NIL:` |
 | `read_output` | thread per pipe instead of `poll` on non-blocking pipes |
 | `process_group` | `pid_t` is 64-bit on AROS |
+| condvar clock | AROS joins the platforms that cannot `pthread_condattr_setclock`, so deadlines use `CLOCK_REALTIME` |
 | supported-OS list in `build.rs` | otherwise everything is `restricted_std` |
 
 ## What `libc-aros` supplies underneath
@@ -83,6 +84,9 @@ was verified by hand before trusting it.
 * `getentropy` is not a real entropy source. `HashMap` seeding is fine; do not
   use `std`'s randomness for keys.
 * `poll` only works on sockets. `std::net` timeouts use it; nothing else does.
+* `mmap` is emulated: anonymous maps are allocations, read-only file maps are
+  reads, and writable shared file maps are refused. `mprotect` enforces
+  nothing and refuses anything but read/write.
 * Nightly only, and the patch targets the `rust-src` shipped with
   `rustc 1.100.0-nightly (2026-08-31)`. Other nightlies may need it adjusted.
 * `panic = abort` still — no unwinding.

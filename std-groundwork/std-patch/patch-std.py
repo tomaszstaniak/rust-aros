@@ -101,6 +101,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 _ro = open(os.path.join(HERE, "read_output_aros.rs")).read()
 edit("sys/process/unix/common.rs", lambda s: s.replace("pub fn read_output(\n    out: ChildPipe,", _ro + "pub fn read_output(\n    out: ChildPipe,", 1))
 
+# 9f. pthread_condattr_setclock does not exist on AROS. std asserts on its
+#     result and then computes condvar deadlines against the clock it thinks
+#     it selected, so claiming success makes every timed wait use a monotonic
+#     deadline against a realtime clock -- timers then never fire. Put AROS in
+#     the list of platforms that keep CLOCK_REALTIME instead.
+def condvar_realtime(s):
+    # the default impl excludes these platforms, the fallback impl includes them
+    s = s.replace('    target_os = "redox",\n    target_os = "teeos",\n)))]',
+                  '    target_os = "redox",\n    target_os = "teeos",\n    target_os = "aros",\n)))]', 1)
+    s = s.replace('    target_os = "redox",\n    target_os = "teeos",\n))]',
+                  '    target_os = "redox",\n    target_os = "teeos",\n    target_os = "aros",\n))]', 1)
+    return s
+edit("sys/pal/unix/sync/condvar.rs", condvar_realtime)
+
 # 10. std/build.rs keeps a list of supported OSes; anything else gets restricted_std.
 bp = os.path.join(STD, "..", "build.rs")
 b = open(bp).read()

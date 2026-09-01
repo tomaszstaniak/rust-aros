@@ -15,9 +15,11 @@ There is also an **experimental `std`**: with the `aros-nightly` toolchain that
 `std-groundwork/std-patch/make-std-toolchain.sh` creates, an ordinary Rust
 program — `std::fs`, `std::thread`, `std::net`, `std::process`, `HashMap` — and
 crates such as `serde`, `serde_json` and `anyhow` straight from crates.io
-build and run on AROS. It has known gaps (bare program names in `Command`,
-non-cryptographic randomness, `poll` on sockets only); they are listed in
-`std-groundwork/std-patch/README.md`. See *Limitations* below before you
+build and run on AROS. **ripgrep 14.1.1 builds and searches AROS directories with it**, and tokio's
+runtime, tasks, channels and timers work (async networking does not: `mio`
+has no AROS selector). See `std-groundwork/realworld/`. Known gaps — bare
+program names in `Command`, non-cryptographic randomness, `poll` on sockets
+only, emulated `mmap` — are listed in `std-groundwork/std-patch/README.md`. See *Limitations* below before you
 plan a project around either path.
 
 ## What is known to work
@@ -161,10 +163,10 @@ remains the simpler, more robust option for now.
 
 ## What is next
 
-In order: build `ripgrep` on the `std` toolchain as the first real-world test
-(files, directories, arguments, threads, errors); try `tokio`, which will
-show what `poll` over sockets is worth; then wire the SDL3 that AROS contrib
-already carries (3.4.12, with SDL3_image and SDL3_ttf) to the `sdl3` crate.
+ripgrep and tokio are done (see `std-groundwork/realworld/`). Next: wire the
+SDL3 that AROS contrib already carries (3.4.12, with SDL3_image and SDL3_ttf)
+to the `sdl3` crate, and consider a `mio` selector over `WaitSelect` to
+unlock async networking.
 Separately, the runtime tests in `std-groundwork/` are worth turning into a C
 conformance suite for the AROS maintainers: they show exactly where the SDK's
 POSIX surface diverges from what portable code expects.

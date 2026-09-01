@@ -511,6 +511,27 @@ pub const _SC_GETPW_R_SIZE_MAX: c_int = 70;
 pub const _SC_HOST_NAME_MAX: c_int = 72;
 pub const _SC_NPROCESSORS_ONLN: c_int = 84;
 pub const PATH_MAX: c_int = 1024;
+
+// Memory mapping is emulated in compat.c: anonymous maps are allocations and
+// read-only file maps are reads. These values are ours to choose.
+pub const PROT_NONE: c_int = 0;
+pub const PROT_READ: c_int = 1;
+pub const PROT_WRITE: c_int = 2;
+pub const PROT_EXEC: c_int = 4;
+pub const MAP_SHARED: c_int = 1;
+pub const MAP_PRIVATE: c_int = 2;
+pub const MAP_ANON: c_int = 0x1000;
+pub const MAP_ANONYMOUS: c_int = 0x1000;
+pub const MAP_FIXED: c_int = 0x10;
+pub const MAP_NORESERVE: c_int = 0;
+pub const MS_SYNC: c_int = 0;
+pub const MS_ASYNC: c_int = 1;
+pub const MADV_NORMAL: c_int = 0;
+pub const MADV_RANDOM: c_int = 1;
+pub const MADV_SEQUENTIAL: c_int = 2;
+pub const MADV_WILLNEED: c_int = 3;
+pub const MADV_DONTNEED: c_int = 4;
+pub const MAP_FAILED: *mut c_void = -1isize as *mut c_void;
 pub const SIG_DFL: sighandler_t = 0;
 pub const SIG_IGN: sighandler_t = 1;
 pub const SIG_ERR: sighandler_t = !0;
@@ -625,4 +646,11 @@ extern "C" {
     pub fn pread(fd: c_int, b: *mut c_void, n: size_t, off: off_t) -> ssize_t;
     pub fn pwrite(fd: c_int, b: *const c_void, n: size_t, off: off_t) -> ssize_t;
     pub fn readv(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
+    pub fn mmap(addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int, off: off_t) -> *mut c_void;
+    pub fn munmap(addr: *mut c_void, len: size_t) -> c_int;
+    pub fn mprotect(addr: *mut c_void, len: size_t, prot: c_int) -> c_int;
+    pub fn msync(addr: *mut c_void, len: size_t, flags: c_int) -> c_int;
+    pub fn madvise(addr: *mut c_void, len: size_t, advice: c_int) -> c_int;
+    pub fn mlock(addr: *const c_void, len: size_t) -> c_int;
+    pub fn munlock(addr: *const c_void, len: size_t) -> c_int;
 }

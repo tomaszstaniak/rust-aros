@@ -106,6 +106,81 @@ int getentropy(void *buf, size_t n) {
     unsigned char *p = buf; for (size_t i = 0; i < n; i++) p[i] = (unsigned char)(random() >> 3); return 0;
 }
 
+/* --- memory mapping ------------------------------------------------------
+ * AROS has no MMU-backed mapping. Anonymous maps become plain allocations,
+ * and a read-only file map is satisfied by reading the range into memory.
+ * That is correct for readers (search tools, parsers, loaders) but it is NOT
+ * a real mapping: a shared writable file map would have to write changes back,
+ * so it is refused rather than silently losing them. mprotect is likewise
+ * refused for anything that asks for real protection, so nothing can mistake
+ * this for memory safety it does not have. */
+#define RS_PROT_READ   1
+#define RS_PROT_WRITE  2
+#define RS_MAP_SHARED  1
+#define RS_MAP_ANON    0x1000
+#define RS_MAP_FAILED  ((void *)-1)
+
+long pread(int fd, void *b, size_t n, off_t off);   /* defined below */
+
+struct rs_map { void *addr; size_t len; };
+static struct rs_map rs_maps[64];
+static pthread_mutex_t rs_maps_lock = PTHREAD_MUTEX_INITIALIZER;
+
+void *mmap(void *hint, size_t len, int prot, int flags, int fd, off_t off) {
+    (void)hint;
+    if (len == 0) { errno = EINVAL; return RS_MAP_FAILED; }
+    int anon = (flags & RS_MAP_ANON) || fd < 0;
+    if (!anon && (prot & RS_PROT_WRITE) && (flags & RS_MAP_SHARED)) {
+        errno = ENOTSUP;                 /* would have to write back; we cannot */
+        return RS_MAP_FAILED;
+    }
+    void *p = NULL;
+    if (posix_memalign(&p, 4096, len) != 0 || !p) { errno = ENOMEM; return RS_MAP_FAILED; }
+    if (anon) {
+        memset(p, 0, len);
+    } else {
+        size_t got = 0;
+        while (got < len) {
+            long n = pread(fd, (char *)p + got, len - got, off + (off_t)got);
+            if (n < 0) { free(p); return RS_MAP_FAILED; }
+            if (n == 0) { memset((char *)p + got, 0, len - got); break; }
+            got += (size_t)n;
+        }
+    }
+    pthread_mutex_lock(&rs_maps_lock);
+    int slot = -1;
+    for (int i = 0; i < 64; i++) if (!rs_maps[i].addr) { slot = i; break; }
+    if (slot >= 0) { rs_maps[slot].addr = p; rs_maps[slot].len = len; }
+    pthread_mutex_unlock(&rs_maps_lock);
+    if (slot < 0) { free(p); errno = ENOMEM; return RS_MAP_FAILED; }
+    return p;
+}
+
+int munmap(void *addr, size_t len) {
+    (void)len;
+    pthread_mutex_lock(&rs_maps_lock);
+    int found = 0;
+    for (int i = 0; i < 64; i++) if (rs_maps[i].addr == addr) { rs_maps[i].addr = NULL; found = 1; break; }
+    pthread_mutex_unlock(&rs_maps_lock);
+    if (!found) { errno = EINVAL; return -1; }
+    free(addr);
+    return 0;
+}
+
+/* Only the no-op direction is honest: asking for fewer permissions than we
+ * can enforce is fine, asking for real protection is not. */
+int mprotect(void *addr, size_t len, int prot) {
+    (void)addr; (void)len;
+    if (prot & ~(RS_PROT_READ | RS_PROT_WRITE)) { errno = ENOTSUP; return -1; }
+    return 0;
+}
+/* Nothing is pageable, so locking is a no-op that cannot be wrong. */
+int mlock(const void *addr, size_t len)       { (void)addr;(void)len; return 0; }
+int munlock(const void *addr, size_t len)     { (void)addr;(void)len; return 0; }
+int msync(void *addr, size_t len, int flags)  { (void)addr;(void)len;(void)flags; return 0; }
+int madvise(void *addr, size_t len, int adv)  { (void)addr;(void)len;(void)adv; return 0; }
+long sysconf_pagesize(void)                   { return 4096; }
+
 /* --- not available on AROS ---------------------------------------------- */
 /* fork is provided in Rust as a direct alias of vfork: vfork returns twice into
  * the SAME stack frame, so it must not go through a wrapper function that
@@ -116,7 +191,10 @@ int killpg(pid_t g, int s)                                            { (void)g;
 int setpgid(pid_t a, pid_t b)                                         { (void)a;(void)b; ENOSYS_RET; }
 int setgroups(int n, const gid_t *g)                                  { (void)n;(void)g; ENOSYS_RET; }
 int lchown(const char *p, uid_t u, gid_t g)                           { return chown(p, u, g); }
-int pthread_condattr_setclock(pthread_condattr_t *a, clockid_t c)     { (void)a;(void)c; return 0; }
+/* Returning success here would be a lie with teeth: callers then compute
+ * deadlines against a clock the condvar does not use, and timed waits never
+ * fire. Fail honestly instead. */
+int pthread_condattr_setclock(pthread_condattr_t *a, clockid_t c)     { (void)a;(void)c; errno = ENOTSUP; return ENOTSUP; }
 int getpwuid_r(uid_t u, void *pw, char *b, size_t n, void **r)        { (void)u;(void)pw;(void)b;(void)n; *r = NULL; return ENOENT; }
 
 /* poll over select: enough for std's connect_timeout and friends */
