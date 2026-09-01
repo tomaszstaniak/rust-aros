@@ -10,8 +10,13 @@ that deploys straight into a running AROS machine.
 **This is a first release.** It is `no_std`: `core` and `alloc` work, so
 `Vec`, `String`, `format!` and the collections are all available, and `no_std`
 crates from crates.io build unchanged. Rust's `std` does not exist for AROS
-yet, so anything that needs files, threads, sockets or time from `std` is out
-of reach for now. See *Limitations* below before you plan a project around it.
+yet, so crates that require it will not build.
+
+Files, threads and clocks are nevertheless usable today, through the AROS
+`libc` bindings in `std-groundwork/` — they are checked against the running
+system — but you call them as C, not as `std::fs` or `std::thread`. Sockets
+are the one real gap: on AROS they are not libc functions at all. See
+*Limitations* below before you plan a project around this.
 
 ## What is known to work
 
