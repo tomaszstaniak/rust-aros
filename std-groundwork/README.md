@@ -66,8 +66,30 @@ Measured against the calls std's platform layer makes:
   `mprotect` and `getpagesize` do not exist.
 * **Needs an AROS-native implementation:** `process`, since there is no `fork`
   (use dos.library's `CreateNewProc`/`SystemTagList`), and `net`, since
-  sockets are not libc symbols at all — `libnet.a` only opens
-  `bsdsocket.library`, and the calls go through the library base.
+  sockets are not libc symbols — they are calls through `bsdsocket.library`'s
+  base. **That part is now solved in principle:** `net-test/` opens a TCP
+  connection from Rust and completes an HTTP exchange with the host.
+
+## Sockets: `net-test/`
+
+bsdsocket.library is called through its library base, kept in a register the
+C compiler manages (`r12` on x86_64, LVO offset `-40` for `socket`). Instead
+of teaching Rust that convention, `csrc/sockglue.c` wraps each call in an
+ordinary SysV function, `build.rs` compiles it with the AROS cross compiler
+taken from the target spec, and `libnet.a` opens `SocketBase` at startup.
+Verified against a web server on the host:
+
+```
+[ok] SocketBase opened by libnet at startup
+[ok] socket() = 0
+[ok] connect(10.0.2.2:8080) = 0 errno 0
+[ok] send() = 33
+[ok] recv() = 200 bytes, first line: HTTP/1.0 200 OK
+```
+
+Two details for a `std::net` port: `sockaddr_in` is the BSD layout with a
+leading `sin_len` byte, and the socket errno comes from `Errno()`, not the C
+library's `errno`.
 
 A first milestone of "std minus process and net" therefore looks reachable:
 patch the `std` sources from `rust-src` to treat AROS as a unix family target,
@@ -81,5 +103,6 @@ needs no fork of the compiler itself.
 | `libc-aros/` | The `libc` crate for AROS. |
 | `libc-test/` | Runtime validation; `cargo +nightly run --release`. |
 | `probe/` | Layout and constant extraction (DWARF + preprocessor). |
+| `net-test/` | TCP over bsdsocket.library from Rust, with the C glue it needs. |
 
 Requires the target definition and runtime crate from `../rust-aros`.
