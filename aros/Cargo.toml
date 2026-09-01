@@ -1,0 +1,12 @@
+[package]
+name = "aros"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Write AROS x86_64 programs in Rust: runtime, printing and thin bindings to the AROS API"
+
+[features]
+default = []
+sdl = []          # pulls in SDL2; leave off for programs that do not need it
+
+[dependencies]

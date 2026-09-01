@@ -1,0 +1,10 @@
+# Paths are relative to this project directory: run cargo from here.
+[build]
+target = "../x86_64-aros.json"
+
+[target.x86_64-aros]
+runner = "../tools/aros-qemu-run.py"
+
+[unstable]
+build-std = ["core", "alloc"]
+json-target-spec = true

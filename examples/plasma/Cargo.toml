@@ -1,0 +1,13 @@
+[package]
+name = "plasma"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+aros = { path = "../../aros", features = ["sdl"] }
+libm = "0.2"
+
+[profile.release]
+panic = "abort"
+opt-level = 3

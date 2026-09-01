@@ -1,0 +1,10 @@
+[package]
+name = "hello-aros"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aros = { path = "../aros" }
+
+[profile.release]
+panic = "abort"
