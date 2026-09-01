@@ -107,7 +107,9 @@ int getentropy(void *buf, size_t n) {
 }
 
 /* --- not available on AROS ---------------------------------------------- */
-int fork(void)                                                      { ENOSYS_RET; }
+/* fork is provided in Rust as a direct alias of vfork: vfork returns twice into
+ * the SAME stack frame, so it must not go through a wrapper function that
+ * returns (the child would then run on a frame the parent has already left). */
 int chroot(const char *p)                                             { (void)p; ENOSYS_RET; }
 int mkfifo(const char *p, mode_t m)                                   { (void)p;(void)m; ENOSYS_RET; }
 int killpg(pid_t g, int s)                                            { (void)g;(void)s; ENOSYS_RET; }

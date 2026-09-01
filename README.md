@@ -146,18 +146,15 @@ buf[0] = 42;
 * Binaries are larger than the C equivalent, and they cannot be fully
   stripped, so expect a few hundred kilobytes for a small program.
 
-## Towards `std`
+## `std` — experimental, but working
 
-`std-groundwork/` holds the next step: a `libc` crate for AROS, generated from
-the SDK and validated by running against the system rather than adapted from
-another platform. It binds 75 functions and passes checks covering file I/O,
-`stat`, directory listing, clocks, threads and mutexes on real AROS.
-
-It also records what a `std` port will have to deal with: there is no POSIX
-`open` symbol (the plain name belongs to exec.library), no `fork`, no `mmap`,
-and sockets are not libc functions at all. Files, time, threads and
-synchronisation, on the other hand, look reusable as they stand. See
-`std-groundwork/README.md`.
+`std-groundwork/` contains a patched `std` for AROS and the `libc` crate it
+stands on. With the `aros-nightly` toolchain that `std-patch/make-std-toolchain.sh`
+creates, an ordinary Rust program — `std::fs`, `std::thread`, `std::net`,
+`std::process`, `HashMap`, and crates such as `serde` and `anyhow` straight
+from crates.io — builds and runs on AROS. See `std-groundwork/std-patch/README.md`
+for setup and the list of known gaps. The `no_std` path described above
+remains the simpler, more robust option for now.
 
 ## Prior art and credit
 

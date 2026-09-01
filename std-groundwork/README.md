@@ -1,4 +1,9 @@
-# Towards Rust `std` on AROS x86_64
+# Rust `std` on AROS x86_64
+
+**`std` works.** See `std-patch/README.md` for how to set up the toolchain;
+the rest of this file describes the libc groundwork it stands on.
+
+# Towards Rust `std` on AROS x86_64 (groundwork)
 
 Groundwork for a real `std`: a `libc` crate for AROS, generated from the SDK
 rather than adapted from another platform, and validated by running against

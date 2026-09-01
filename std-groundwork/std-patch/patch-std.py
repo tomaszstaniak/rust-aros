@@ -92,6 +92,15 @@ def skip_fd_sanitise(s):
     return s
 edit("sys/pal/unix/mod.rs", skip_fd_sanitise)
 
+# 9d. The null device is NIL: on AROS.
+edit("sys/process/unix/common.rs", lambda s: add_after(s, '    target_os = "vxworks" => {\n        const DEV_NULL: &CStr = c"/null";\n    }', '\n    target_os = "aros" => {\n        const DEV_NULL: &CStr = c"NIL:";\n    }'))
+
+# 9e. read_output needs poll() on non-blocking pipes, which AROS cannot do;
+#     substitute a thread-based version (source kept beside this script).
+HERE = os.path.dirname(os.path.abspath(__file__))
+_ro = open(os.path.join(HERE, "read_output_aros.rs")).read()
+edit("sys/process/unix/common.rs", lambda s: s.replace("pub fn read_output(\n    out: ChildPipe,", _ro + "pub fn read_output(\n    out: ChildPipe,", 1))
+
 # 10. std/build.rs keeps a list of supported OSes; anything else gets restricted_std.
 bp = os.path.join(STD, "..", "build.rs")
 b = open(bp).read()

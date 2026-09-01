@@ -610,6 +610,9 @@ extern "C" {
     pub fn utimensat(fd: c_int, path: *const c_char, ts: *const timespec, fl: c_int) -> c_int;
     pub fn futimens(fd: c_int, ts: *const timespec) -> c_int;
     pub fn fdopendir(fd: c_int) -> *mut DIR;
+    /// vfork: AROS has no fork. Bound directly (see compat.c for why no
+    /// wrapper is possible); std only dup2s/closes/chdirs before exec.
+    #[link_name = "__vfork_CrtBase_wrapper"]
     pub fn fork() -> pid_t;
     pub fn chroot(path: *const c_char) -> c_int;
     pub fn mkfifo(path: *const c_char, mode: mode_t) -> c_int;
