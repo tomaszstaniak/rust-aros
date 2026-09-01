@@ -8,5 +8,5 @@ target = "../../x86_64-aros.json"
 runner = "../../tools/aros-qemu-run.py"
 
 [unstable]
-build-std = ["core", "alloc"]
+build-std = ["std", "panic_abort"]
 json-target-spec = true

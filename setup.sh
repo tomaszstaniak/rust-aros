@@ -43,8 +43,16 @@ fi
 
 sed -e "s|@AROS_GCC@|$GCC|" -e "s|@AROS_SDK@|$SDK|" x86_64-aros.json.in > x86_64-aros.json
 
+# Build scripts that compile C glue (the libc crate) read the toolchain from
+# these variables; cargo picks the file up from any project under this tree.
+cat > aros-env.toml <<EOF
+[env]
+AROS_GCC = "$GCC"
+AROS_SDK = "$SDK"
+EOF
+
 echo "setup: toolchain $GCC"
 echo "setup: SDK       $SDK"
-echo "setup: wrote     x86_64-aros.json"
+echo "setup: wrote     x86_64-aros.json, aros-env.toml"
 echo
 echo "Next:  cd template && cargo +nightly build --release"

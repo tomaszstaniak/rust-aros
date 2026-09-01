@@ -1,3 +1,6 @@
+# Toolchain paths written by setup.sh (AROS_GCC, AROS_SDK for build scripts).
+include = ["../../../aros-env.toml"]
+
 [build]
 target = "../../x86_64-aros.json"
 

@@ -1,10 +1,18 @@
 [package]
 name = "libc"
-version = "0.2.176"
+version = "0.2.189"
 edition = "2021"
+build = "build.rs"
 license = "MIT"
 description = "Minimal libc bindings for AROS x86_64, generated from the SDK"
 
 [features]
 default = []
 std = []
+align = []
+extra_traits = []
+# Set by -Z build-std when libc is compiled as a dependency of std.
+rustc-dep-of-std = ["rustc-std-workspace-core"]
+
+[dependencies]
+rustc-std-workspace-core = { version = "1.0.1", optional = true }
