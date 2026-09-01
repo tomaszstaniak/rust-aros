@@ -7,16 +7,18 @@ that deploys straight into a running AROS machine.
 
 ![The plasma example running on AROS](screenshot.png)
 
-**This is a first release.** It is `no_std`: `core` and `alloc` work, so
-`Vec`, `String`, `format!` and the collections are all available, and `no_std`
-crates from crates.io build unchanged. Rust's `std` does not exist for AROS
-yet, so crates that require it will not build.
+**Two ways to use it.** The `no_std` path (the runtime crate, template and
+example below) is the stable one: `core` and `alloc`, `no_std` crates from
+crates.io, and the AROS API through `extern "C"`.
 
-Files, threads and clocks are nevertheless usable today, through the AROS
-`libc` bindings in `std-groundwork/` — they are checked against the running
-system — but you call them as C, not as `std::fs` or `std::thread`. Sockets
-are the one real gap: on AROS they are not libc functions at all. See
-*Limitations* below before you plan a project around this.
+There is also an **experimental `std`**: with the `aros-nightly` toolchain that
+`std-groundwork/std-patch/make-std-toolchain.sh` creates, an ordinary Rust
+program — `std::fs`, `std::thread`, `std::net`, `std::process`, `HashMap` — and
+crates such as `serde`, `serde_json` and `anyhow` straight from crates.io
+build and run on AROS. It has known gaps (bare program names in `Command`,
+non-cryptographic randomness, `poll` on sockets only); they are listed in
+`std-groundwork/std-patch/README.md`. See *Limitations* below before you
+plan a project around either path.
 
 ## What is known to work
 
@@ -130,8 +132,9 @@ buf[0] = 42;
 
 ## Limitations
 
-* **No `std`.** Crates that require it will not build. This is the main gap,
-  and closing it is the obvious next step.
+* **`std` is experimental.** It passes its own tests and runs `serde`, but it
+  has not yet carried a large real program; `ripgrep` and `tokio` are the
+  next things to try. The `no_std` path is the one to rely on today.
 * **Nightly only**, and nightly moves; a future release may need the target
   file adjusted.
 * **Safety stops at the API boundary.** Calls into AROS are `unsafe` FFI like
@@ -155,6 +158,16 @@ creates, an ordinary Rust program — `std::fs`, `std::thread`, `std::net`,
 from crates.io — builds and runs on AROS. See `std-groundwork/std-patch/README.md`
 for setup and the list of known gaps. The `no_std` path described above
 remains the simpler, more robust option for now.
+
+## What is next
+
+In order: build `ripgrep` on the `std` toolchain as the first real-world test
+(files, directories, arguments, threads, errors); try `tokio`, which will
+show what `poll` over sockets is worth; then wire the SDL3 that AROS contrib
+already carries (3.4.12, with SDL3_image and SDL3_ttf) to the `sdl3` crate.
+Separately, the runtime tests in `std-groundwork/` are worth turning into a C
+conformance suite for the AROS maintainers: they show exactly where the SDK's
+POSIX surface diverges from what portable code expects.
 
 ## Prior art and credit
 
