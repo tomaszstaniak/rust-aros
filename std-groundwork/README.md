@@ -64,11 +64,33 @@ Measured against the calls std's platform layer makes:
   alloc, thread-local storage. AROS has real pthreads and real POSIX I/O.
 * **Needs stubbing first:** the stack guard machinery, because `mmap`,
   `mprotect` and `getpagesize` do not exist.
-* **Needs an AROS-native implementation:** `process`, since there is no `fork`
-  (use dos.library's `CreateNewProc`/`SystemTagList`), and `net`, since
+* **Needs an AROS-native implementation** — and both now have a working
+  prototype below: `process`, since there is no `fork`, and `net`, since
   sockets are not libc symbols — they are calls through `bsdsocket.library`'s
   base. **That part is now solved in principle:** `net-test/` opens a TCP
   connection from Rust and completes an HTTP exchange with the host.
+
+## Processes: `process-test/`
+
+There is no `fork`, but `std::process::Command` does not need one: it needs
+"run this, capture its output, give me the exit code". dos.library's
+`SystemTagList` does exactly that, and every call involved is a plain symbol,
+so no C glue is required. Verified on AROS One 1.3:
+
+```
+[ok] echo hello            status=0 stdout=27 bytes  | hello from a child process
+[ok] version               status=0 stdout=32 bytes  | Kickstart 51.51, Workbench 40.0
+[ok] list RAM:             status=0 stdout=17 bytes  | Clipboards / T / ENV
+sync status: echo=0  'quit 10'=10
+```
+
+Recipe: open a uniquely named `PIPE:` file for writing, pass it as
+`SYS_Output` with `SYS_Asynch`, then open the same name for reading — the
+child's exit closes the writer, so the reader sees EOF. For the exit code, run
+synchronously (no `SYS_Asynch`): the return value is the child's return code.
+Two caveats for a real port: a command that does not exist yields status 0
+from the shell (check the path before spawning), and stdin must be given
+explicitly (`NIL:`) or the child inherits the parent's console.
 
 ## Sockets: `net-test/`
 
@@ -104,5 +126,6 @@ needs no fork of the compiler itself.
 | `libc-test/` | Runtime validation; `cargo +nightly run --release`. |
 | `probe/` | Layout and constant extraction (DWARF + preprocessor). |
 | `net-test/` | TCP over bsdsocket.library from Rust, with the C glue it needs. |
+| `process-test/` | Child processes with captured output and exit codes via SystemTagList. |
 
 Requires the target definition and runtime crate from `../rust-aros`.
