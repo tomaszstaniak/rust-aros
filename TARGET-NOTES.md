@@ -26,6 +26,13 @@ The program exposes `#[no_mangle] extern "C" fn main`, so the SDK's C startup
 stays in charge — the same entry path our C programs use. Do not strip the
 result (see `docs/aros-reference.md` in the AROS workspace).
 
+### `--allow-multiple-definition`
+
+`libcrt.a` and `libexec.a` both define `close` (and `open`). Any program that
+mixes C file I/O with exec.library calls therefore fails to link. The C library
+is linked first, so allowing the duplicate keeps the POSIX version, which is
+the one you want; this was checked at runtime, not just at link time.
+
 ## Verified behaviour of the toolchain
 
 Measured on AROS One 1.3 while bringing this up: the ELF loader copes with an

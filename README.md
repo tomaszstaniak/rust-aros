@@ -93,6 +93,7 @@ never reaches QEMU's serial file, so neither is a usable channel.
 | `template/` | A minimal project to copy for your own program. |
 | `examples/plasma/` | A graphical SDL2 example. |
 | `tools/aros-qemu-run.py` | `cargo run` helper for a QEMU-hosted AROS. |
+| `std-groundwork/` | Work towards a real `std`: `libc` bindings and their tests. |
 
 ## Writing a program
 
@@ -139,6 +140,19 @@ buf[0] = 42;
 * **The console is not UTF-8** — keep printed text to ASCII.
 * Binaries are larger than the C equivalent, and they cannot be fully
   stripped, so expect a few hundred kilobytes for a small program.
+
+## Towards `std`
+
+`std-groundwork/` holds the next step: a `libc` crate for AROS, generated from
+the SDK and validated by running against the system rather than adapted from
+another platform. It binds 75 functions and passes checks covering file I/O,
+`stat`, directory listing, clocks, threads and mutexes on real AROS.
+
+It also records what a `std` port will have to deal with: there is no POSIX
+`open` symbol (the plain name belongs to exec.library), no `fork`, no `mmap`,
+and sockets are not libc functions at all. Files, time, threads and
+synchronisation, on the other hand, look reusable as they stand. See
+`std-groundwork/README.md`.
 
 ## Prior art and credit
 

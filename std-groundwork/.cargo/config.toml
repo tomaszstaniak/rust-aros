@@ -1,0 +1,6 @@
+[build]
+target = "../../x86_64-aros.json"
+
+[unstable]
+build-std = ["core", "alloc"]
+json-target-spec = true

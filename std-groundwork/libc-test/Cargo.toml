@@ -1,0 +1,11 @@
+[package]
+name = "libc-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aros = { path = "../../aros" }
+libc = { path = "../libc-aros" }
+
+[profile.release]
+panic = "abort"

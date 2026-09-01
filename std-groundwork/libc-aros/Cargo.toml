@@ -1,0 +1,10 @@
+[package]
+name = "libc"
+version = "0.2.176"
+edition = "2021"
+license = "MIT"
+description = "Minimal libc bindings for AROS x86_64, generated from the SDK"
+
+[features]
+default = []
+std = []
