@@ -45,11 +45,39 @@ sed -e "s|@AROS_GCC@|$GCC|" -e "s|@AROS_SDK@|$SDK|" x86_64-aros.json.in > x86_64
 
 # Build scripts that compile C glue (the libc crate) read the toolchain from
 # these variables; cargo picks the file up from any project under this tree.
-cat > aros-env.toml <<EOF
-[env]
-AROS_GCC = "$GCC"
-AROS_SDK = "$SDK"
-EOF
+# RUSTFLAGS remaps the absolute paths that -Zbuild-std would otherwise bake
+# into .rodata: Rust embeds file!() locations for panic messages, so a binary
+# built here carries the full path of the sysroot and of this checkout. That is
+# program data, not debug info -- no amount of stripping removes it -- and it
+# ends up in anything published. The remapped names are also nicer in a panic.
+HERE=$(cd "$(dirname "$0")" && pwd)
+SYSROOT=$(rustc +aros-nightly --print sysroot 2>/dev/null || echo "")
+REMAP="--remap-path-prefix=$HERE=/rust-aros"
+if [ -n "$SYSROOT" ]; then
+    REMAP="$REMAP --remap-path-prefix=$SYSROOT=/rust"
+fi
+if [ -n "${CARGO_HOME:-$HOME/.cargo}" ]; then
+    REMAP="$REMAP --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo"
+fi
+
+# Note: this has to be [build] rustflags, not [env] RUSTFLAGS -- cargo reads
+# RUSTFLAGS from the ambient environment before it applies [env], so putting it
+# there looks right and silently does nothing.
+{
+    echo '[env]'
+    echo "AROS_GCC = \"$GCC\""
+    echo "AROS_SDK = \"$SDK\""
+    echo
+    echo '[build]'
+    printf 'rustflags = ['
+    first=1
+    for f in $REMAP; do
+        [ $first -eq 1 ] || printf ', '
+        printf '"%s"' "$f"
+        first=0
+    done
+    printf ']\n'
+} > aros-env.toml
 
 echo "setup: toolchain $GCC"
 echo "setup: SDK       $SDK"

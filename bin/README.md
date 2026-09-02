@@ -35,11 +35,25 @@ libc-test: checking the generated bindings against the real system
 libc-test: done
 
 plasma: Rust on AROS x86_64 - press a key to quit
-plasma: 4459 frames in 15001 ms (297.2 fps at 320x200)
+plasma: 4528 frames in 15000 ms (301.8 fps at 320x200)
 ```
 
 Not verified anywhere else. If they run — or fail — on Icaros, on real
 hardware, or on a hosted build, that is exactly the report this project needs.
+
+## Paths
+
+These carry no absolute paths from the machine that built them. Rust embeds
+`file!()` locations in `.rodata` for panic messages, so a `-Zbuild-std` binary
+otherwise ships the full path of the sysroot, of this checkout and of the cargo
+registry. That is program data, not debug info — `--strip-debug` and even
+`--strip-unneeded` leave every one of them in place. `setup.sh` now writes
+`--remap-path-prefix` into `aros-env.toml` as `[build] rustflags`, which turns
+them into `/rust`, `/rust-aros` and `/cargo`.
+
+Worth knowing if you copy that: it has to be `[build] rustflags`, not
+`[env] RUSTFLAGS`. Cargo reads `RUSTFLAGS` from the ambient environment before
+it applies `[env]`, so the latter looks right and silently does nothing.
 
 ## A note on stripping
 
