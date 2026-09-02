@@ -82,7 +82,12 @@ It needs QEMU started with a monitor socket, a QMP socket and a CD drive:
 -drive   if=ide,index=2,media=cdrom
 ```
 
-and an AmigaShell window open and focused in the guest. Socket paths, the
+and an AmigaShell window open and focused in the guest.
+
+One trap worth knowing if you copy `.cargo/config.toml` into a project of your
+own: `include` is resolved relative to the **`.cargo/` directory**, while
+`build.target` and `runner` are resolved relative to the directory you run
+cargo from. They therefore need different numbers of `../`. Socket paths, the
 drive id and the volume name can be overridden with environment variables;
 see the top of the script. It needs nothing but Python 3 and an ISO builder
 (`hdiutil`, `xorriso`, `genisoimage` or `mkisofs`).
