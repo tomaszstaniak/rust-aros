@@ -13,7 +13,12 @@ extern "C" {
     pub fn Delay(ticks: u32);
 
     // --- exec.library -------------------------------------------------------
+    // Reached through csrc/execglue.c rather than by their own names: libexec.a
+    // keeps every exec stub in one object that also defines `close`, so naming
+    // AllocMem here would drag in a duplicate of the C library's `close`.
+    #[link_name = "aros_glue_AllocMem"]
     pub fn AllocMem(size: u64, requirements: u64) -> *mut u8;
+    #[link_name = "aros_glue_FreeMem"]
     pub fn FreeMem(mem: *mut u8, size: u64);
 }
 

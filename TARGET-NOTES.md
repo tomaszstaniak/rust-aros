@@ -26,12 +26,35 @@ The program exposes `#[no_mangle] extern "C" fn main`, so the SDK's C startup
 stays in charge — the same entry path our C programs use. Do not strip the
 result (see `docs/aros-reference.md` in the AROS workspace).
 
-### `--allow-multiple-definition`
+### Why there is no `--allow-multiple-definition`
 
-`libcrt.a` and `libexec.a` both define `close` (and `open`). Any program that
-mixes C file I/O with exec.library calls therefore fails to link. The C library
-is linked first, so allowing the duplicate keeps the POSIX version, which is
-the one you want; this was checked at runtime, not just at link time.
+There was, until the cause was measured. `libexec.a` has exactly three members,
+and `exec_regcall_stubs.o` carries **every** exec.library stub in one object --
+including `open` and `close`. Referencing any exec function by its own name
+therefore drags that whole object in, and its `close` collides with
+`crt_close_stub.o` in `libcrt.a`:
+
+```
+libexec.a(exec_regcall_stubs.o): in function `close':
+  multiple definition of `close'; libcrt.a(crt_close_stub.o): first defined here
+```
+
+Link order does not help, because both objects are genuinely required. C never
+hits this: `proto/exec.h` makes `AllocMem` a macro over an inline function that
+calls through `SysBase`, so no undefined exec symbol is emitted and the archive
+member is never pulled. That is why a C test program mixing `open`/`close` with
+exec calls links with no special flags at all.
+
+`aros/csrc/execglue.c` gives Rust the same property -- it includes
+`proto/exec.h` and re-exports the calls under `aros_glue_*` names, which
+`sys.rs` binds with `#[link_name]`. Measured effect on the plasma example:
+definitions of `open`/`close` pulled from `libexec.a` went from 2 to 0, and
+every crate in this repository now links without the flag.
+
+Keeping the flag off is deliberate. With it, naming an exec function directly
+does not fail -- it silently binds `close` to exec.library's, and `open` to
+exec's rather than the C library's, which is the documented cause of an `open`
+that appears to succeed and is followed by failing writes and stats.
 
 ## Verified behaviour of the toolchain
 

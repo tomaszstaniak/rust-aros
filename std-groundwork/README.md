@@ -52,10 +52,13 @@ were expanded from the SDK headers and evaluated. The tooling is in `probe/`.
   `__open_CrtBase_wrapper`. Binding the obvious name gives an `open` that
   "succeeds" and then every write and stat fails. Our binding uses
   `#[link_name]`.
-* **`libcrt.a` and `libexec.a` both define `close`** (and `open`), so any
-  program mixing C file I/O with exec calls needs
-  `-Wl,--allow-multiple-definition`; the C library is linked first, which is
-  the version you want.
+* **`libexec.a` is one object, not many.** `exec_regcall_stubs.o` holds every
+  exec.library stub *and* `open` and `close`, so naming any exec function pulls
+  all of it and duplicates the C library's `close`. This is also why binding
+  the obvious `open` above misbehaves: the only plain `open` in the link
+  libraries is exec's. Reaching exec through `proto/exec.h` in a C shim
+  (`aros/csrc/execglue.c`) avoids both, and is why no
+  `-Wl,--allow-multiple-definition` is needed anywhere in this repository.
 * **pthreads live in `libpthread.a`** and are complete: creation, join, TLS
   keys, mutexes, condition variables with timeouts.
 * **Absent from the SDK:** `O_CLOEXEC`, `O_DIRECTORY`, `O_NOFOLLOW`,

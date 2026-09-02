@@ -21,8 +21,7 @@
   "position-independent-executables": false,
   "post-link-args": {
     "gnu-cc": [
-      "-Wl,--no-gc-sections",
-      "-Wl,--allow-multiple-definition"
+      "-Wl,--no-gc-sections"
     ]
   },
   "pre-link-args": {
