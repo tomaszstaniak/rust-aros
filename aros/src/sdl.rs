@@ -42,19 +42,50 @@ pub fn ticks() -> u32 {
     unsafe { SDL_GetTicks() }
 }
 
-/// The last SDL error, as a best-effort string.
-pub fn error() -> &'static str {
+/// A copy of the last SDL error message.
+///
+/// SDL owns the buffer `SDL_GetError` returns and overwrites it on the next
+/// call, so the text is copied out rather than borrowed. Until 2026-09-04 this
+/// was returned as `&'static str` pointing straight into that buffer, which
+/// promised a lifetime SDL does not honour.
+pub struct Error {
+    buf: [u8; 192],
+    len: usize,
+}
+
+impl Error {
+    pub fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.buf[..self.len]).unwrap_or("(bad utf8)")
+    }
+}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// The last SDL error, copied into a buffer we own.
+pub fn error() -> Error {
+    let mut e = Error { buf: [0; 192], len: 0 };
     unsafe {
         let p = SDL_GetError();
         if p.is_null() {
-            return "(no error)";
+            let msg = b"(no error)";
+            e.buf[..msg.len()].copy_from_slice(msg);
+            e.len = msg.len();
+            return e;
         }
-        let mut n = 0;
-        while *p.add(n) != 0 && n < 256 {
-            n += 1;
+        while e.len < e.buf.len() {
+            let c = *p.add(e.len);
+            if c == 0 {
+                break;
+            }
+            e.buf[e.len] = c;
+            e.len += 1;
         }
-        core::str::from_utf8(core::slice::from_raw_parts(p, n)).unwrap_or("(bad utf8)")
     }
+    e
 }
 
 /// A window with a streaming texture behind it: write pixels, call
