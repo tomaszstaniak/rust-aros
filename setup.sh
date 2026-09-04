@@ -41,7 +41,22 @@ if [ -z "$SDK" ] || [ ! -d "$SDK/include" ] || [ ! -d "$SDK/lib" ]; then
     exit 1
 fi
 
-sed -e "s|@AROS_GCC@|$GCC|" -e "s|@AROS_SDK@|$SDK|" x86_64-aros.json.in > x86_64-aros.json
+# Which way this SDK splits its C library. AROS One 1.3 puts everything in
+# libcrt.a, which gcc links by default; mainline splits it into libstdc
+# (free, exit), libstdcio (stdio, and __aros_getbase_StdCIOBase) and libposixc
+# (posix_memalign), none of which arrive on their own. Getting this wrong shows
+# up as three or four undefined symbols at the very end of an otherwise
+# successful link.
+EXTRA_LIBS=""
+if [ -f "$SDK/lib/libposixc.a" ] && [ ! -f "$SDK/lib/libcrt.a" ]; then
+    EXTRA_LIBS=', "-lposixc", "-lstdcio", "-lstdc", "-lautoinit"'
+    PROFILE="mainline (split C library)"
+else
+    PROFILE="AROS One (single libcrt)"
+fi
+
+sed -e "s|@AROS_GCC@|$GCC|" -e "s|@AROS_SDK@|$SDK|" \
+    -e "s|@AROS_EXTRA_LIBS@|$EXTRA_LIBS|" x86_64-aros.json.in > x86_64-aros.json
 
 # Build scripts that compile C glue (the libc crate) read the toolchain from
 # these variables; cargo picks the file up from any project under this tree.
@@ -81,6 +96,7 @@ fi
 
 echo "setup: toolchain $GCC"
 echo "setup: SDK       $SDK"
+echo "setup: profile   $PROFILE"
 echo "setup: wrote     x86_64-aros.json, aros-env.toml"
 echo
 echo "Next:  cd template && cargo +nightly build --release"
