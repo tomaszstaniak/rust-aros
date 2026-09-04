@@ -21,6 +21,7 @@ Configuration, all optional, via the environment:
   AROS_CD_DEVICE      QEMU drive id       (default ide1-cd0)
   AROS_VOLUME         AROS volume name    (default AMIDEV)
   AROS_RUN_WAIT       seconds before the screenshot (default 6)
+  AROS_CD_WAIT        seconds to let AROS notice the disc change (default 3)
   AROS_RUN_SHOT       where to write the screenshot (default next to the binary)
 """
 import binascii
@@ -39,6 +40,12 @@ QMP = os.environ.get("AROS_QEMU_QMP", "/tmp/aros-qmp.sock")
 CD = os.environ.get("AROS_CD_DEVICE", "ide1-cd0")
 VOLUME = os.environ.get("AROS_VOLUME", "AMIDEV")
 WAIT = float(os.environ.get("AROS_RUN_WAIT", "6"))
+# How long to let AROS settle after ejecting and after inserting. Too short and
+# the command runs against a half-mounted volume: the Shell answers "device (or
+# volume) is not mounted", or a "Please insert volume AMIDEV" requester appears
+# and blocks everything until someone clicks it. Under TCG emulation the guest
+# needs noticeably longer than on real hardware.
+CD_WAIT = float(os.environ.get("AROS_CD_WAIT", "3"))
 
 # Characters we can name as QEMU key codes. Anything else is refused rather
 # than silently dropped, because a dropped character turns the command into a
@@ -208,9 +215,9 @@ def main():
 
     # AROS keeps serving the old disc unless it sees a real eject first.
     monitor_cmd(f"eject -f {CD}")
-    time.sleep(3)
+    time.sleep(CD_WAIT)
     monitor_cmd(f"change {CD} {iso}")
-    time.sleep(4)
+    time.sleep(CD_WAIT + 1)
 
     qmp = Qmp(QMP)
     qmp.type(f"{VOLUME}:{name}")
