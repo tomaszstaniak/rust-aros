@@ -199,17 +199,26 @@ def ppm_to_png(ppm_path, png_path):
 
 
 def _same_screen(a, b):
-    """Are the two framebuffer dumps identical?
+    """Are the two framebuffer dumps identical? `None` if they cannot be read.
 
-    Byte equality is enough and is the point: an AROS desktop with nothing
-    happening on it is pixel-for-pixel still, so any difference at all means
-    the keystrokes landed somewhere.
+    **This does not tell you whether the program ran**, and the wording that
+    uses it must not pretend otherwise. A changed screen means something
+    happened — which could be a requester, the Shell echoing a command it did
+    not understand, or the previous run still drawing. An unchanged one is
+    usually a Shell that has lost focus, but a program that starts and draws
+    nothing looks the same.
+
+    Confirming a launch needs a signal from the program itself. There is none
+    yet, so every caller of this says "unconfirmed".
+
+    A read failure is its own answer rather than a `False` that would read as
+    success — which is what the first version of this did.
     """
     try:
         with open(a, "rb") as fa, open(b, "rb") as fb:
             return fa.read() == fb.read()
     except OSError:
-        return False
+        return None
 
 
 def main():
@@ -241,6 +250,7 @@ def main():
     # command" and "the program ran" are different claims, and only the
     # second one is worth reporting — a Shell that has lost focus swallows
     # every keystroke and looks exactly like success from out here.
+    shot_hint = os.environ.get("AROS_RUN_SHOT", os.path.join(workdir, f"{name}.png"))
     before = os.path.join(workdir, "before.ppm")
     monitor_cmd(f"screendump {before}")
     time.sleep(1)
@@ -259,13 +269,17 @@ def main():
     after = os.path.join(workdir, "after.ppm")
     monitor_cmd(f"screendump {after}")
     time.sleep(1)
-    if _same_screen(before, after):
-        print("aros-run: the screen did not change - the command reached nothing.")
-        print("aros-run: check that the AmigaShell window is the focused one.")
+    match = _same_screen(before, after)
+    if match is None:
+        print("aros-run: could not compare the screendumps; launch unconfirmed")
+    elif match:
+        print("aros-run: the screen did not change; launch unconfirmed")
+        print("aros-run: often a Shell that is not the focused window - but not proof of it")
     else:
-        print(f"aros-run: {name} is running")
+        print("aros-run: the screen changed; launch unconfirmed")
+        print(f"aros-run: look at {shot_hint} to see what is actually there")
 
-    shot = os.environ.get("AROS_RUN_SHOT", os.path.join(workdir, f"{name}.png"))
+    shot = shot_hint
     ppm = os.path.join(workdir, "screen.ppm")
     for path in (shot, ppm):
         if os.path.exists(path):
