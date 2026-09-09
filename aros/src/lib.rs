@@ -25,6 +25,7 @@
 
 extern crate alloc;
 
+pub mod args;
 pub mod exec;
 pub mod print;
 pub mod sys;
@@ -77,7 +78,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 macro_rules! aros_main {
     ($f:ident) => {
         #[no_mangle]
-        pub extern "C" fn main(_argc: i32, _argv: *const *const u8) -> i32 {
+        pub extern "C" fn main(argc: i32, argv: *const *const u8) -> i32 {
+            // The Shell's own command line, kept for `aros::args()`. AROS
+            // does pass one; throwing it away here was why programs written
+            // against this crate looked as though it did not.
+            unsafe { $crate::args::remember(argc, argv) };
             $f();
             0
         }

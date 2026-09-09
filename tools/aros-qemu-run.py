@@ -198,11 +198,29 @@ def ppm_to_png(ppm_path, png_path):
         fh.write(chunk(b"IEND", b""))
 
 
+def _same_screen(a, b):
+    """Are the two framebuffer dumps identical?
+
+    Byte equality is enough and is the point: an AROS desktop with nothing
+    happening on it is pixel-for-pixel still, so any difference at all means
+    the keystrokes landed somewhere.
+    """
+    try:
+        with open(a, "rb") as fa, open(b, "rb") as fb:
+            return fa.read() == fb.read()
+    except OSError:
+        return False
+
+
 def main():
     if len(sys.argv) < 2:
-        die("usage: aros-qemu-run.py <binary>")
+        die("usage: aros-qemu-run.py <binary> [arguments...]")
     binary = sys.argv[1]
     name = os.path.basename(binary)
+    # Anything after the binary is the program's own command line. AROS hands
+    # it through the C runtime like any other system; a program that reads its
+    # arguments can be told what to do without being rebuilt.
+    program_args = sys.argv[2:]
 
     for path, what in ((MONITOR, "monitor"), (QMP, "QMP")):
         if not os.path.exists(path):
@@ -219,12 +237,34 @@ def main():
     monitor_cmd(f"change {CD} {iso}")
     time.sleep(CD_WAIT + 1)
 
+    # What the screen looked like before the command was typed. "Typed the
+    # command" and "the program ran" are different claims, and only the
+    # second one is worth reporting — a Shell that has lost focus swallows
+    # every keystroke and looks exactly like success from out here.
+    before = os.path.join(workdir, "before.ppm")
+    monitor_cmd(f"screendump {before}")
+    time.sleep(1)
+
     qmp = Qmp(QMP)
-    qmp.type(f"{VOLUME}:{name}")
+    command = " ".join([f"{VOLUME}:{name}", *program_args])
+    qmp.type(command)
     qmp.key("ret")
-    print(f"aros-run: started {VOLUME}:{name} in the machine")
+    print(f"aros-run: typed {command}")
 
     time.sleep(WAIT)
+
+    # Did anything happen? A screen identical to the one before the command
+    # means the keystrokes went nowhere: nearly always a Shell that is not
+    # the focused window. Say so rather than letting the caller assume.
+    after = os.path.join(workdir, "after.ppm")
+    monitor_cmd(f"screendump {after}")
+    time.sleep(1)
+    if _same_screen(before, after):
+        print("aros-run: the screen did not change - the command reached nothing.")
+        print("aros-run: check that the AmigaShell window is the focused one.")
+    else:
+        print(f"aros-run: {name} is running")
+
     shot = os.environ.get("AROS_RUN_SHOT", os.path.join(workdir, f"{name}.png"))
     ppm = os.path.join(workdir, "screen.ppm")
     for path in (shot, ppm):
