@@ -217,6 +217,39 @@ pub fn create_dir(path: &str) -> Result<(), Error> {
     Ok(())
 }
 
+/// Make a directory and every directory above it.
+///
+/// **`CreateDir` makes one level only.** Handing it `AROS:Burntime/saves`
+/// when `AROS:Burntime` does not exist fails with dos error 205,
+/// `ERROR_OBJECT_NOT_FOUND` — which reads like a missing file and is
+/// really a missing parent.
+pub fn create_dir_all(path: &str) -> Result<(), Error> {
+    if path.is_empty() || path.len() >= MAX_PATH {
+        return Err(Error { what: What::BadPath, code: 0 });
+    }
+    // Everything up to and including the colon is the volume, and volumes
+    // are not made here.
+    let after_volume = path.find(':').map_or(0, |i| i + 1);
+    let bytes = path.as_bytes();
+
+    let mut at = after_volume;
+    while at < bytes.len() {
+        let Some(offset) = bytes[at..].iter().position(|&b| b == b'/') else { break };
+        let cut = at + offset;
+        // `AROS:/x` and `a//b` have empty components; there is nothing to
+        // make for those.
+        if cut > after_volume {
+            create_dir(&path[..cut])?;
+        }
+        at = cut + 1;
+    }
+    // A path ending in a separator has already been made by the loop.
+    if at < bytes.len() {
+        create_dir(path)?;
+    }
+    Ok(())
+}
+
 fn exists_dir(path: &str) -> bool {
     let Ok(cpath) = CPath::new(path) else { return false };
     let lock = unsafe { sys::Lock(cpath.as_ptr(), sys::SHARED_LOCK) };
