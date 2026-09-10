@@ -27,6 +27,7 @@ extern crate alloc;
 
 pub mod args;
 pub mod exec;
+pub mod fs;
 pub mod print;
 pub mod sys;
 
