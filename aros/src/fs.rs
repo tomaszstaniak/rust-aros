@@ -269,13 +269,23 @@ fn exists_dir(path: &str) -> bool {
 /// requires that — close it, move the old file aside, move the new one in,
 /// and only then drop the old one.
 ///
-/// What that does and does not buy, said plainly: **a failure at any step
-/// leaves a complete copy of the previous save on disk**, as either the real
-/// file or the `.bak` beside it. What it cannot promise is that the real
-/// name always exists — between moving the old aside and the new one in
-/// there is a window where it does not, and a machine that dies inside it
-/// leaves the previous save under `.bak`. Recovering that is the caller's
-/// business, and it is a smaller problem than a half-written save.
+/// **What this does and does not buy, narrowly.** Against the failures it
+/// can see — a full disk, a refused open, a write or close that reports an
+/// error — the previous save survives, as either the real file or the
+/// `.bak` beside it, and the error says so. It also survives the process
+/// going away between steps, because each step is a whole operation.
+///
+/// It is **not** crash safety. Nothing here orders writes against the
+/// filesystem's own caching or asks it to commit, so a power cut or a
+/// kernel that dies mid-operation can leave any of these files short or
+/// absent. Getting further than this would need guarantees from the
+/// filesystem that we have not established for SFS, and claiming them
+/// without would be worse than not having them.
+///
+/// The one thing a caller must do: **when the real name is missing and a
+/// `.bak` is beside it, say so.** That is a save interrupted between the
+/// two moves, and the previous game is sitting right there under a name
+/// nobody will look for on their own.
 pub fn replace(path: &str, data: &[u8]) -> Result<(), Error> {
     let mut tmp = PathBuf::new(path)?;
     tmp.push(".new")?;

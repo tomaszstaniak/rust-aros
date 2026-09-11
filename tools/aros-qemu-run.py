@@ -123,17 +123,24 @@ class Qmp:
                 die(f"cannot type {c!r} - rename the binary to plain ASCII")
 
 
-def build_iso(binary, workdir):
+def build_iso(binary, workdir, extra=()):
     """Wrap the binary in an ISO the guest can mount.
 
     Two ISO paths are used in turn: QEMU keeps the inserted medium open, so
     the new image must never be the file currently in the drive.
+
+    `extra` names further files to carry alongside it. The reason this
+    exists: the guest's Shell truncates a typed command at about 255
+    characters, so anything longer than that has to arrive as a file rather
+    than as arguments.
     """
     stage = os.path.join(workdir, "stage")
     if os.path.isdir(stage):
         shutil.rmtree(stage)
     os.makedirs(stage)
     shutil.copy2(binary, stage)
+    for path in extra:
+        shutil.copy2(path, stage)
 
     marker = os.path.join(workdir, "current")
     previous = ""
@@ -231,6 +238,26 @@ def main():
     # arguments can be told what to do without being rebuilt.
     program_args = sys.argv[2:]
 
+    # `--carry <path>` puts a further file on the disc beside the binary and
+    # rewrites the argument to name it as the guest will see it. The guest's
+    # Shell truncates a typed command at about 255 characters, so a long
+    # script has to travel as a file; this is how it gets there.
+    carry = []
+    cleaned = []
+    i = 0
+    while i < len(program_args):
+        if program_args[i] == "--carry" and i + 1 < len(program_args):
+            path = program_args[i + 1]
+            if not os.path.exists(path):
+                die(f"--carry: no such file: {path}")
+            carry.append(path)
+            cleaned.append("AMIDEV:" + os.path.basename(path))
+            i += 2
+            continue
+        cleaned.append(program_args[i])
+        i += 1
+    program_args = cleaned
+
     for path, what in ((MONITOR, "monitor"), (QMP, "QMP")):
         if not os.path.exists(path):
             die(f"no QEMU {what} socket at {path} - is the AROS machine running?")
@@ -238,7 +265,7 @@ def main():
     # Keep the ISO on disk: QEMU holds the file open while the medium is in.
     workdir = os.path.join(tempfile.gettempdir(), "aros-run")
     os.makedirs(workdir, exist_ok=True)
-    iso = build_iso(binary, workdir)
+    iso = build_iso(binary, workdir, carry)
 
     # AROS keeps serving the old disc unless it sees a real eject first.
     monitor_cmd(f"eject -f {CD}")
