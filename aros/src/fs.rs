@@ -36,6 +36,8 @@ pub enum What {
     CreateDir,
     /// `Lock`, `Examine` or `ExNext` on a directory.
     ReadDir,
+    /// The path is there, but it is a file.
+    NotADirectory,
     /// The path is longer than [`MAX_PATH`], or holds a zero byte.
     BadPath,
     /// The file is larger than the caller allowed for.
@@ -299,8 +301,15 @@ pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), E
     const NAME: usize = KEY + 4;
     const NAME_MAX: usize = 108;
     let mut result = Ok(());
+    let entry_type = |fib: *mut u8| unsafe { core::ptr::read_unaligned(fib.add(KEY) as *const i32) };
     if unsafe { sys::Examine(lock, fib) } == 0 {
         result = Err(err(What::ReadDir));
+    } else if entry_type(fib) <= 0 {
+        // **Not a directory.** `ExNext` on a file's lock is not an empty
+        // walk: it hands back entries, and on AROS One they are another
+        // directory's. Measured 2026-09-20 with `saves` pointing at a file:
+        // the page filled with saves from a drive nobody had asked about.
+        result = Err(Error { what: What::NotADirectory, code: 0 });
     } else {
         loop {
             if unsafe { sys::ExNext(lock, fib) } == 0 {
@@ -310,10 +319,8 @@ pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), E
                 }
                 break;
             }
-            let (kind, name) = unsafe {
-                let kind = core::ptr::read_unaligned(fib.add(KEY) as *const i32);
-                (kind, core::slice::from_raw_parts(fib.add(NAME), NAME_MAX))
-            };
+            let kind = entry_type(fib);
+            let name = unsafe { core::slice::from_raw_parts(fib.add(NAME), NAME_MAX) };
             let len = name.iter().position(|&b| b == 0).unwrap_or(NAME_MAX);
             if let Ok(name) = core::str::from_utf8(&name[..len]) {
                 // `fib_DirEntryType`: above zero a directory, below a file.
