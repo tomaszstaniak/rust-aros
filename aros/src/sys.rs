@@ -47,6 +47,10 @@ extern "C" {
     pub fn AllocMem(size: u64, requirements: u64) -> *mut u8;
     #[link_name = "aros_glue_FreeMem"]
     pub fn FreeMem(mem: *mut u8, size: u64);
+    /// Set this process's `pr_WindowPtr` and return what it was. `-1`
+    /// turns dos.library's "please insert volume" requester into an error.
+    #[link_name = "aros_glue_set_window_ptr"]
+    pub fn SetWindowPtr(ptr: *mut c_void) -> *mut c_void;
 }
 
 /// `DOS_FIB`: `AllocDosObject` makes a `FileInfoBlock`.

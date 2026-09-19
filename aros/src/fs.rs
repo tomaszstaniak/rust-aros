@@ -252,6 +252,21 @@ pub fn create_dir_all(path: &str) -> Result<(), Error> {
     Ok(())
 }
 
+/// dos.library's requesters, off while this is alive.
+struct Quiet(*mut core::ffi::c_void);
+
+impl Quiet {
+    fn new() -> Quiet {
+        Quiet(unsafe { sys::SetWindowPtr(usize::MAX as *mut core::ffi::c_void) })
+    }
+}
+
+impl Drop for Quiet {
+    fn drop(&mut self) {
+        unsafe { sys::SetWindowPtr(self.0) };
+    }
+}
+
 /// Every entry of the directory at `path`: its name, and whether it is a
 /// directory itself — in the order the filesystem hands them out, which is
 /// no order at all. `dos.library`'s own walk: `Lock`, `Examine`, then
@@ -262,10 +277,15 @@ pub fn create_dir_all(path: &str) -> Result<(), Error> {
 /// skipped rather than handed over mangled.
 pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), Error> {
     let cpath = CPath::new(path)?;
+    // A volume that is not mounted otherwise puts up "Please insert volume
+    // X in any drive" and waits for somebody to answer it — a program
+    // reading a directory wants the error instead.
+    let quiet = Quiet::new();
     let lock = unsafe { sys::Lock(cpath.as_ptr(), sys::SHARED_LOCK) };
     if lock == 0 {
         return Err(err(What::ReadDir));
     }
+    drop(quiet);
     // Allocated by dos.library so that its size and alignment are the ones
     // this build of it expects (`FileInfoBlock32` or `64`). Both begin with
     // `IPTR fib_DiskKey; LONG fib_DirEntryType; UBYTE fib_FileName[108];`
