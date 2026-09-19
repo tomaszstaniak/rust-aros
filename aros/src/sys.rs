@@ -29,6 +29,14 @@ extern "C" {
     pub fn CreateDir(name: *const u8) -> i64;
     pub fn Lock(name: *const u8, access_mode: i32) -> i64;
     pub fn UnLock(lock: i64);
+    /// Fill `fib` with what `lock` is; for a directory, the start of a walk
+    /// that [`ExNext`] continues. Zero is failure.
+    pub fn Examine(lock: i64, fib: *mut u8) -> i32;
+    /// The next entry of the directory `Examine` began with; zero at the
+    /// end, when `IoErr()` is `ERROR_NO_MORE_ENTRIES`, or on failure.
+    pub fn ExNext(lock: i64, fib: *mut u8) -> i32;
+    pub fn AllocDosObject(kind: u32, tags: *const c_void) -> *mut u8;
+    pub fn FreeDosObject(kind: u32, ptr: *mut u8);
     pub fn IoErr() -> i64;
 
     // --- exec.library -------------------------------------------------------
@@ -40,6 +48,11 @@ extern "C" {
     #[link_name = "aros_glue_FreeMem"]
     pub fn FreeMem(mem: *mut u8, size: u64);
 }
+
+/// `DOS_FIB`: `AllocDosObject` makes a `FileInfoBlock`.
+pub const DOS_FIB: u32 = 2;
+/// `ERROR_NO_MORE_ENTRIES`: `ExNext` has walked the whole directory.
+pub const ERROR_NO_MORE_ENTRIES: i64 = 232;
 
 /// `SHARED_LOCK`: look, do not change.
 pub const SHARED_LOCK: i32 = -2;

@@ -34,6 +34,8 @@ pub enum What {
     Rename,
     Delete,
     CreateDir,
+    /// `Lock`, `Examine` or `ExNext` on a directory.
+    ReadDir,
     /// The path is longer than [`MAX_PATH`], or holds a zero byte.
     BadPath,
     /// The file is larger than the caller allowed for.
@@ -248,6 +250,62 @@ pub fn create_dir_all(path: &str) -> Result<(), Error> {
         create_dir(path)?;
     }
     Ok(())
+}
+
+/// Every entry of the directory at `path`: its name, and whether it is a
+/// directory itself — in the order the filesystem hands them out, which is
+/// no order at all. `dos.library`'s own walk: `Lock`, `Examine`, then
+/// `ExNext` until `ERROR_NO_MORE_ENTRIES`.
+///
+/// A callback rather than a list so that this module still needs no
+/// allocator. A name longer than the block holds, or that is not UTF-8, is
+/// skipped rather than handed over mangled.
+pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), Error> {
+    let cpath = CPath::new(path)?;
+    let lock = unsafe { sys::Lock(cpath.as_ptr(), sys::SHARED_LOCK) };
+    if lock == 0 {
+        return Err(err(What::ReadDir));
+    }
+    // Allocated by dos.library so that its size and alignment are the ones
+    // this build of it expects (`FileInfoBlock32` or `64`). Both begin with
+    // `IPTR fib_DiskKey; LONG fib_DirEntryType; UBYTE fib_FileName[108];`
+    // and those are the only fields read.
+    let fib = unsafe { sys::AllocDosObject(sys::DOS_FIB, core::ptr::null()) };
+    if fib.is_null() {
+        unsafe { sys::UnLock(lock) };
+        return Err(err(What::ReadDir));
+    }
+    const KEY: usize = core::mem::size_of::<usize>();
+    const NAME: usize = KEY + 4;
+    const NAME_MAX: usize = 108;
+    let mut result = Ok(());
+    if unsafe { sys::Examine(lock, fib) } == 0 {
+        result = Err(err(What::ReadDir));
+    } else {
+        loop {
+            if unsafe { sys::ExNext(lock, fib) } == 0 {
+                let code = unsafe { sys::IoErr() };
+                if code != sys::ERROR_NO_MORE_ENTRIES {
+                    result = Err(Error { what: What::ReadDir, code });
+                }
+                break;
+            }
+            let (kind, name) = unsafe {
+                let kind = core::ptr::read_unaligned(fib.add(KEY) as *const i32);
+                (kind, core::slice::from_raw_parts(fib.add(NAME), NAME_MAX))
+            };
+            let len = name.iter().position(|&b| b == 0).unwrap_or(NAME_MAX);
+            if let Ok(name) = core::str::from_utf8(&name[..len]) {
+                // `fib_DirEntryType`: above zero a directory, below a file.
+                f(name, kind > 0);
+            }
+        }
+    }
+    unsafe {
+        sys::FreeDosObject(sys::DOS_FIB, fib);
+        sys::UnLock(lock);
+    }
+    result
 }
 
 fn exists_dir(path: &str) -> bool {
