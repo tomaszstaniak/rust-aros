@@ -285,6 +285,9 @@ pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), E
     let quiet = Quiet::new();
     let lock = unsafe { sys::Lock(cpath.as_ptr(), sys::SHARED_LOCK) };
     if lock == 0 {
+        // `quiet` is dropped here too, and puts the old `pr_WindowPtr`
+        // back: a failed read must not leave the process unable to ask
+        // the user anything ever again. `err` reads `IoErr()` before it.
         return Err(err(What::ReadDir));
     }
     drop(quiet);
@@ -335,9 +338,22 @@ pub fn for_each_entry(path: &str, mut f: impl FnMut(&str, bool)) -> Result<(), E
     result
 }
 
+/// Whether the path can be locked at all — a directory, a volume, a file.
+///
+/// A caller that got [`What::ReadDir`] uses it on the parent to tell "there
+/// is no such directory yet" from "that volume is not there": the first is
+/// an empty answer, the second is a failure.
+pub fn can_lock(path: &str) -> bool {
+    exists_dir(path)
+}
+
 fn exists_dir(path: &str) -> bool {
     let Ok(cpath) = CPath::new(path) else { return false };
+    // Quiet for the same reason as the walk: an unmounted volume must come
+    // back as "no" rather than as a requester.
+    let quiet = Quiet::new();
     let lock = unsafe { sys::Lock(cpath.as_ptr(), sys::SHARED_LOCK) };
+    drop(quiet);
     if lock == 0 {
         return false;
     }
