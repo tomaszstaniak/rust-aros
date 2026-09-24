@@ -70,6 +70,23 @@ bsdsocket has no `getaddrinfo`), the `*at()` family for `AT_FDCWD`, `poll` over
 `WaitSelect` (sockets only), `pread`/`pwrite`/`readv`, `strerror_r`, and
 ENOSYS stubs for `chroot`, `mkfifo`, `setpgid`, `setgroups`, `socketpair`.
 
+`bsdsocket.library` is optional. `compat.c` defines `SocketBase` itself and
+opens the library at startup without insisting: referencing the SDK's
+`SocketBase` pulls `net.lib`'s autoinit, which shows "Unable to open
+bsdsocket.library version 4 or later" and exits, so every std program needed
+a running TCP/IP stack just to start. Without a stack, socket calls now fail
+with `ENETDOWN`. A stack started after the program is not picked up.
+
+`libc-aros` links `crt` before `net` for the same reason: `net.lib` has its
+own `strerror`, which asks `bsdsocket.library` through `SocketBase` and
+crashes when it is NULL. With `crt` first, formatting an `io::Error` works
+without a stack.
+
+`std-net-std` tests this path (`std::net::TcpStream` only, so sockets go
+through `compat.c`; `net-test` links its own glue and does not). On ABIv11,
+2026-09-24: without a stack it reports `Network is down (os error 50)` and
+exits normally; with AROSTCP running it fetches a page over HTTP.
+
 `fork` is `vfork`, bound **directly** to `__vfork_CrtBase_wrapper`. It cannot
 go through a C wrapper: vfork returns twice into the same stack frame, and a
 wrapper that returns leaves the child running on a frame the parent already

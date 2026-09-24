@@ -29,6 +29,10 @@ fn main() {
     assert!(Command::new(&ar).args(["rcs", &format!("{out}/libaroscompat.a"), &obj]).status().unwrap().success());
     println!("cargo:rustc-link-search=native={out}");
     println!("cargo:rustc-link-lib=static=aroscompat");
+    // crt before net: net.lib has its own strerror, which asks
+    // bsdsocket.library through SocketBase and crashes when that is NULL
+    // (no TCP/IP stack). Listed first, crt's strerror satisfies the symbol.
+    println!("cargo:rustc-link-lib=crt");
     println!("cargo:rustc-link-lib=net");
     println!("cargo:rustc-link-lib=pthread");
     println!("cargo:rerun-if-changed=csrc/compat.c");

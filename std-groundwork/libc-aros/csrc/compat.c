@@ -23,6 +23,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <proto/bsdsocket.h>
+#include <bsdsocket/socketbasetags.h>
+#include <aros/symbolsets.h>
 #include <proto/dos.h>
 #include <proto/exec.h>
 #include <arpa/inet.h>
@@ -31,6 +33,36 @@
 #define ENOSYS_RET  do { errno = ENOSYS; return -1; } while (0)
 
 /* --- sockets ------------------------------------------------------------ */
+/* SocketBase is defined here, not taken from the SDK's net.lib: referencing
+ * it there pulls in net.lib's autoinit, which puts up "Unable to open
+ * bsdsocket.library" and exits when no TCP/IP stack is running. That stopped
+ * every std program at startup, network or not. Here the library is opened
+ * the same way at startup but is optional: without it SocketBase stays NULL
+ * and the socket calls below fail with ENETDOWN. A stack started after the
+ * program is not picked up. */
+struct Library *SocketBase = NULL;
+extern STRPTR _ProgramName;
+
+static ULONG rs_open_sockets(void)
+{
+    if ((SocketBase = OpenLibrary("bsdsocket.library", 4)) != NULL)
+        SocketBaseTags(SBTM_SETVAL(SBTC_ERRNOPTR(sizeof(errno))), (IPTR)&errno,
+                       SBTM_SETVAL(SBTC_LOGTAGPTR), (IPTR)_ProgramName,
+                       TAG_END);
+    return TRUE;
+}
+
+static void rs_close_sockets(void)
+{
+    if (SocketBase) {
+        CloseLibrary(SocketBase);
+        SocketBase = NULL;
+    }
+}
+
+ADD2INIT(rs_open_sockets, 10);
+ADD2EXIT(rs_close_sockets, 10);
+
 static int sockerr(int r) { if (r < 0) errno = Errno(); return r; }
 static long sockerrl(long r) { if (r < 0) errno = Errno(); return r; }
 #define NEEDSOCK if (!SocketBase) { errno = ENETDOWN; return -1; }
