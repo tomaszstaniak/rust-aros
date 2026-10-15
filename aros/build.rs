@@ -21,6 +21,7 @@ fn main() {
     println!("cargo:rerun-if-changed=csrc/execglue.c");
     println!("cargo:rerun-if-env-changed=AROS_GCC");
     println!("cargo:rerun-if-env-changed=AROS_SDK");
+    println!("cargo:rerun-if-env-changed=AROS_AR");
 
     let gcc = require("AROS_GCC", "the AROS cross compiler, e.g. .../x86_64-aros-gcc");
     let sysroot = require("AROS_SDK", "the AROS SDK directory");
@@ -37,7 +38,11 @@ fn main() {
         .unwrap_or_else(|e| panic!("could not run {gcc}: {e}"));
     assert!(status.success(), "execglue.c failed to compile with {gcc}");
 
-    let ar = gcc.replace("gcc", "ar");
+    let ar = env::var("AROS_AR").unwrap_or_else(|_| {
+        let prefix = gcc.strip_suffix("gcc")
+            .expect("set AROS_AR explicitly when AROS_GCC is not a gcc driver");
+        format!("{prefix}ar")
+    });
     let status = Command::new(&ar)
         .args(["rcs", &format!("{out}/libarosexecglue.a"), &obj])
         .status()

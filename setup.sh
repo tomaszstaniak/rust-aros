@@ -3,6 +3,7 @@
 #
 # Finds the AROS cross toolchain and SDK, or takes them from the environment:
 #   AROS_GCC   path to x86_64-aros-gcc
+#   AROS_AR    optional explicit archiver (required for non-gcc drivers)
 #   AROS_SDK   path to the SDK (the directory holding include/ and lib/)
 set -e
 cd "$(dirname "$0")"
@@ -40,6 +41,18 @@ if [ -z "$SDK" ] || [ ! -d "$SDK/include" ] || [ ! -d "$SDK/lib" ]; then
     echo "       Run: AROS_SDK=/path/to/sdk ./setup.sh" >&2
     exit 1
 fi
+
+# Keep compiler and archiver selection explicit for wrapper/Clang toolchains.
+AR=${AROS_AR:-}
+if [ -z "$AR" ]; then
+    case "$GCC" in
+        *gcc) AR="${GCC%gcc}ar" ;;
+        *) echo "setup: set AROS_AR for a compiler not named *gcc" >&2; exit 1 ;;
+    esac
+fi
+case "$AR" in /*) ;; *) AR=$(command -v "$AR") ;; esac
+case "$AR" in /*) ;; *) AR=$(cd "$(dirname "$AR")" && pwd)/$(basename "$AR") ;; esac
+[ -x "$AR" ] || { echo "setup: archiver is not executable: $AR" >&2; exit 1; }
 
 # Which way this SDK splits its C library. AROS One 1.3 puts everything in
 # libcrt.a, which gcc links by default; mainline splits it into libstdc
@@ -82,6 +95,7 @@ fi
     echo '[env]'
     echo "AROS_GCC = \"$GCC\""
     echo "AROS_SDK = \"$SDK\""
+    echo "AROS_AR = \"$AR\""
     echo
     echo '[build]'
     printf 'rustflags = ['
@@ -99,4 +113,4 @@ echo "setup: SDK       $SDK"
 echo "setup: profile   $PROFILE"
 echo "setup: wrote     x86_64-aros.json, aros-env.toml"
 echo
-echo "Next:  cd template && cargo +nightly build --release"
+echo "Next:  cd template && cargo +nightly-2026-08-31 build --release"

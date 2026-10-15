@@ -15,8 +15,10 @@ not exclusively Tokio, and its GPUI backend is a separate platform project.
 
 ## Completed first M0 slice
 
-- Work is isolated in `AROS/local/rust-aros-renewal`, a local clone of the
-  original checkout. Consumers in AROS-dev are unchanged.
+- Active work is in the original `AROS-dev/rust-aros`, branch
+  `codex/rust-renewal-m0`. The first commit was transferred from the temporary
+  local clone after obtaining write permission. That clone is no longer the
+  active source. Shared sysroots remain unchanged.
 - The std installer requires a new destination and a new local rustup name.
   It rejects shared names, existing destinations (including dangling links),
   registered names and compiler mismatches; failed construction is cleaned up.
@@ -26,7 +28,8 @@ not exclusively Tokio, and its GPUI backend is a separate platform project.
 - Wrapper paths are shell-quoted as literal data. The review finding was
   reproduced by a failing argv test and fixed; tests also cover literal
   metacharacters in the base executable path.
-- Eleven host installer tests pass. Run `python3 -m unittest discover -s tests -v`.
+- Fifteen host tests pass (eleven installer tests and four C-build/setup
+  tests). Run `python3 -m unittest discover -s tests -v`.
 - Existing no_std template and std-hello built offline. std-hello also built
   from a new isolated sysroot; serde's host proc macro compiled in that build.
 - Both binaries executed on v11-1 with exit status 0. See
@@ -38,9 +41,15 @@ under AROS/local. No registration replaces the shared toolchain.
 
 ## Next acceptance criteria
 
+The C build scripts now use explicit AROS_GCC/AROS_SDK, track environment
+changes, and accept AROS_AR. The GCC fallback replaces only the executable
+suffix, not occurrences in parent paths. setup.sh persists the chosen archiver.
+A real offline v11 libc-test compile/link passed in the original checkout; this
+new binary was not executed in the guest.
+
 M0 remains open: centralize explicit per-profile configuration (compiler,
-archiver, SDK, target, sysroot and build output), fix libc-aros's stale TARGET
-JSON parsing and hardcoded C-library choice, and exercise threads, processes and
+archiver, SDK, target, sysroot and build output), remove libc-aros's
+hardcoded C-library choice, and exercise threads, processes and
 network-up/down cases on an explicitly matched v11 SDK/guest. The fresh run here
 used the older AROS One v11 profile, not the 2026.09 release profile.
 

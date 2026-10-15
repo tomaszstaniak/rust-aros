@@ -59,6 +59,11 @@ it. If it guesses wrong, tell it:
 AROS_GCC=/path/to/x86_64-aros-gcc AROS_SDK=/path/to/sdk ./setup.sh
 ```
 
+For a compiler wrapper or a non-GCC driver, also set `AROS_AR` to the matching
+archiver. `setup.sh` records all three paths for the C glue build scripts. For a
+GCC driver, the default archiver is the same path with only its final `gcc`
+suffix replaced by `ar`.
+
 The result, `target/x86_64-aros/release/hello-aros`, is an ordinary AROS
 executable: copy it to your AROS machine and run it from a Shell.
 
