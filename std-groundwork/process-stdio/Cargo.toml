@@ -8,3 +8,6 @@ panic = "abort"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("aros"))'] }
+
+[dependencies]
+aros-lsp-transport = { path = "../../transport" }

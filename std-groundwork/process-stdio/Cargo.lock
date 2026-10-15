@@ -3,5 +3,12 @@
 version = 4
 
 [[package]]
+name = "aros-lsp-transport"
+version = "0.1.0"
+
+[[package]]
 name = "process-stdio"
 version = "0.1.0"
+dependencies = [
+ "aros-lsp-transport",
+]

@@ -1,0 +1,6 @@
+[package]
+name = "aros-lsp-transport"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Bounded blocking Content-Length transport with explicit DOS pipe read policy"
