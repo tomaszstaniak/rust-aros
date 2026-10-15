@@ -1,0 +1,11 @@
+SEND {"id":1,"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{},"processId":null,"rootUri":null}}
+RECV {"id":1,"jsonrpc":"2.0","result":{"capabilities":{"callHierarchyProvider":true,"codeActionProvider":{"codeActionKinds":["quickfix","refactor.rewrite","refactor.inline"],"resolveProvider":false},"codeLensProvider":{"resolveProvider":true},"completionProvider":{"allCommitCharacters":[")"],"triggerCharacters":["$","(","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9",".","@"]},"declarationProvider":true,"definitionProvider":true,"diagnosticProvider":{"identifier":"wat","interFileDependencies":false,"workspaceDiagnostics":false},"documentFormattingProvider":true,"documentHighlightProvider":true,"documentRangeFormattingProvider":{"rangesSupport":true},"documentSymbolProvider":true,"executeCommandProvider":{"commands":["wasmLanguageTools.__generateControlFlowGraphDot"]},"foldingRangeProvider":true,"hoverProvider":true,"inlayHintProvider":true,"referencesProvider":true,"renameProvider":{"prepareProvider":true},"selectionRangeProvider":true,"semanticTokensProvider":{"full":true,"legend":{"tokenModifiers":["mutable"],"tokenTypes":[]},"range":true},"signatureHelpProvider":{"triggerCharacters":["(",")"]},"textDocumentSync":{"change":2,"openClose":true,"save":false,"willSave":false,"willSaveWaitUntil":false},"typeDefinitionProvider":true,"typeHierarchyProvider":true},"serverInfo":{"name":"WebAssembly Language Tools","version":"0.11.0"}}}
+SEND {"jsonrpc":"2.0","method":"initialized","params":{}}
+SEND {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"languageId":"wat","text":"(module (func (result i32) i32.const))","uri":"file:///acceptance.wat","version":1}}}
+SEND {"jsonrpc":"2.0","method":"exit","params":null}
+SERVER_STATUS exit status: 20; STDERR_BYTES 322
+SERVER_STDERR 
+thread 'main' (1) panicked at /Users/tumash/Work/AROS/local/rust-aros-cargo/registry/src/index.crates.io-1949cf8c6b5b557f/salsa-0.28.1/src/zalsa.rs:372:32:
+ingredient `salsa::input::JarImpl<wat_service::document::Document>` was not registered
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+

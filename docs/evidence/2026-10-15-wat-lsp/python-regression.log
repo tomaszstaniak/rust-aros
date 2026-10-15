@@ -1,0 +1,28 @@
+test_explicit_tools_and_sdk_are_used (test_build_scripts.BuildScripts.test_explicit_tools_and_sdk_are_used) ... ok
+test_missing_compiler_fails_before_tools_run (test_build_scripts.BuildScripts.test_missing_compiler_fails_before_tools_run) ... ok
+test_setup_records_explicit_archiver (test_build_scripts.BuildScripts.test_setup_records_explicit_archiver) ... ok
+test_setup_resolves_relative_archiver (test_build_scripts.BuildScripts.test_setup_resolves_relative_archiver) ... ok
+test_aros_selects_fcntl_and_other_targets_are_preserved (test_cloexec_patch.CloexecPatch.test_aros_selects_fcntl_and_other_targets_are_preserved) ... ok
+test_changed_cfg_layout_is_rejected (test_cloexec_patch.CloexecPatch.test_changed_cfg_layout_is_rejected) ... ok
+test_posix_contract_and_source_failures (test_entropy.EntropyContract.test_posix_contract_and_source_failures) ... ok
+test_empty_arguments_and_error_contract (test_exec_adapter.ExecAdapter.test_empty_arguments_and_error_contract) ... ok
+test_chunking_and_mid_request_failure (test_getrandom_backend.GetrandomBackend.test_chunking_and_mid_request_failure) ... ok
+test_payload_has_execute_permissions_and_guest_protection_step (test_process_payload.ProcessPayload.test_payload_has_execute_permissions_and_guest_protection_step) ... ok
+test_prefix_cannot_inject_shell_commands (test_process_payload.ProcessPayload.test_prefix_cannot_inject_shell_commands) ... ok
+test_base_wrapper_preserves_literal_shell_characters (test_std_toolchain.InstallerTests.test_base_wrapper_preserves_literal_shell_characters) ... ok
+test_builds_named_toolchain_with_spaces_and_refuses_rerun (test_std_toolchain.InstallerTests.test_builds_named_toolchain_with_spaces_and_refuses_rerun) ... ok
+test_link_failure_cleans_new_destination (test_std_toolchain.InstallerTests.test_link_failure_cleans_new_destination) ... ok
+test_patch_failure_cleans_only_new_destination (test_std_toolchain.InstallerTests.test_patch_failure_cleans_only_new_destination) ... ok
+test_refuses_dangling_destination_symlink (test_std_toolchain.InstallerTests.test_refuses_dangling_destination_symlink) ... ok
+test_refuses_existing_destination_without_changing_it (test_std_toolchain.InstallerTests.test_refuses_existing_destination_without_changing_it) ... ok
+test_refuses_registered_name (test_std_toolchain.InstallerTests.test_refuses_registered_name) ... ok
+test_refuses_shared_name (test_std_toolchain.InstallerTests.test_refuses_shared_name) ... ok
+test_requires_destination_and_name (test_std_toolchain.InstallerTests.test_requires_destination_and_name) ... ok
+test_wrapper_preserves_literal_shell_characters (test_std_toolchain.InstallerTests.test_wrapper_preserves_literal_shell_characters) ... ok
+test_wrong_compiler_does_not_create_destination (test_std_toolchain.InstallerTests.test_wrong_compiler_does_not_create_destination) ... ok
+test_aros_exit_status_contract (test_wait_status.WaitStatus.test_aros_exit_status_contract) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 4.954s
+
+OK

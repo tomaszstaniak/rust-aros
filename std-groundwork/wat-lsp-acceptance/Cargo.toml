@@ -1,0 +1,12 @@
+[package]
+name = "wat-lsp-acceptance"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aros-lsp-transport = { path = "../../transport" }
+inventory = "=0.3.24"
+serde_json = "=1.0.150"
+
+[profile.release]
+panic = "abort"

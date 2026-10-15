@@ -1,0 +1,5 @@
+Directory "RAM:wl" on Thursday 10/15/26:
+lsp-check                2348704 ---rwed Today       17:57:58
+run-tests                    285 ---rw-d Today       17:58:16
+wat-server               9210992 ---rwed Today       17:57:22
+3 files - 22580 blocks used

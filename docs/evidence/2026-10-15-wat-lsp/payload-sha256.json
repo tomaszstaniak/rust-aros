@@ -1,0 +1,38 @@
+[
+  {
+    "run": "01",
+    "file": "wat-server",
+    "bytes": 9210992,
+    "sha256": "fbdc44ba603de647b350bdfed89c38038954dca276a0c09991e5e956beaee5fd"
+  },
+  {
+    "run": "01",
+    "file": "lsp-check",
+    "bytes": 2348704,
+    "sha256": "703b76a1c079b8bc1d926281658d99978a8bc32c4429a75b20f2d2522b52334b"
+  },
+  {
+    "run": "01",
+    "file": "run-tests",
+    "bytes": 285,
+    "sha256": "9bd01673cf69bd97bcee6f6a512b00a453058950207c16b37e74da37c6e69900"
+  },
+  {
+    "run": "02",
+    "file": "wat-server",
+    "bytes": 9194664,
+    "sha256": "2738ea9be76a299851c1d3869732f44114f6a73ca4af0db250de36046a1d26e5"
+  },
+  {
+    "run": "02",
+    "file": "lsp-check",
+    "bytes": 2346320,
+    "sha256": "d499fd5c9a4d40b5428801abb6c727120e9489e15229f389b52b62cf08e202d4"
+  },
+  {
+    "run": "02",
+    "file": "run-tests",
+    "bytes": 285,
+    "sha256": "4fba0fdf1c7dfac9df2da49f1b987642f4a6968d2129b3715322bf5320c02c36"
+  }
+]

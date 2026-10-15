@@ -119,8 +119,42 @@ integration test with 12 host process cases pass. New isolated production
 toolchain: aros-exec-20261015. Shared sysroots are unchanged.
 See [corrected scoped evidence](evidence/2026-10-15-process-exec/REPORT.md).
 
-Next: provide a reusable framed transport with an explicit small-read policy
-and error/EOF ownership, then test a real pinned language server. General
+The reusable transport and real pinned language-server slice is now accepted
+below. General
 buffered stdio on DOS PIPE needs its own runtime design. Keep cancellation,
 process signals, general PATH/environment/cwd behavior, v11 2026.09, v1 and
 arm64/Macaros as separate unaccepted criteria.
+
+
+## Reusable transport and real language server (2026-10-15)
+
+aros-lsp-transport now provides bounded Content-Length frames, explicit Buffered
+and DosPipe policies, clean EOF, terminal error state, partial-write completion
+and per-frame flush. Seven host tests pass; process-stdio reuses the parser and
+retains its five framing tests and 12-case process integration. Python
+regressions remain 23/23 passing.
+
+A pinned upstream wat_server 0.11.0 now runs natively on the matched older
+x86_64 ABIv11 profile. Actual acceptance passes pre-main inventory registration,
+initialize, invalid WAT diagnostics, Unicode document repair and diagnostic
+clearing, formatting edits interpreted with UTF-16 positions, document symbols
+handled by worker threads, shutdown, EOF, successful child wait and joined empty
+stderr. The same client passes against original and patched host servers.
+
+The first native run exposed inventory's missing AROS constructor cfg: Salsa
+panicked on an unregistered document ingredient. A checksum-pinned, versioned
+patch selects .ctors for x86_64 AROS, matching GCC 10.5. Sources in the upstream
+export and Cargo registry remain untouched; dependency preparation is atomic
+and verifies patched contents on reuse. Application dependencies explicitly use
+libc-aros, not the unsupported crates.io libc target.
+
+See [scoped evidence](evidence/2026-10-15-wat-lsp/REPORT.md) and
+[reproduction](../ports/wat-server/README.md). This is real synchronous LSP
+functionality on v11, using the explicit DosPipe workaround. It does not close
+general buffered PIPE, cancellation/signals, async I/O, filesystem watching,
+rust-analyzer, Zed/GPUI, newer v11 profiles, v1 or arm64/Macaros acceptance.
+
+Next: promote this tested build/profile wiring beyond the WAT recipe, then
+accept concurrent request/cancellation behavior and a consumer requiring async
+readiness. Keep hosted arm64 blocked on a working Macaros environment rather
+than treating cross-linking as runtime evidence.

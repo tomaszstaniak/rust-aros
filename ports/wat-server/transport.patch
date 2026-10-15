@@ -1,0 +1,107 @@
+# AROS v11: explicit DOS-pipe framing; retain upstream language analysis.
+# Pinned upstream: 428f74da7fcb85d2fca9bd9828f5ff7434c19af8 (MIT).
+--- a/crates/server/src/server.rs
++++ b/crates/server/src/server.rs
+@@ -25,7 +25,7 @@
+ };
+ use parking_lot::RwLock;
+ use rustc_hash::FxHashMap;
+-use std::{io::StdinLock, sync::Arc};
++use std::sync::Arc;
+ use wat_service::{CancellationToken, LanguageService};
+ 
+ pub struct Server {
+@@ -54,14 +54,14 @@
+     }
+ 
+     pub fn run(&mut self) -> anyhow::Result<()> {
+-        let mut stdin = std::io::stdin().lock();
++        let mut stdin = stdio::input();
+         self.initialize(&mut stdin)?;
+ 
+         loop {
+             let message = match stdio::read(&mut stdin) {
+                 Ok(Some(message)) => message,
+                 Ok(None) => return Ok(()),
+-                _ => continue,
++                Err(error) => return Err(error),
+             };
+             match message {
+                 Message::Request { id, method, params } => {
+@@ -152,7 +152,7 @@
+         }
+     }
+ 
+-    fn initialize(&mut self, stdin: &mut StdinLock) -> anyhow::Result<()> {
++    fn initialize(&mut self, stdin: &mut stdio::Input) -> anyhow::Result<()> {
+         let (id, params) = match stdio::read(stdin) {
+             Ok(Some(Message::Request { id, method, params })) if method == "initialize" => {
+                 (id, serde_json::from_value::<InitializeParams>(params)?)
+--- a/crates/server/src/stdio.rs
++++ b/crates/server/src/stdio.rs
+@@ -1,38 +1,37 @@
+ use crate::message::Message;
+ use anyhow::Result;
+-use log::debug;
+-use std::io::{BufRead, Read, StdinLock, Write};
++use aros_lsp_transport::{FrameReader, FrameWriter, ReadPolicy};
+ 
+-pub fn read(stdin: &mut StdinLock) -> Result<Option<Message>> {
+-    let mut length = 0;
+-    let mut buf = String::with_capacity(30);
+-    // when stdin closed, read size will be 0, so we exit;
+-    // otherwise caller will be trapped in an infinite loop
+-    if stdin.read_line(&mut buf)? == 0 {
+-        return Ok(None);
++#[cfg(target_os = "aros")]
++pub type Input = FrameReader<std::fs::File>;
++#[cfg(not(target_os = "aros"))]
++pub type Input = FrameReader<std::io::Stdin>;
++
++pub fn input() -> Input {
++    #[cfg(target_os = "aros")]
++    {
++        use std::os::fd::FromRawFd;
++        // This is the process's only stdin owner; bypass Stdin's 8 KiB buffer.
++        FrameReader::new(unsafe { std::fs::File::from_raw_fd(0) }, ReadPolicy::DosPipe)
+     }
+-    while !buf.trim().is_empty() {
+-        if let Some(value) = buf.strip_prefix("Content-Length:") {
+-            length = value.trim().parse()?;
+-        }
+-        buf.clear();
+-        stdin.read_line(&mut buf)?;
++    #[cfg(not(target_os = "aros"))]
++    {
++        FrameReader::new(std::io::stdin(), ReadPolicy::Buffered)
+     }
+-    serde_json::from_reader(stdin.take(length))
+-        .inspect(|message| {
+-            debug!("client → server:\n{message:#?}");
+-        })
+-        .map(Some)
+-        .map_err(anyhow::Error::from)
++}
++
++pub fn read(stdin: &mut Input) -> Result<Option<Message>> {
++    stdin.read_frame()?.map(|body| serde_json::from_slice(&body).map_err(Into::into)).transpose()
+ }
+ 
+ pub fn write(message: Message) -> Result<()> {
+-    debug!("server → client:\n{message:#?}");
+-    let json = serde_json::to_string(&message)?;
+-    let mut stdout = std::io::stdout().lock();
+-    write!(stdout, "Content-Length: {}\r\n\r\n", json.len())?;
+-    stdout.write_all(json.as_bytes())?;
+-    stdout.flush()?;
+-    debug!("stdout: {json}");
++    let body = serde_json::to_vec(&message)?;
++    // Keep failure state across worker responses: upstream ignores worker
++    // write errors. The mutex serializes complete frames across all workers.
++    static OUTPUT: std::sync::OnceLock<std::sync::Mutex<FrameWriter<std::io::Stdout>>> =
++        std::sync::OnceLock::new();
++    OUTPUT.get_or_init(|| std::sync::Mutex::new(FrameWriter::new(std::io::stdout())))
++        .lock().map_err(|_| anyhow::anyhow!("stdout transport lock poisoned"))?
++        .write_frame(&body)?;
+     Ok(())
+ }

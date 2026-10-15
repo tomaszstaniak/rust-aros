@@ -1,0 +1,13 @@
+# inventory 0.3.24: x86_64 AROS constructor registration (MIT OR Apache-2.0).
+# GCC 10.5 emits .ctors; absent cfg leaves __CTOR in ordinary data.
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -562,6 +562,8 @@
+                 link_section = "__DATA,__mod_init_func,mod_init_funcs",
+             )]
+             #[cfg_attr(windows, link_section = ".CRT$XCU")]
++            // Match x86_64 AROS GCC's constructor section.
++            #[cfg_attr(all(target_os = "aros", target_arch = "x86_64"), link_section = ".ctors")]
+             static __CTOR: unsafe extern "C" fn() = __ctor;
+         };
+     };
