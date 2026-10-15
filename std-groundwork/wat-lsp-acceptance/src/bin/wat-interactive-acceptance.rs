@@ -164,6 +164,9 @@ fn document(version: i64, final_document: bool) -> String {
     text.push(')');
     text
 }
+fn checkpoint_ready(message: &Value) -> bool {
+    message == &json!({"jsonrpc":"2.0","method":"$/arosProbeCheckpoint","params":{"id":10}})
+}
 fn exercise(
     writer: &mut Outbound<impl std::io::Write>,
     events: &mpsc::Receiver<Event>,
@@ -190,30 +193,64 @@ fn exercise(
     if !opened.complete(1) {
         return Err("missing open diagnostics".into());
     }
-    let ids: Vec<i64> = (10..22).collect();
-    for (iteration, id) in ids.iter().enumerate() {
-        let version = iteration as i64 + 2;
-        writer.send_many(&[
+    if std::env::args().any(|arg| arg == "--probe-checkpoint") {
+        send(
+            writer,
+            json!({"jsonrpc":"2.0","id":10,"method":"textDocument/documentSymbol","params":{"textDocument":{"uri":uri}}}),
+        )?;
+        if !checkpoint_ready(&receive(events)?) {
+            return Err("expected real Salsa checkpoint before cancellation".into());
+        }
+        let shutdown_outstanding = std::env::args().any(|arg| arg == "--probe-shutdown");
+        if shutdown_outstanding {
+            send(
+                writer,
+                json!({"jsonrpc":"2.0","id":99,"method":"shutdown","params":null}),
+            )?;
+            if !expect_response(events, 99)?.is_null() {
+                return Err("invalid outstanding shutdown response".into());
+            }
+            println!("PASS shutdown response while request 10 remains at checkpoint");
+        }
+        send(
+            writer,
+            json!({"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":10}}),
+        )?;
+        let mut state = Outstanding::new([10]);
+        state.observe(&receive(events)?)?;
+        if !state.complete(0) || state.cancelled != 1 {
+            return Err("checkpoint request was not cancelled".into());
+        }
+        println!("PASS controlled checkpoint -> wire cancel -> nullable/cancelled response");
+        if shutdown_outstanding {
+            return Ok(());
+        }
+    } else {
+        let ids: Vec<i64> = (10..22).collect();
+        for (iteration, id) in ids.iter().enumerate() {
+            let version = iteration as i64 + 2;
+            writer.send_many(&[
             json!({"jsonrpc":"2.0","id":id,"method":"textDocument/documentSymbol","params":{"textDocument":{"uri":uri}}}),
             json!({"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":id}}),
             json!({"jsonrpc":"2.0","method":"textDocument/didChange","params":{
                 "textDocument":{"uri":uri,"version":version},"contentChanges":[{"text":document(version,false)}]}}),
         ])?;
-    }
-    let mut state = Outstanding::new(ids);
-    while !state.complete(12) {
-        state.observe(&receive(events)?)?;
-        if state.diagnostics > 12 {
-            return Err("too many change diagnostics".into());
         }
-    }
-    if state.cancelled == 0 {
-        return Err("all requests completed normally; interruption was not exercised".into());
-    }
-    println!(
+        let mut state = Outstanding::new(ids);
+        while !state.complete(12) {
+            state.observe(&receive(events)?)?;
+            if state.diagnostics > 12 {
+                return Err("too many change diagnostics".into());
+            }
+        }
+        if state.cancelled == 0 {
+            return Err("all requests completed normally; interruption was not exercised".into());
+        }
+        println!(
         "PASS 12 edit/cancel cycles, all replies and diagnostics accounted; null_or_cancelled={}",
         state.cancelled
     );
+    }
     send(
         writer,
         json!({"jsonrpc":"2.0","method":"textDocument/didChange","params":{
@@ -313,6 +350,20 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn checkpoint_requires_exact_notification_and_request_id() {
+        assert!(checkpoint_ready(
+            &json!({"jsonrpc":"2.0","method":"$/arosProbeCheckpoint","params":{"id":10}})
+        ));
+        for message in [
+            json!({"jsonrpc":"2.0","method":"$/arosProbeCheckpoint","params":{"id":11}}),
+            json!({"jsonrpc":"2.0","id":10,"method":"$/arosProbeCheckpoint","params":{"id":10}}),
+            json!({"jsonrpc":"2.0","method":"$/arosProbeCheckpoint","params":{"id":10},"result":null}),
+            json!({"jsonrpc":"1.0","method":"$/arosProbeCheckpoint","params":{"id":10}}),
+        ] {
+            assert!(!checkpoint_ready(&message));
+        }
+    }
     fn diagnostic() -> Value {
         json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///interactive.wat","diagnostics":[]}})
     }

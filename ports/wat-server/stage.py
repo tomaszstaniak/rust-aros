@@ -13,7 +13,10 @@ p.add_argument("--cancellation-probe", type=Path)
 p.add_argument("--unwind-probe", type=Path)
 p.add_argument("--interactive-client", type=Path)
 p.add_argument("--trace-requests", action="store_true")
+p.add_argument("--probe-checkpoint", action="store_true", help="run synchronized cancellation and outstanding shutdown (diagnostic server only)")
 a = p.parse_args()
+if a.probe_checkpoint and not a.interactive_client:
+    p.error("--probe-checkpoint requires --interactive-client")
 if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", a.prefix):
     p.error("prefix must be 1-32 ASCII letters, digits, underscores or hyphens")
 if not all(x.is_file() for x in (a.server, a.client)):
@@ -69,6 +72,13 @@ if a.interactive_client:
     script = a.destination / "run-tests"
     marker = f"Echo DONE >RESULTS:{a.prefix}-done.txt"
     script.write_text(script.read_text().replace(marker, f"""Protect RAM:wl/interactive-check +e
-RAM:wl/interactive-check RAM:wl/wat-server{" --trace-requests" if a.trace_requests else ""} >RESULTS:{a.prefix}-interactive.txt
+RAM:wl/interactive-check RAM:wl/wat-server{" --trace-requests" if a.trace_requests or a.probe_checkpoint else ""}{" --probe-checkpoint" if a.probe_checkpoint else ""} >RESULTS:{a.prefix}-interactive.txt
 Echo $RC >RESULTS:{a.prefix}-interactive.rc
+{marker}"""))
+
+if a.probe_checkpoint:
+    script = a.destination / "run-tests"
+    marker = f"Echo DONE >RESULTS:{a.prefix}-done.txt"
+    script.write_text(script.read_text().replace(marker, f"""RAM:wl/interactive-check RAM:wl/wat-server --trace-requests --probe-checkpoint --probe-shutdown >RESULTS:{a.prefix}-shutdown.txt
+Echo $RC >RESULTS:{a.prefix}-shutdown.rc
 {marker}"""))

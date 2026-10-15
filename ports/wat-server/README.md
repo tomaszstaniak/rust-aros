@@ -174,3 +174,23 @@ Deferred output avoids per-event logging I/O, but mutexes, allocations and the
 diagnostic build still perturb scheduling. Keep these results separate from
 ordinary-server acceptance. The trace is not a runtime repair or a scheduling
 guarantee.
+
+
+### Controlled cancellation checkpoint (diagnostic only)
+
+`prepare.py SOURCE NEW_WORKSPACE --probe-checkpoint` applies the transport,
+trace and separate checkpoint patches. Build this disposable workspace with
+the existing explicit native unwind recipe. Ordinary preparation is unchanged.
+The client mode `SERVER --probe-checkpoint --trace-requests` waits for a real
+Salsa cancellation-check event before sending cancellation and then verifies
+recovery. Adding `--probe-shutdown` acknowledges shutdown while that request
+is paused, explicitly cancels and awaits it, then exits without further queries.
+The gate is one-shot per server process and fails visibly after 20 seconds.
+
+`stage.py SERVER BASELINE_CLIENT NEW_PAYLOAD --prefix UNIQUE
+--interactive-client CLIENT --probe-checkpoint` stages both scenarios as fresh
+sessions after baseline, with separate `-interactive` and `-shutdown` reports.
+Use only a server prepared with the diagnostic patch. This is controlled
+checkpoint coverage, not a measurement of natural scheduling or interruption
+midway through a query body. Process exit with active workers remains open.
+See [native and host evidence](../../docs/evidence/2026-10-15-wat-checkpoint/REPORT.md).

@@ -261,3 +261,25 @@ automatically to the ordinary server. Native active-query interruption
 coverage remains open; the observed late-cancellation behavior is valid.
 Next: a controlled observation of cancellation during real computation and
 shutdown with outstanding work, then reusable profile/build wiring.
+
+
+## Controlled wire cancellation at a Salsa checkpoint (2026-10-15)
+
+The opt-in diagnostic WAT build now passes a synchronized wire cancellation
+sequence on x86_64 ABIv11 / older AROS One 1.3, GCC10.5 and the isolated
+aros-exec-20261015 unwind profile. A real Salsa WillCheckCancellation callback
+pauses request10 and notifies the client; only then does the client send
+$/cancelRequest. The actual token is set before the gate is released, ID10
+returns null, and subsequent edits and symbol queries see the final document.
+Host and native client/server exit0, with expected deferred trace on stderr.
+
+A separate session acknowledges shutdown while request10 is still paused,
+then explicitly cancels and awaits it before exit/EOF/child wait/reader joins.
+This accepts outstanding shutdown acknowledgement, not automatic cancellation
+or process teardown with active work. The diagnostic patch is excluded from
+ordinary preparation; it makes no natural scheduling or mid-query-body claim.
+Earlier unsynchronized all-normal results remain unchanged.
+
+See [checkpoint evidence](evidence/2026-10-15-wat-checkpoint/REPORT.md).
+Next: active-worker teardown and reproducible explicit unwind build/profile
+integration. v1 and arm64/Macaros remain deferred.

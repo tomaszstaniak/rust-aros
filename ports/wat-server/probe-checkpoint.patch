@@ -1,0 +1,48 @@
+# Diagnostic only: synchronize one real Salsa cancellation checkpoint with LSP cancelRequest.
+# Applies after request-trace.patch on pinned WAT; never part of the ordinary server.
+--- a/crates/service/src/lib.rs
++++ b/crates/service/src/lib.rs
+@@ -1,4 +1,6 @@
+ #![doc = include_str!("../README.md")]
+ 
++pub mod probe_checkpoint;
++
+ mod binder;
+ mod cfa;
+--- a/crates/server/src/server.rs
++++ b/crates/server/src/server.rs
+@@ -42,7 +42,7 @@
+ impl Server {
+     pub fn new() -> Self {
+         Self {
+-            service: LanguageService::default(),
++            service: wat_service::probe_checkpoint::service(),
+             support_pull_diagnostics: false,
+             support_refresh_diagnostics: false,
+             support_refresh_inlay_hint: false,
+@@ -73,6 +73,15 @@
+                     let cancellation_tokens = Arc::clone(&self.cancellation_tokens);
+                     std::thread::spawn(move || {
+                         crate::request_trace::record("worker_start", &id);
++                        if id == NumberOrString::Integer(10) && std::env::args().any(|arg| arg == "--probe-checkpoint") {
++                            wat_service::probe_checkpoint::arm(|| {
++                                crate::request_trace::record("salsa_checkpoint", &NumberOrString::Integer(10));
++                                stdio::write(Message::Notification {
++                                    method: "$/arosProbeCheckpoint".into(),
++                                    params: serde_json::json!({"id":10}),
++                                }).expect("write checkpoint notification");
++                            });
++                        }
+                         let response = Self::handle_request(service, id.clone(), method, params);
+                         crate::request_trace::record("query_done", &id);
+                         let written = stdio::write(response).is_ok();
+@@ -145,6 +154,9 @@
+                                 crate::request_trace::record("cancel_hit", &params.id);
+                                 token.cancel();
+                                 crate::request_trace::record("cancel_applied", &params.id);
++                                if params.id == NumberOrString::Integer(10) {
++                                    wat_service::probe_checkpoint::release();
++                                }
+                             } else {
+                                 crate::request_trace::record("cancel_miss", &params.id);
+                             }

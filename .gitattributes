@@ -15,3 +15,9 @@ docs/evidence/2026-10-15-wat-interactive/interactive-transport-tests.log whitesp
 docs/evidence/2026-10-15-wat-interactive/interactive-unit-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-interactive/native-08/wl08-interactive.txt whitespace=-blank-at-eof
 ports/wat-server/request-trace.patch whitespace=-blank-at-eol
+# Preserve original checkpoint test transcripts and diagnostic separators.
+docs/evidence/2026-10-15-wat-checkpoint/client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/gate-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/transport-tests.log whitespace=-blank-at-eof
+ports/wat-server/probe-checkpoint.patch whitespace=-blank-at-eol

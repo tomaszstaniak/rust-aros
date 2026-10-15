@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(__doc__)
 parser.add_argument("source", type=Path)
 parser.add_argument("destination", type=Path)
 parser.add_argument("--request-trace", action="store_true", help="apply optional diagnostic-only lifecycle trace")
+parser.add_argument("--probe-checkpoint", action="store_true", help="synchronize one diagnostic Salsa checkpoint; implies request trace")
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 source, dest = args.source.resolve(), args.destination.resolve()
@@ -32,9 +33,13 @@ if dest.exists():
     parser.error("destination must not exist")
 shutil.copytree(source, dest, ignore=shutil.ignore_patterns("target", ".git"))
 subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("transport.patch").resolve())], cwd=dest, check=True)
-if args.request_trace:
+if args.request_trace or args.probe_checkpoint:
     subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("request-trace.patch").resolve())], cwd=dest, check=True)
     shutil.copyfile(Path(__file__).with_name("request-trace.rs"), dest / "crates/server/src/request_trace.rs")
+if args.probe_checkpoint:
+    subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("probe-checkpoint.patch").resolve())], cwd=dest, check=True)
+    for source_name, target_name in [("probe-checkpoint.rs", "probe_checkpoint.rs"), ("probe-gate.rs", "probe_gate.rs")]:
+        shutil.copyfile(Path(__file__).with_name(source_name), dest / "crates/service/src" / target_name)
 with (dest / "crates/server/Cargo.toml").open("a") as out:
     out.write('\n[dependencies.aros-lsp-transport]\npath = ' + json.dumps(str(repo / "transport")) + '\n')
 print(dest)
