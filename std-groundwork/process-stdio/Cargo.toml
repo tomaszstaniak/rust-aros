@@ -1,0 +1,10 @@
+[package]
+name = "process-stdio"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+panic = "abort"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("aros"))'] }

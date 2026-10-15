@@ -538,15 +538,16 @@ pub const SIG_ERR: sighandler_t = !0;
 pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t::zeroed();
 pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = pthread_cond_t::zeroed();
 
-// waitpid status decoding, BSD convention (status = exit << 8 | signal)
-pub const fn WIFEXITED(s: c_int) -> bool { (s & 0x7f) == 0 }
-pub const fn WEXITSTATUS(s: c_int) -> c_int { (s >> 8) & 0xff }
-pub const fn WIFSIGNALED(s: c_int) -> bool { ((s & 0x7f) + 1) as i8 >> 1 > 0 }
-pub const fn WTERMSIG(s: c_int) -> c_int { s & 0x7f }
-pub const fn WIFSTOPPED(s: c_int) -> bool { (s & 0xff) == 0x7f }
-pub const fn WSTOPSIG(s: c_int) -> c_int { (s >> 8) & 0xff }
-pub const fn WIFCONTINUED(s: c_int) -> bool { s == 0xffff }
-pub const fn WCOREDUMP(s: c_int) -> bool { (s & 0x80) != 0 }
+// AROS posixc sys/wait.h returns the raw exit code in the low byte.
+// POSIX signal/stopped/continued states are not implemented by this API.
+pub const fn WIFEXITED(_s: c_int) -> bool { true }
+pub const fn WEXITSTATUS(s: c_int) -> c_int { s & 0xff }
+pub const fn WIFSIGNALED(_s: c_int) -> bool { false }
+pub const fn WTERMSIG(_s: c_int) -> c_int { 0 }
+pub const fn WIFSTOPPED(_s: c_int) -> bool { false }
+pub const fn WSTOPSIG(_s: c_int) -> c_int { 0 }
+pub const fn WIFCONTINUED(_s: c_int) -> bool { false }
+pub const fn WCOREDUMP(_s: c_int) -> bool { false }
 
 // --- functions present in the SDK (second batch) ------------------------
 extern "C" {

@@ -89,3 +89,20 @@ Limpet 0.4.1, and files redirected from Limpet. Files contain no ESC bytes.
 See [the report](evidence/2026-10-15-limpet/REPORT.md) for binaries, screenshots
 and the explicit unsafe handle-lifetime/task-access constructor contract.
 Raw input, PTY/termios and Ratatui remain outside this completed slice.
+
+## Process transport slice (2026-10-15)
+
+A portable process-stdio fixture now exercises Command, separate stdout/stderr,
+Content-Length frames, EOF, wait/try_wait, argument fidelity and spawn errors.
+Host: five framing tests and one integration test (eight cases) pass. The
+Python suite now has 20 passing tests; six Limpet tests still pass.
+
+Two SDK mismatches were corrected: wait statuses use AROS' low-byte exit code,
+and std selects fcntl for FD_CLOEXEC instead of unsupported ioctl(FIOCLEX).
+The separate aros-process-20261015 sysroot builds successfully. Its native
+status decoder passes, but **all seven spawn-dependent native cases fail**
+with OS error 0. Earlier baseline runs varied, including ENOSYS and an
+incomplete wait. See [the scoped evidence](evidence/2026-10-15-process-stdio/REPORT.md).
+Command/LSP support is not accepted. Next isolate posixc FFI/wrapper ABI and
+errno with raw pipe/fcntl/dup2 probes, then replace or validate the legacy
+Rust fork-to-vfork path before proceeding to language server integration.

@@ -1,0 +1,1 @@
+CASE_FAILED case=lsp-invalid error=Os { code: 0, kind: Uncategorized, message: "No error" }

@@ -1,0 +1,1 @@
+CASE_FAILED case=spawn-error error=Custom { kind: InvalidData, error: "missing executable error kind: Os { code: 78, kind: Unsupported, message: \"Function not implemented\" }" }

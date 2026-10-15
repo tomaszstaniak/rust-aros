@@ -1,0 +1,1 @@
+CASE_FAILED case=args error=Custom { kind: InvalidData, error: "argument bytes did not round trip" }

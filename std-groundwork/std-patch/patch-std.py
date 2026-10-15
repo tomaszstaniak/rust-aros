@@ -92,6 +92,20 @@ def skip_fd_sanitise(s):
     return s
 edit("sys/pal/unix/mod.rs", skip_fd_sanitise)
 
+# AROS implements FD_CLOEXEC through fcntl, not the BSD FIOCLEX ioctl.
+# Both complementary cfg lists must choose the same implementation.
+def cloexec_with_fcntl(s):
+    first = s.index('    pub fn set_cloexec(')
+    start = s.rfind('    #[cfg(', 0, first)
+    end = s.index('    pub fn set_nonblocking(', first)
+    assert start >= 0, "set_cloexec cfg missing"
+    block = s[start:end]
+    anchor = '        target_os = "haiku",\n'
+    assert block.count(anchor) == 2, "set_cloexec cfg anchors changed"
+    block = block.replace(anchor, anchor + '        target_os = "aros",\n')
+    return s[:start] + block + s[end:]
+edit("sys/fd/unix.rs", cloexec_with_fcntl)
+
 # 9d. The null device is NIL: on AROS.
 edit("sys/process/unix/common.rs", lambda s: add_after(s, '    target_os = "vxworks" => {\n        const DEV_NULL: &CStr = c"/null";\n    }', '\n    target_os = "aros" => {\n        const DEV_NULL: &CStr = c"NIL:";\n    }'))
 
