@@ -10,6 +10,7 @@ p.add_argument("client", type=Path)
 p.add_argument("destination", type=Path)
 p.add_argument("--prefix", required=True)
 p.add_argument("--cancellation-probe", type=Path)
+p.add_argument("--unwind-probe", type=Path)
 a = p.parse_args()
 if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", a.prefix):
     p.error("prefix must be 1-32 ASCII letters, digits, underscores or hyphens")
@@ -17,6 +18,8 @@ if not all(x.is_file() for x in (a.server, a.client)):
     p.error("server and client must be regular files")
 if a.cancellation_probe and not a.cancellation_probe.is_file():
     p.error("cancellation probe must be a regular file")
+if a.unwind_probe and not a.unwind_probe.is_file():
+    p.error("unwind probe must be a regular file")
 a.destination.mkdir()
 for source, name in [(a.server, "wat-server"), (a.client, "lsp-check")]:
     shutil.copy2(source, a.destination / name)
@@ -42,4 +45,16 @@ if a.cancellation_probe:
 RAM:wl/cancel-probe >RESULTS:{a.prefix}-cancellation.txt
 Echo $RC >RESULTS:{a.prefix}-cancellation.rc
 {marker}""")
+    script.write_text(text)
+if a.unwind_probe:
+    probe = a.destination / "unwind-probe"
+    shutil.copy2(a.unwind_probe, probe)
+    probe.chmod(0o755)
+    script = a.destination / "run-tests"
+    text = script.read_text()
+    marker = f"Echo START >RESULTS:{a.prefix}-start.txt"
+    text = text.replace(marker, f"""{marker}
+Protect RAM:wl/unwind-probe +e
+RAM:wl/unwind-probe >RESULTS:{a.prefix}-unwind.txt
+Echo $RC >RESULTS:{a.prefix}-unwind.rc""")
     script.write_text(text)

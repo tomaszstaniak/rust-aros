@@ -1,0 +1,9 @@
+   Compiling unwind-acceptance v0.1.0 (/Users/tumash/Work/AROS-dev/rust-aros/std-groundwork/unwind-acceptance)
+    Finished `release` profile [optimized] target(s) in 0.79s
+     Running `/Users/tumash/Work/AROS/local/rust-unwind/host/release/unwind-acceptance`
+START unwind acceptance
+PASS resume_unwind payload and destructor
+PASS catch and rethrow
+PASS 64 caught worker unwinds, destructors and joins
+PASS thread panic payload and destructor
+DONE unwind acceptance

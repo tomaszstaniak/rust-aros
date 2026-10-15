@@ -1,0 +1,7 @@
+include = ["../../../aros-env.toml"]
+[build]
+target = "../../x86_64-aros.json"
+rustflags = ["-Cpanic=unwind", "-Cforce-unwind-tables=yes"]
+[unstable]
+build-std = ["std", "panic_unwind"]
+json-target-spec = true

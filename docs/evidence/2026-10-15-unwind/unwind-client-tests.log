@@ -1,0 +1,9 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/main.rs (/Users/tumash/Work/AROS/local/rust-lsp/build/client-host/debug/build/wat-lsp-acceptance/2891a100ab700801/out/wat_lsp_acceptance-2891a100ab700801)
+
+running 2 tests
+test tests::batch_matches_results_by_id_instead_of_arrival_order ... ok
+test tests::duplicate_or_unrequested_responses_fail_the_batch ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

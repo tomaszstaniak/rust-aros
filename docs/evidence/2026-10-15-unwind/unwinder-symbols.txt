@@ -1,0 +1,13 @@
+000000000000c520 T _Unwind_RaiseException
+000000000008f49a t _Unwind_RaiseException.cold
+000000000000bfb0 t _Unwind_RaiseException_Phase2
+000000000008f46a t _Unwind_RaiseException_Phase2.cold
+000000000000e6d0 T __register_frame
+000000000000e680 T __register_frame_info
+000000000000e640 T __register_frame_info_bases
+000000000000e7b0 T __register_frame_info_table
+000000000000e740 T __register_frame_info_table_bases
+000000000000e830 T __register_frame_table
+00000000001831b0 b dwarf_reg_size_table
+000000000000a130 t init_dwarf_reg_size_table
+0000000000039340 T rust_eh_personality

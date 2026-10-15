@@ -172,6 +172,10 @@ Two client unit tests cover out-of-order results and reject duplicates,
 unrequested IDs, error responses and missing results without confusing those
 failures with EOF. Original and patched host servers pass the same workload.
 
+The abort-profile cancellation blocker below is resolved by the explicit
+unwind profile described in the following section; abort-profile behavior is
+unchanged.
+
 Cancellation has a confirmed runtime blocker. A separate deterministic probe
 runs normal Salsa symbol analysis successfully, clones the service, sets its
 cancellation token and then queries again. The host catches cancellation and
@@ -186,3 +190,30 @@ See [scoped evidence](evidence/2026-10-15-wat-concurrency/REPORT.md).
 Next on x86_64 v11: address the abort/unwind cancellation boundary with explicit
 runtime evidence, then test overlapping document writes and requests. v1 and
 arm64/Macaros remain deferred.
+
+
+## Explicit unwind profile and recovered Salsa cancellation (2026-10-15)
+
+The opt-in x86_64/v11 unwind profile now has native acceptance on the same
+older AROS One 1.3 environment. It selects panic_unwind and forces unwind
+tables in private build output, using existing GCC 10.5 libgcc. No SDK,
+toolchain source, global target JSON or shared sysroot changed; abort remains
+the default. The WAT recipe rejects ambient RUSTFLAGS/CARGO_ENCODED_RUSTFLAGS
+that could override the requested unwind profile.
+
+Independent runtime checks pass typed exception payloads, catch/rethrow,
+destructors, 64 caught exceptions across four joined threads, and an uncaught
+worker panic returned through join. All 67 guards are destroyed, rc 0.
+
+The identical deterministic Salsa cancellation path that aborted with rc 20
+under panic=abort now catches cancellation and returns None, rc 0. The actual
+unwind-enabled WAT server also passes diagnostics, Unicode repair, formatting,
+symbols, 16 outstanding requests, shutdown and EOF; server/client exit 0,
+joined stderr 0 bytes.
+
+See [scoped evidence](evidence/2026-10-15-unwind/REPORT.md) and
+[probe recipe](../std-groundwork/unwind-acceptance/README.md). This resolves
+the tested engine abort/unwind boundary in the explicit profile. Full
+$/cancelRequest lifecycle and document writes overlapping active requests
+remain next, along with shutdown during active work. v1/arm64/Macaros remain
+deferred.

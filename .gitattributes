@@ -8,3 +8,4 @@ ports/wat-server/transport.patch whitespace=-blank-at-eol
 docs/evidence/2026-10-15-wat-concurrency/batch-client-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-concurrency/batch-process-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-concurrency/batch-transport-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-unwind/unwind-client-tests.log whitespace=-blank-at-eof

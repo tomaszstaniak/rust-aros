@@ -1,0 +1,6 @@
+START unwind acceptance
+PASS resume_unwind payload and destructor
+PASS catch and rethrow
+PASS 64 caught worker unwinds, destructors and joins
+PASS thread panic payload and destructor
+DONE unwind acceptance

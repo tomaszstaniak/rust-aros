@@ -14,8 +14,13 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("workspace", type=Path)
 p.add_argument("--toolchain", required=True)
 p.add_argument("--aros", action="store_true")
+p.add_argument("--unwind", action="store_true", help="explicit experimental AROS unwind profile")
 p.add_argument("--cancellation-probe", action="store_true", help="build the deterministic Salsa cancellation probe")
 args = p.parse_args()
+if args.unwind and not args.aros:
+    p.error("--unwind requires --aros")
+if args.unwind and any(os.environ.get(name) for name in ("RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS")):
+    p.error("--unwind requires clearing ambient RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS")
 repo = Path(__file__).resolve().parents[2]
 work = args.workspace.resolve()
 cargo = ["cargo", "+" + args.toolchain]
@@ -63,5 +68,8 @@ if args.cancellation_probe:
     shutil.copyfile(Path(__file__).with_name("cancellation-probe.rs"), probe)
 command = cargo + ["build", "-p", "wat_server", "--bin", binary, "--release", "--offline"]
 if args.aros:
-    command += ["--target", str(repo / "x86_64-aros.json"), "-Zbuild-std=std,panic_abort", "-Zjson-target-spec"]
+    panic_crate = "panic_unwind" if args.unwind else "panic_abort"
+    command += ["--target", str(repo / "x86_64-aros.json"), "-Zbuild-std=std," + panic_crate, "-Zjson-target-spec"]
+    if args.unwind:
+        command += ["--config", 'build.rustflags=["-Cpanic=unwind","-Cforce-unwind-tables=yes"]']
 subprocess.run(command + config, cwd=work, check=True, env=os.environ)

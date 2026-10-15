@@ -1,0 +1,7 @@
+Directory "RAM:wl" on Thursday 10/15/26:
+cancel-probe             8942736 ---rwed Today       21:24:10
+lsp-check                2373264 ---rwed Today       20:04:50
+run-tests                    515 ---rw-d Today       21:24:48
+unwind-probe             2470904 ---rwed Today       21:23:12
+wat-server               12464728 ---rwed Today       21:24:14
+5 files - 51277 blocks used

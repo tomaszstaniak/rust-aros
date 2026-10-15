@@ -1,0 +1,3 @@
+PASS uncancelled Salsa query
+CANCELLATION_REQUESTED before query
+PASS cancelled Salsa query caught without terminating process

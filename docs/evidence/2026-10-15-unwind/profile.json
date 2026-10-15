@@ -1,0 +1,21 @@
+{
+  "architecture": "x86_64",
+  "abi": "v11",
+  "guest": "AROS One 1.3 UP, pool v11-1",
+  "rustc": "1.100.0-nightly (0dfb098f3 2026-08-31)",
+  "gcc": "10.5.0",
+  "sdk": "AROS/sdk (older v11)",
+  "base_toolchain": "aros-exec-20261015",
+  "rustflags": [
+    "-Cpanic=unwind",
+    "-Cforce-unwind-tables=yes"
+  ],
+  "build_std": [
+    "std",
+    "panic_unwind"
+  ],
+  "ambient_rustflags": false,
+  "ambient_cargo_encoded_rustflags": false,
+  "global_target_panic_strategy": "abort",
+  "libgcc_sha256": "26c4fca0357ddd885dcc8bcfbb9b0042178b540130b813427587f1a5f0bd70ab"
+}

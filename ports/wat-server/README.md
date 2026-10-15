@@ -101,3 +101,21 @@ sets its Salsa cancellation token before another symbol query, and checks
 whether cancellation is caught. Host unwinding catches it and returns None.
 This is an engine cancellation boundary test, not acceptance of LSP
 $/cancelRequest timing or process-kill support. Keep their results separate.
+
+## Experimental unwind profile
+
+The explicit --aros --unwind option selects panic_unwind and forces unwind
+tables for a separate build directory. It does not change the generated target
+JSON, standard abort-profile builds, shared SDK or installed sysroots. Clear ambient RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS;
+the recipe rejects them for this profile because they can override its flags.
+
+    CARGO_TARGET_DIR=PRIVATE_UNWIND_OUTPUT python3 ports/wat-server/build.py AROS_WORKSPACE \
+      --toolchain YOUR_ISOLATED_AROS_TOOLCHAIN --aros --unwind --cancellation-probe
+    CARGO_TARGET_DIR=PRIVATE_UNWIND_OUTPUT python3 ports/wat-server/build.py AROS_WORKSPACE \
+      --toolchain YOUR_ISOLATED_AROS_TOOLCHAIN --aros --unwind
+
+Build the independent std-groundwork/unwind-acceptance probe and supply
+stage.py --unwind-probe PATH. Its separate rc precedes the real LSP session;
+the engine cancellation probe remains a separate final result. Compare this
+profile's native results with the recorded abort-profile rc20, rather than
+inferring recovery from compilation.
