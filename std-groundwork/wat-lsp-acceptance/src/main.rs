@@ -32,6 +32,22 @@ impl<R: Read, W: io::Write> Client<R, W> {
         }
         Ok(message["result"].clone())
     }
+    fn responses(&mut self, ids: &[i64]) -> Result<std::collections::BTreeMap<i64, Value>> {
+        let mut results = std::collections::BTreeMap::new();
+        for _ in ids {
+            let message = self.receive()?;
+            let id = message["id"].as_i64().ok_or("response has no numeric id")?;
+            if !ids.contains(&id)
+                || results.contains_key(&id)
+                || message.get("error").is_some()
+                || message.get("result").is_none()
+            {
+                return Err(format!("unexpected batch response: {message}").into());
+            }
+            results.insert(id, message["result"].clone());
+        }
+        Ok(results)
+    }
     fn diagnostics(&mut self) -> Result<Value> {
         let message = self.receive()?;
         if message["method"] != "textDocument/publishDiagnostics" {
@@ -124,6 +140,37 @@ impl<R: Read, W: io::Write> Client<R, W> {
             return Err("document symbols missing function".into());
         }
         println!("PASS threaded document-symbol analysis");
+        let ids: Vec<_> = (10..26).collect();
+        for id in &ids {
+            let (method, params) = if id % 2 == 0 {
+                (
+                    "textDocument/formatting",
+                    json!({"textDocument":{"uri":uri},"options":{"tabSize":2,"insertSpaces":true}}),
+                )
+            } else {
+                (
+                    "textDocument/documentSymbol",
+                    json!({"textDocument":{"uri":uri}}),
+                )
+            };
+            self.send(json!({"jsonrpc":"2.0","id":id,"method":method,"params":params}))?;
+        }
+        let batch = self.responses(&ids)?;
+        for (id, result) in batch {
+            if id % 2 == 0 {
+                if !result.as_array().is_some_and(|edits| {
+                    !edits.is_empty()
+                        && edits
+                            .iter()
+                            .all(|edit| edit["newText"].is_string() && edit["range"].is_object())
+                }) {
+                    return Err(format!("invalid parallel formatting result for {id}").into());
+                }
+            } else if !result.to_string().contains("answer") {
+                return Err(format!("invalid parallel symbols result for {id}").into());
+            }
+        }
+        println!("PASS 16 outstanding mixed requests matched by ID");
         self.send(json!({"jsonrpc":"2.0","id":4,"method":"shutdown","params":null}))?;
         if !self.response(4)?.is_null() {
             return Err("invalid shutdown response".into());
@@ -179,4 +226,59 @@ fn main() -> Result<()> {
     }
     println!("PASS shutdown, EOF, child wait and stderr join");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    fn client(messages: &[Value]) -> Client<Cursor<Vec<u8>>, Vec<u8>> {
+        let mut wire = Vec::new();
+        for message in messages {
+            aros_lsp_transport::write_frame(&mut wire, &serde_json::to_vec(message).unwrap())
+                .unwrap();
+        }
+        Client {
+            reader: FrameReader::new(Cursor::new(wire), ReadPolicy::Buffered),
+            writer: FrameWriter::new(Vec::new()),
+        }
+    }
+    #[test]
+    fn batch_matches_results_by_id_instead_of_arrival_order() {
+        let mut client = client(&[
+            json!({"jsonrpc":"2.0","id":12,"result":["symbol"]}),
+            json!({"jsonrpc":"2.0","id":11,"result":["edit"]}),
+        ]);
+        let results = client.responses(&[11, 12]).unwrap();
+        assert_eq!(results[&11], json!(["edit"]));
+        assert_eq!(results[&12], json!(["symbol"]));
+    }
+    #[test]
+    fn duplicate_or_unrequested_responses_fail_the_batch() {
+        for messages in [
+            vec![
+                json!({"jsonrpc":"2.0","id":11,"result":[]}),
+                json!({"jsonrpc":"2.0","id":11,"result":[]}),
+            ],
+            vec![
+                json!({"jsonrpc":"2.0","id":99,"result":[]}),
+                json!({"jsonrpc":"2.0","id":12,"result":[]}),
+            ],
+            vec![
+                json!({"jsonrpc":"2.0","id":11,"error":{"code":-32603,"message":"failed"}}),
+                json!({"jsonrpc":"2.0","id":12,"result":[]}),
+            ],
+            vec![
+                json!({"jsonrpc":"2.0","id":11}),
+                json!({"jsonrpc":"2.0","id":12,"result":[]}),
+            ],
+        ] {
+            let error = client(&messages).responses(&[11, 12]).unwrap_err();
+            assert!(
+                error.to_string().contains("unexpected batch response"),
+                "{error}"
+            );
+        }
+    }
 }

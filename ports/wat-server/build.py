@@ -6,6 +6,7 @@ import json
 import tomllib
 import hashlib
 import tempfile
+import shutil
 from pathlib import Path
 import subprocess
 
@@ -13,6 +14,7 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("workspace", type=Path)
 p.add_argument("--toolchain", required=True)
 p.add_argument("--aros", action="store_true")
+p.add_argument("--cancellation-probe", action="store_true", help="build the deterministic Salsa cancellation probe")
 args = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 work = args.workspace.resolve()
@@ -53,7 +55,13 @@ if args.aros:
     if any(x["name"] == "libc" and x["version"] == "0.2.186" for x in packages):
         subprocess.run(cargo + ["update", "-p", "libc@0.2.186", "--precise", "0.2.189", "--offline"] + config,
                        cwd=work, check=True)
-command = cargo + ["build", "-p", "wat_server", "--release", "--offline"]
+binary = "wat_server"
+if args.cancellation_probe:
+    binary = "wat-cancellation-probe"
+    probe = work / "crates/server/src/bin" / (binary + ".rs")
+    probe.parent.mkdir(exist_ok=True)
+    shutil.copyfile(Path(__file__).with_name("cancellation-probe.rs"), probe)
+command = cargo + ["build", "-p", "wat_server", "--bin", binary, "--release", "--offline"]
 if args.aros:
     command += ["--target", str(repo / "x86_64-aros.json"), "-Zbuild-std=std,panic_abort", "-Zjson-target-spec"]
 subprocess.run(command + config, cwd=work, check=True, env=os.environ)

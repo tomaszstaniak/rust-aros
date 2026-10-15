@@ -1,0 +1,22 @@
+[
+  {
+    "file": "cancel-probe",
+    "bytes": 6912824,
+    "sha256": "bd7ed5302352bff7f05264137ed3af74753fee517044a8becf64ed6df65010e6"
+  },
+  {
+    "file": "lsp-check",
+    "bytes": 2373264,
+    "sha256": "1f8f2e64c9fbbd032cf89503a1586f46d9934b255d28d6c30d945974b6e59914"
+  },
+  {
+    "file": "run-tests",
+    "bytes": 406,
+    "sha256": "5d194aea6c54301dedc79171675413af05439372c8cc925ea6fb072dae890d83"
+  },
+  {
+    "file": "wat-server",
+    "bytes": 9194664,
+    "sha256": "2738ea9be76a299851c1d3869732f44114f6a73ca4af0db250de36046a1d26e5"
+  }
+]

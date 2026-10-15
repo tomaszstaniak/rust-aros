@@ -78,3 +78,26 @@ Use a new destination and prefix for every run.
 The DOS read workaround is explicit on both peers. This does not establish
 ordinary buffered PIPE support, async readiness, filesystem watching, full
 rust-analyzer support, a Zed port, v1 runtime, or arm64/Macaros runtime.
+
+## Outstanding requests and cancellation boundary
+
+The client also sends 16 mixed formatting/symbol requests before reading their
+responses. It matches numeric IDs rather than arrival order and rejects
+duplicates, unrequested IDs, error responses and missing results.
+
+Build the separate deterministic engine probe with:
+
+    python3 ports/wat-server/build.py WORKSPACE --toolchain nightly --cancellation-probe
+    python3 ports/wat-server/build.py AROS_WORKSPACE --toolchain YOUR_ISOLATED_AROS_TOOLCHAIN --aros --cancellation-probe
+
+The output binary is wat-cancellation-probe. Pass its native binary through
+stage.py's optional --cancellation-probe argument. It runs after the regular
+LSP session and writes a separate cancellation report and rc. On the current
+panic=abort target it deliberately probes a process-aborting engine path:
+dismiss the guest's abort requester before checking final rc and collecting.
+
+The probe opens real WAT, confirms ordinary symbol analysis, clones the service,
+sets its Salsa cancellation token before another symbol query, and checks
+whether cancellation is caught. Host unwinding catches it and returns None.
+This is an engine cancellation boundary test, not acceptance of LSP
+$/cancelRequest timing or process-kill support. Keep their results separate.

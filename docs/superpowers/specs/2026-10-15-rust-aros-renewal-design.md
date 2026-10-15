@@ -17,6 +17,10 @@ Platform priority, explicitly confirmed by the user:
    working reliably on the local host. Report arm64 compile, link and runtime
    results separately; a missing runtime is not grounds to drop arm64 support.
 
+Scope update, explicitly confirmed 2026-10-15: continue implementation and
+validation on x86_64 ABIv11; defer v1 and arm64/Macaros to later work. The
+longer-term priority order above remains unchanged.
+
 Native Raspberry Pi is outside this scope. Do not treat its SDK, toolchain or
 results as interchangeable with hosted Macaros. Record Macaros's actual ABI
 and SDK instead of inferring them from the primary v11 policy.

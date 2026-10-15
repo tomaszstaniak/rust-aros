@@ -4,3 +4,7 @@ docs/evidence/2026-10-15-process-exec/ffi/abi1015-a.txt whitespace=-blank-at-eof
 # Preserve raw panic output and required unified-diff context lines.
 docs/evidence/2026-10-15-wat-lsp/native-01/wl01-transcript.txt whitespace=-blank-at-eof,-blank-at-eol
 ports/wat-server/transport.patch whitespace=-blank-at-eol
+# Cargo test transcripts end with their original blank separator.
+docs/evidence/2026-10-15-wat-concurrency/batch-client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-concurrency/batch-process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-concurrency/batch-transport-tests.log whitespace=-blank-at-eof

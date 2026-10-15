@@ -4,6 +4,9 @@ Verified 2026-10-15. Implementation base: rust-aros `8d35fda`.
 
 ## Platform policy
 
+Active implementation and validation scope, confirmed 2026-10-15: x86_64
+ABIv11 only. ABIv1 and arm64/Macaros are deferred to later work.
+
 AROS ABIv11 is primary; ABIv1/mainline is next. Architectures in scope are
 x86_64 and arm64 through hosted Macaros. The local Macaros installation is not
 yet reliable, so arm64 execution acceptance is pending. Native Raspberry Pi is
@@ -154,7 +157,32 @@ functionality on v11, using the explicit DosPipe workaround. It does not close
 general buffered PIPE, cancellation/signals, async I/O, filesystem watching,
 rust-analyzer, Zed/GPUI, newer v11 profiles, v1 or arm64/Macaros acceptance.
 
-Next: promote this tested build/profile wiring beyond the WAT recipe, then
-accept concurrent request/cancellation behavior and a consumer requiring async
-readiness. Keep hosted arm64 blocked on a working Macaros environment rather
-than treating cross-linking as runtime evidence.
+Next: promote this tested build/profile wiring beyond the WAT recipe and
+accept a consumer requiring async readiness. Concurrent requests and the engine
+cancellation boundary are covered in the follow-up below. v1 and arm64/Macaros
+remain deferred per the current implementation scope.
+
+
+## Outstanding LSP requests and Salsa cancellation (2026-10-15)
+
+The native x86_64/older-v11 WAT client now sends 16 mixed formatting/symbol
+requests before reading responses and validates results by numeric ID. Every
+request completes; client/server exit 0, stdout EOF and empty joined stderr.
+Two client unit tests cover out-of-order results and reject duplicates,
+unrequested IDs, error responses and missing results without confusing those
+failures with EOF. Original and patched host servers pass the same workload.
+
+Cancellation has a confirmed runtime blocker. A separate deterministic probe
+runs normal Salsa symbol analysis successfully, clones the service, sets its
+cancellation token and then queries again. The host catches cancellation and
+returns None; the native panic=abort build aborts with rc 20 after the
+CANCELLATION_REQUESTED marker. Salsa 0.28.1 implements cancellation with
+resume_unwind/catch_unwind, so the current abort target cannot supply that
+contract. This is not accepted LSP cancellation, and it does not imply process
+kill support. Normal live-edit overlap that triggers Salsa cancellation still
+requires investigation before treating this server as an interactive baseline.
+
+See [scoped evidence](evidence/2026-10-15-wat-concurrency/REPORT.md).
+Next on x86_64 v11: address the abort/unwind cancellation boundary with explicit
+runtime evidence, then test overlapping document writes and requests. v1 and
+arm64/Macaros remain deferred.

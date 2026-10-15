@@ -1,0 +1,26 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (/Users/tumash/Work/AROS/local/rust-lsp/build/transport-host/debug/deps/aros_lsp_transport-e441991bc25e3a45)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/framing.rs (/Users/tumash/Work/AROS/local/rust-lsp/build/transport-host/debug/deps/framing-2deebab8f67d9fd0)
+
+running 7 tests
+test writer_enforces_the_same_header_limit_as_reader ... ok
+test dos_policy_receives_a_message_before_eof_without_an_oversized_read ... ok
+test partial_writes_are_completed_and_each_frame_is_flushed ... ok
+test failed_write_is_terminal_and_never_appends_another_frame ... ok
+test coalesced_utf8_and_zero_length_frames_preserve_boundaries_and_clean_eof ... ok
+test explicit_limits_reject_oversized_input_before_body_read ... ok
+test invalid_and_truncated_frames_poison_the_reader ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aros_lsp_transport
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
