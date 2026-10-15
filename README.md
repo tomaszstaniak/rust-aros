@@ -108,6 +108,7 @@ never reaches QEMU's serial file, so neither is a usable channel.
 |---|---|
 | `setup.sh` | Detects your toolchain and writes the target definition. |
 | `x86_64-aros.json.in` | Target definition template; see `TARGET-NOTES.md`. |
+| `limpet/` | Presentation capabilities, colours, titles and output for std/no_std. |
 | `aros/` | The runtime crate: allocator, `println!`, panic handler, bindings. |
 | `template/` | A minimal project to copy for your own program. |
 | `examples/plasma/` | A graphical SDL2 example. |
@@ -157,7 +158,8 @@ buf[0] = 42;
   relocations the loader silently skips, and it crashes before `main`. Use
   `--strip-unneeded --remove-section .comment` if you must; the saving is
   small because the relocations need the symbols.
-* **The console is not UTF-8** — keep printed text to ASCII.
+* **Console encoding depends on the handler.** Stock CON: and UTF-8-capable
+  Limpet differ. See `limpet/` for capability-aware output.
 * Binaries are larger than the C equivalent, and they cannot be fully
   stripped, so expect a few hundred kilobytes for a small program.
 
@@ -173,13 +175,12 @@ remains the simpler, more robust option for now.
 
 ## What is next
 
-ripgrep and tokio are done (see `std-groundwork/realworld/`). Next: wire the
-SDL3 that AROS contrib already carries (3.4.12, with SDL3_image and SDL3_ttf)
-to the `sdl3` crate, and consider a `mio` selector over `WaitSelect` to
-unlock async networking.
-Separately, the runtime tests in `std-groundwork/` are worth turning into a C
-conformance suite for the AROS maintainers: they show exactly where the SDK's
-POSIX surface diverges from what portable code expects.
+Current renewal work prioritizes x86_64 ABIv11, with ABIv1 next and hosted
+arm64 Macaros in scope. See `docs/current-state.md` for completed entropy and
+Limpet presentation checks and their platform limits. Next application-facing
+work includes terminal input, process/pipe behaviour for language servers and
+async networking driven by pinned real consumers. Zed is the reference workload;
+a complete Zed port is not delivered by these building blocks.
 
 ## Prior art and credit
 

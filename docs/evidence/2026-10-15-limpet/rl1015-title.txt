@@ -1,0 +1,1 @@
+NO_STD query=Supported geometry=Some((80, 24)) rewrite=true ioerr=0

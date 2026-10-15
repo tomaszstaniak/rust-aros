@@ -62,7 +62,7 @@ explicit application custom backend, including uninitialized output buffers. See
 
 Next: system-source selection for v1/Macaros, further getrandom versions only
 as required by pinned consumers, a reusable application backend if additional
-consumers need it, and Limpet SDK integration. Host rust-objcopy/libLLVM loading
+consumers need it, and the next terminal input/process milestones. Host rust-objcopy/libLLVM loading
 produced a nonfatal warning and remains a host-toolchain follow-up.
 
 Reuse Limpet SDK 0.3.0 and inspect aros-xterm/tools/rust-tty before adding terminal
@@ -77,3 +77,15 @@ sysroots still contain their older implementation. The new aros-jent-20261015
 registration is separate. Exact upstream v11/v1 default-branch revisions were
 read successfully with gh API during M1; see the scoped report. Runtime
 coverage does not transfer between profiles.
+
+## Limpet presentation slice (2026-10-15)
+
+The separate allocation-free aros-limpet crate supports std/no_std without
+installing an allocator or panic handler. It reuses SDK 0.3.0 for capability
+queries, geometry, colours, titles and progress output. Six Rust host tests pass
+in addition to the 17 Python tests. Eight native cases on x86_64/older v11
+passed with rc 0: both runtime styles in CON:, files redirected from CON:,
+Limpet 0.4.1, and files redirected from Limpet. Files contain no ESC bytes.
+See [the report](evidence/2026-10-15-limpet/REPORT.md) for binaries, screenshots
+and the explicit unsafe handle-lifetime/task-access constructor contract.
+Raw input, PTY/termios and Ratatui remain outside this completed slice.

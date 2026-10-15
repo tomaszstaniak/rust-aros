@@ -1,0 +1,4 @@
+Rust std / Limpet presentation
+STD query=NotInteractive geometry=None rewrite=false ioerr=0
+std progress complete
+LIMPET_STD_DONE

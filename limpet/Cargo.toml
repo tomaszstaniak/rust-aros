@@ -1,0 +1,6 @@
+[package]
+name = "aros-limpet"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Limpet presentation capabilities and output for AROS Rust programs"

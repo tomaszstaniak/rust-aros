@@ -1,6 +1,7 @@
 //! `print!` / `println!` for AROS, written straight onto dos.library's output.
 //!
-//! The AROS console is not UTF-8, so keep printed text to ASCII.
+//! Bytes are written unchanged. Stock CON: and UTF-8-capable Limpet differ;
+//! detect the output capabilities before choosing terminal-specific output.
 //!
 //! No allocation is involved: text is formatted into a small stack buffer and
 //! flushed through `PutStr` whenever it fills up.

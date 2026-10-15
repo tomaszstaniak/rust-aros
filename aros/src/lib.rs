@@ -1,7 +1,7 @@
 //! Write AROS x86_64 programs in Rust.
 //!
-//! AROS has no Rust `std`, so this crate supplies the pieces a normal program
-//! expects: a global allocator (so `Vec`, `String` and friends work), `print!`
+//! For programs built without `std`, this crate supplies the runtime pieces:
+//! a global allocator (so `Vec`, `String` and friends work), `print!`
 //! and `println!`, a panic handler, and thin bindings to the parts of the AROS
 //! API you reach for first.
 //!

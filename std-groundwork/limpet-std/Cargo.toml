@@ -1,0 +1,8 @@
+[package]
+name = "limpet-std"
+version = "0.1.0"
+edition = "2021"
+[dependencies]
+aros-limpet = { path = "../../limpet" }
+[profile.release]
+panic = "abort"
