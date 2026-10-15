@@ -1,0 +1,1 @@
+STD_ENTROPY_OK: four joined HashMap workers, Instant and sleep

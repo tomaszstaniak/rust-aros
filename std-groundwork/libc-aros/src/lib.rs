@@ -574,6 +574,7 @@ extern "C" {
     pub fn sigaction(sig: c_int, act: *const sigaction, old: *mut sigaction) -> c_int;
     pub fn writev(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
     pub fn fdatasync(fd: c_int) -> c_int;
+    #[link_name = "___geterrnoptr"]
     pub fn __errno() -> *mut c_int;
     pub fn strerror_r(errnum: c_int, buf: *mut c_char, len: size_t) -> c_int;
     pub fn getentropy(buf: *mut c_void, len: size_t) -> c_int;

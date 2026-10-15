@@ -1,0 +1,13 @@
+# Toolchain paths written by setup.sh (AROS_GCC, AROS_SDK for build scripts).
+include = ["../../../aros-env.toml"]
+
+[build]
+rustflags = ["--cfg", 'getrandom_backend="custom"']
+target = "../../x86_64-aros.json"
+
+[target.x86_64-aros]
+runner = "../../tools/aros-qemu-run.py"
+
+[unstable]
+build-std = ["std", "panic_abort"]
+json-target-spec = true

@@ -1,0 +1,1 @@
+ENTROPY_FAILURE_OK: init failure returned EIO and wiped output

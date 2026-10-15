@@ -1,0 +1,21 @@
+libc-test: checking the generated bindings against the real system
+  [ok] clock_gettime REALTIME     
+        tv_sec=1792064311 tv_nsec=462639000
+  [ok] nanosleep 200ms            
+        monotonic delta = 201135000 ns
+  [ok] open O_WRONLY|O_CREAT      
+  [ok] write                      
+  [ok] stat st_size               
+        st_size=24 (wrote 24), st_mode=0o100700
+  [ok] S_IFMT says regular file   
+  [ok] read back matches          
+  [ok] opendir RAM:               
+        entry: "Clipboards" (d_type=4)
+        entry: "T" (d_type=4)
+        entry: "ENV" (d_type=4)
+        entry: "rent-unzip-log" (d_type=8)
+  [ok] readdir names are sane     
+  [ok] pthread_create             
+  [ok] thread ran and wrote       
+  [ok] mutex lifecycle            
+libc-test: done

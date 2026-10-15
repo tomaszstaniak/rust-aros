@@ -56,7 +56,11 @@ class BuildScripts(unittest.TestCase):
                 calls = [json.loads(line) for line in self.log.read_text().splitlines()]
                 self.assertEqual(calls[0][0], str(self.compiler))
                 self.assertIn('--sysroot=' + self.env['AROS_SDK'], calls[0])
-                self.assertEqual(calls[1][0], str(self.archiver))
+                self.assertEqual(calls[-1][0], str(self.archiver))
+                if relative.endswith('libc-aros'):
+                    for call in calls[:-1]:
+                        source = call[call.index('-c') + 1]
+                        self.assertIn('-O0' if '/vendor/jitterentropy/' in source else '-O2', call)
                 for var in ('AROS_GCC', 'AROS_SDK', 'AROS_AR'):
                     self.assertIn('cargo:rerun-if-env-changed=' + var, result.stdout)
 

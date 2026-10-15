@@ -1,0 +1,2 @@
+source-read rc=0 errno=5
+ENTROPY_OK: bounds, repeated reads, four joined pthread readers

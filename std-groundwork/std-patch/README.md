@@ -61,7 +61,7 @@ stays reviewable:
 |---|---|
 | `os::aros` | `raw` types and `MetadataExt`, from `os::haiku` minus creation time |
 | args | stored from `main`'s argc/argv, as on haiku |
-| random | `getentropy` (from `libc-aros/csrc/compat.c`, **not cryptographic**) |
+| random | `getentropy` (from `libc-aros/csrc/entropy.c`, over the pinned jitterentropy source) |
 | `current_exe` | `argv[0]`; there is no `/proc` |
 | thread names | no-op |
 | errno | `___geterrnoptr()` |
@@ -109,8 +109,11 @@ was verified by hand before trusting it.
 
 * `Command::new("echo")` with a bare name fails: `execvp` does not search the
   AmigaDOS path. Give a full name such as `C:echo`.
-* `getentropy` is not a real entropy source. `HashMap` seeding is fine; do not
-  use `std`'s randomness for keys.
+* The x86_64/v11 entropy adapter now uses arospkg's jitterentropy port, with
+  source failures propagated. Rebuild an isolated sysroot to pick it up: older
+  installed sysroots still contain the clock/random implementation. Runtime
+  scope and getrandom 0.3's explicit custom backend are described in
+  `../entropy-std/README.md`. Other getrandom versions are not implicitly supported.
 * `poll` only works on sockets. `std::net` timeouts use it; nothing else does.
 * `mmap` is emulated: anonymous maps are allocations, read-only file maps are
   reads, and writable shared file maps are refused. `mprotect` enforces

@@ -130,14 +130,6 @@ DIR *fdopendir(int fd)                                                { (void)fd
 
 /* --- odds and ends std links against ------------------------------------ */
 int strerror_r(int e, char *b, size_t n) { const char *m = strerror(e); if (!m) return EINVAL; strncpy(b, m, n); if (n) b[n - 1] = 0; return 0; }
-/* NOT cryptographic. AROS One has no entropy device the SDK exposes; this
- * seeds from the clock and uses libc random(). Fine for HashMap seeding,
- * which is what std uses it for, and nothing else. */
-int getentropy(void *buf, size_t n) {
-    static int seeded; if (!seeded) { struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts); srandom((unsigned)(ts.tv_sec ^ ts.tv_nsec) ^ (unsigned)(uintptr_t)buf); seeded = 1; }
-    unsigned char *p = buf; for (size_t i = 0; i < n; i++) p[i] = (unsigned char)(random() >> 3); return 0;
-}
-
 /* --- memory mapping ------------------------------------------------------
  * AROS has no MMU-backed mapping. Anonymous maps become plain allocations,
  * and a read-only file map is satisfied by reading the range into memory.

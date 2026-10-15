@@ -47,7 +47,7 @@ edit("os/unix/mod.rs", lambda s: add_after(s, '    #[cfg(target_os = "haiku")]\n
 #    path that stores them from the main() entry, like haiku does.
 edit("sys/args/unix.rs", lambda s: s.replace('    target_os = "haiku",\n', '    target_os = "haiku",\n    target_os = "aros",\n', 1))
 
-# 3. random: no arc4random on AROS; use getentropy from the SDK's C library.
+# 3. random: route AROS through the libc-aros getentropy adapter.
 edit("sys/random/mod.rs", lambda s: add_after(s, '    target_os = "emscripten" => {\n        mod getentropy;\n        pub use getentropy::fill_bytes;\n    }',
      '\n    target_os = "aros" => {\n        mod getentropy;\n        pub use getentropy::fill_bytes;\n    }'))
 

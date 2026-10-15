@@ -18,7 +18,7 @@ crates such as `serde`, `serde_json` and `anyhow` straight from crates.io
 build and run on AROS. **ripgrep 14.1.1 builds and searches AROS directories with it**, and tokio's
 runtime, tasks, channels and timers work (async networking does not: `mio`
 has no AROS selector). See `std-groundwork/realworld/`. Known gaps — bare
-program names in `Command`, non-cryptographic randomness, `poll` on sockets
+program names in `Command`, version-specific randomness backends, `poll` on sockets
 only, emulated `mmap` — are listed in `std-groundwork/std-patch/README.md`. See *Limitations* below before you
 plan a project around either path.
 

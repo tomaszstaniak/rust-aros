@@ -28,8 +28,8 @@ not exclusively Tokio, and its GPUI backend is a separate platform project.
 - Wrapper paths are shell-quoted as literal data. The review finding was
   reproduced by a failing argv test and fixed; tests also cover literal
   metacharacters in the base executable path.
-- Fifteen host tests pass (eleven installer tests and four C-build/setup
-  tests). Run `python3 -m unittest discover -s tests -v`.
+- Seventeen host tests pass (installer, C-build/setup and entropy contract
+  checks). Run `python3 -m unittest discover -s tests -v`.
 - Existing no_std template and std-hello built offline. std-hello also built
   from a new isolated sysroot; serde's host proc macro compiled in that build.
 - Both binaries executed on v11-1 with exit status 0. See
@@ -53,10 +53,17 @@ hardcoded C-library choice, and exercise threads, processes and
 network-up/down cases on an explicitly matched v11 SDK/guest. The fresh run here
 used the older AROS One v11 profile, not the 2026.09 release profile.
 
-Then reuse arospkg's pinned jitterentropy/platform code for the v11 entropy
-adapter, with real failures propagated. Inspect system getentropy separately on
-each other profile. Validate the selected getrandom/rand crate versions rather
-than assuming a libc symbol enables all versions.
+The first M1 entropy slice now reuses arospkg's pinned jitterentropy/platform
+code with real failures propagated. Fresh x86_64/v11 acceptance covers 12 libc
+checks, concurrent source initialization/readers, repeated forced initialization
+failure, rebuilt std HashMaps/threads, and getrandom 0.3.4/rand 0.9.5 with an
+explicit application custom backend, including uninitialized output buffers. See
+[evidence](evidence/2026-10-15-entropy/REPORT.md).
+
+Next: system-source selection for v1/Macaros, further getrandom versions only
+as required by pinned consumers, a reusable application backend if additional
+consumers need it, and Limpet SDK integration. Host rust-objcopy/libLLVM loading
+produced a nonfatal warning and remains a host-toolchain follow-up.
 
 Reuse Limpet SDK 0.3.0 and inspect aros-xterm/tools/rust-tty before adding terminal
 adapters. Mainline Ratatui/Crossterm acceptance already exists with an isolated
@@ -65,6 +72,8 @@ experimental posixc runtime; this does not establish stock v11 compatibility.
 ## Limitations
 
 No fresh v1, arm64/Macaros, async networking, HTTPS, watcher, SQLite or GPUI
-acceptance in this slice. Current getentropy remains clock/random based until
-M1. This slice does not make that source cryptographically suitable. The exact
-remote Git SHA was unavailable during initial inspection due to shell DNS.
+acceptance in this slice. Source here now uses jitterentropy; existing shared
+sysroots still contain their older implementation. The new aros-jent-20261015
+registration is separate. Exact upstream v11/v1 default-branch revisions were
+read successfully with gh API during M1; see the scoped report. Runtime
+coverage does not transfer between profiles.

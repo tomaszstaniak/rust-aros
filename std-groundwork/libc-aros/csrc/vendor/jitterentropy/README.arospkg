@@ -1,0 +1,14 @@
+jitterentropy-library 3.7.0 (Stephan Mueller), from
+https://github.com/smuellerDD/jitterentropy-library/archive/refs/tags/v3.7.0.tar.gz
+SHA-256 f5eaccc9d2977c83308651be9379f09f34348398f419e8f8b5bbd95928c777ed
+Licence: BSD-3-Clause or GPL-2.0 (LICENSE, LICENSE.bsd, LICENSE.gplv2);
+arospkg takes it under the BSD licence.
+
+Here: src/ and jitterentropy.h of the release, unchanged. The release's
+jitterentropy-base-user.h (the platform layer) is deliberately left out:
+src/tls/jent-aros/jitterentropy-base-user.h replaces it, and it has to be
+the only file of that name the compiler can find.
+
+Upstream compiles the library with -O0 and jitterentropy-base.c refuses to
+build otherwise; src/tls/tls.sh does the same. The internal timer thread
+(JENT_CONF_ENABLE_INTERNAL_TIMER) is not enabled.
