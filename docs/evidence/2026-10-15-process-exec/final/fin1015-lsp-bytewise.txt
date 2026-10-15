@@ -1,0 +1,1 @@
+CASE_DONE case=lsp-bytewise result=pass frames=2 separate_stderr=true stdout_eof=true child_exit=7 reader_joined=true

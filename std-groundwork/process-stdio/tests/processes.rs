@@ -16,12 +16,16 @@ fn actual_process_and_pipe_cases() {
     std::fs::create_dir(&root).unwrap();
     for case in [
         "status",
+        "alloc-spawn",
         "lsp",
+        "lsp-bytewise",
+        "lsp-invalid-bytewise",
         "lsp-invalid",
         "output",
         "wait",
         "kill",
         "spawn-error",
+        "exec-denied",
         "args",
     ] {
         let report: PathBuf = root.join(format!("{case}.txt"));

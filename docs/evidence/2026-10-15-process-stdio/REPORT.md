@@ -1,5 +1,11 @@
 # Process transport acceptance, 2026-10-15
 
+**Correction from the same day's continuation:** the seven common spawn
+failures below came from a non-executable staged payload. They are not evidence
+of an ABI mismatch or generally broken Command. See the
+[corrected diagnosis and scoped acceptance](../2026-10-15-process-exec/REPORT.md).
+This report preserves the historical measurements and initial hypotheses.
+
 This slice adds a portable std::process fixture and fixes two concrete SDK
 mismatches. It does **not** establish working Command/LSP transport on AROS.
 

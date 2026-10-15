@@ -1,0 +1,1 @@
+CASE_FAILED case=args error=Custom { kind: InvalidData, error: "argument bytes did not round trip: expected=\"\\\"two words\\\"\\n\\\"quote\\\\\\\"inside\\\"\\n\\\"Zażółć\\\"\\n\\\"star*value\\\"\\n\\\"\\\"\\n\" actual=\"\\\"two words\\\"\\n\\\"quote\\\\\\\"inside\\\"\\n\\\"Zażółć\\\"\\n\\\"star*value\\\"\\n\"" }

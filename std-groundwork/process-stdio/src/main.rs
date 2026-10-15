@@ -1,4 +1,6 @@
 //! Portable process/pipe acceptance fixture. Parent and child use the same binary.
+#[cfg(target_os = "aros")]
+mod posix_probe;
 use process_stdio::framing::{read_frame, write_frame};
 use std::{
     env,
@@ -21,23 +23,23 @@ fn self_command(mode: &str) -> io::Result<Command> {
 }
 fn child(mode: &str) -> io::Result<u8> {
     match mode {
-        "lsp" | "lsp-bad" => {
-            let mut input = BufReader::new(io::stdin());
-            let mut output = io::stdout();
-            let mut error = io::stderr();
-            let mut index = 0;
-            while let Some(body) = read_frame(&mut input)? {
-                writeln!(error, "DIAG {index}")?;
-                error.flush()?;
-                write_frame(
-                    &mut output,
-                    if mode == "lsp-bad" { b"wrong" } else { &body },
-                )?;
-                index += 1;
-            }
-            writeln!(error, "EOF")?;
-            error.flush()?;
+        "exit" => {
+            std::fs::write(
+                env::args()
+                    .nth(3)
+                    .ok_or_else(|| io::Error::other("missing marker path"))?,
+                "child exit=7\n",
+            )?;
             Ok(7)
+        }
+        "lsp" | "lsp-bad" => child_frames(BufReader::new(io::stdin()), mode == "lsp-bad"),
+        "lsp-byte" | "lsp-bad-byte" => {
+            use std::os::fd::FromRawFd;
+            // This child fixture exclusively owns fd 0. Bypass Stdin's internal
+            // 8 KiB buffer as well as the outer framing buffer. File closes fd 0
+            // once this child mode returns; no other reader uses it.
+            let input = unsafe { std::fs::File::from_raw_fd(0) };
+            child_frames(BufReader::with_capacity(1, input), mode == "lsp-bad-byte")
         }
         "output" => {
             let mut output = io::stdout();
@@ -72,14 +74,37 @@ fn child(mode: &str) -> io::Result<u8> {
         )),
     }
 }
-fn lsp(expect_invalid: bool) -> io::Result<String> {
-    let mut child = self_command(if expect_invalid { "lsp-bad" } else { "lsp" })?
+fn child_frames(mut input: impl io::BufRead, invalid: bool) -> io::Result<u8> {
+    let mut output = io::stdout();
+    let mut error = io::stderr();
+    let mut index = 0;
+    while let Some(body) = read_frame(&mut input)? {
+        writeln!(error, "DIAG {index}")?;
+        error.flush()?;
+        write_frame(&mut output, if invalid { b"wrong" } else { &body })?;
+        index += 1;
+    }
+    writeln!(error, "EOF")?;
+    error.flush()?;
+    Ok(7)
+}
+fn lsp(expect_invalid: bool, bytewise: bool) -> io::Result<String> {
+    let mode = match (expect_invalid, bytewise) {
+        (false, false) => "lsp",
+        (true, false) => "lsp-bad",
+        (false, true) => "lsp-byte",
+        (true, true) => "lsp-bad-byte",
+    };
+    let mut child = self_command(mode)?
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
     let mut input = child.stdin.take().expect("piped stdin");
-    let mut output = BufReader::new(child.stdout.take().expect("piped stdout"));
+    let mut output = BufReader::with_capacity(
+        if bytewise { 1 } else { 8192 },
+        child.stdout.take().expect("piped stdout"),
+    );
     let mut error = child.stderr.take().expect("piped stderr");
     let drain = thread::spawn(move || -> io::Result<Vec<u8>> {
         let mut bytes = Vec::new();
@@ -148,6 +173,14 @@ fn run_case(case: &str, report: Option<&str>) -> io::Result<String> {
         Ok(())
     };
     match case {
+        #[cfg(target_os = "aros")]
+        "posix-probe" => Ok(posix_probe::run()),
+        #[cfg(target_os = "aros")]
+        "c-spawn" => posix_probe::spawn(0),
+        #[cfg(target_os = "aros")]
+        "c-spawn-signal" => posix_probe::spawn(1),
+        #[cfg(target_os = "aros")]
+        "c-spawn-search" => posix_probe::spawn(2),
         "status" => {
             use std::os::unix::process::ExitStatusExt;
             for code in [0, 1, 7, 9, 20, 127, 255] {
@@ -165,8 +198,10 @@ fn run_case(case: &str, report: Option<&str>) -> io::Result<String> {
             }
             Ok("result=pass exit_status_codes=0,1,7,9,20,127,255".into())
         }
-        "lsp" => lsp(false),
-        "lsp-invalid" => lsp(true),
+        "lsp" => lsp(false, false),
+        "lsp-invalid" => lsp(true, false),
+        "lsp-bytewise" => lsp(false, true),
+        "lsp-invalid-bytewise" => lsp(true, true),
         "output" => {
             let output = self_command("output")?.output()?;
             check(output.status.code() == Some(9), "output fixture status")?;
@@ -261,8 +296,96 @@ fn run_case(case: &str, report: Option<&str>) -> io::Result<String> {
             check(output.status.success(), "spawn after errors failed")?;
             Ok("result=pass missing_executable_errors=8 next_spawn=true".into())
         }
+        "alloc-spawn" => {
+            use std::sync::{
+                atomic::{AtomicBool, AtomicUsize, Ordering},
+                Arc, Barrier,
+            };
+            let running = Arc::new(AtomicBool::new(true));
+            let iterations = Arc::new(AtomicUsize::new(0));
+            let barrier = Arc::new(Barrier::new(2));
+            let worker = {
+                let running = running.clone();
+                let iterations = iterations.clone();
+                let barrier = barrier.clone();
+                thread::spawn(move || {
+                    barrier.wait();
+                    while running.load(Ordering::Relaxed) {
+                        let mut bytes = vec![0x5a; 32768];
+                        std::hint::black_box(&mut bytes);
+                        assert!(bytes.iter().all(|&b| b == 0x5a));
+                        iterations.fetch_add(1, Ordering::Relaxed);
+                        thread::yield_now();
+                    }
+                })
+            };
+            barrier.wait();
+            let result = (|| -> io::Result<()> {
+                for _ in 0..8 {
+                    let values = ["", "", "Zażółć", "two words", ""];
+                    let output = self_command("args")?.args(values).output()?;
+                    let expected: String =
+                        values.iter().map(|value| format!("{value:?}\n")).collect();
+                    check(
+                        output.status.success() && output.stdout == expected.as_bytes(),
+                        "spawn during allocation did not preserve arguments/status",
+                    )?;
+                }
+                Ok(())
+            })();
+            running.store(false, Ordering::Relaxed);
+            worker
+                .join()
+                .map_err(|_| io::Error::other("allocation worker panicked"))?;
+            result?;
+            let iterations = iterations.load(Ordering::Relaxed);
+            check(iterations > 0, "allocation worker made no progress")?;
+            Ok(format!(
+                "result=pass children=8 allocation_iterations={iterations} worker_joined=true"
+            ))
+        }
+        "exec-denied" => {
+            use std::os::unix::fs::PermissionsExt;
+            // RESULTS: is the pool's FAT transport volume. Test execution
+            // permissions on a native RAM: file, not transport-volume metadata.
+            let path = if cfg!(target_os = "aros") {
+                std::path::PathBuf::from(format!("RAM:rust-exec-denied-{}", std::process::id()))
+            } else {
+                std::path::PathBuf::from(
+                    report.ok_or_else(|| io::Error::other("report path required"))?,
+                )
+                .with_extension("nonexec")
+            };
+            std::fs::write(&path, "not executable\n")?;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).map_err(
+                |error| io::Error::other(format!("prepare permissions {path:?}: {error:?}")),
+            )?;
+            let result = Command::new(&path).spawn();
+            let rejected = match result {
+                Err(error) => error.kind() == io::ErrorKind::PermissionDenied,
+                Ok(mut child) => {
+                    let _ = child.wait();
+                    false
+                }
+            };
+            std::fs::remove_file(path)?;
+            check(
+                rejected,
+                "non-executable file did not report PermissionDenied",
+            )?;
+            Ok("result=pass nonexecutable_error=PermissionDenied".into())
+        }
         "args" => {
-            let values = ["two words", "quote\"inside", "Zażółć", "star*value", ""];
+            let values = [
+                "",
+                "two words",
+                "",
+                "",
+                "quote\"inside",
+                "Zażółć",
+                "star*value",
+                "",
+            ];
             let output = self_command("args")?.args(values).output()?;
             let expected: String = values.iter().map(|value| format!("{value:?}\n")).collect();
             check(output.status.success(), "argument fixture status")?;

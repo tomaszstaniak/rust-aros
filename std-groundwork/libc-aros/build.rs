@@ -18,7 +18,7 @@ fn main() {
         format!("{prefix}ar")
     });
     let csrc = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("csrc");
-    let mut sources = vec![csrc.join("compat.c"), csrc.join("entropy.c"), csrc.join("jent_adapter.c")];
+    let mut sources = vec![csrc.join("compat.c"), csrc.join("exec_adapter.c"), csrc.join("entropy.c"), csrc.join("jent_adapter.c")];
     let vendor = csrc.join("vendor/jitterentropy");
     let mut core: Vec<_> = fs::read_dir(vendor.join("src")).expect("vendored jitterentropy sources missing")
         .map(|entry| entry.unwrap().path())

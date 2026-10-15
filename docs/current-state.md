@@ -90,19 +90,37 @@ See [the report](evidence/2026-10-15-limpet/REPORT.md) for binaries, screenshots
 and the explicit unsafe handle-lifetime/task-access constructor contract.
 Raw input, PTY/termios and Ratatui remain outside this completed slice.
 
-## Process transport slice (2026-10-15)
+## Process execution and transport (2026-10-15)
 
-A portable process-stdio fixture now exercises Command, separate stdout/stderr,
-Content-Length frames, EOF, wait/try_wait, argument fidelity and spawn errors.
-Host: five framing tests and one integration test (eight cases) pass. The
-Python suite now has 20 passing tests; six Limpet tests still pass.
+The initial all-spawn-fail diagnosis was corrected: payload copying lost the
+execute bit. Shell launched the file, but exec rejected it. The staging helper
+now preserves 0755, explicitly protects the RAM: copy and records permissions.
+Rust/C pipe/fcntl/errno probes agree; the suspected ABI mismatch was not found.
 
-Two SDK mismatches were corrected: wait statuses use AROS' low-byte exit code,
-and std selects fcntl for FD_CLOEXEC instead of unsupported ioctl(FIOCLEX).
-The separate aros-process-20261015 sysroot builds successfully. Its native
-status decoder passes, but **all seven spawn-dependent native cases fail**
-with OS error 0. Earlier baseline runs varied, including ENOSYS and an
-incomplete wait. See [the scoped evidence](evidence/2026-10-15-process-stdio/REPORT.md).
-Command/LSP support is not accepted. Next isolate posixc FFI/wrapper ABI and
-errno with raw pipe/fcntl/dup2 probes, then replace or validate the legacy
-Rust fork-to-vfork path before proceeding to language server integration.
+A narrow older-CRT execvp adapter preserves empty arguments, checks qualified
+paths before takeover can lose errno, and retains honest failures. Native
+x86_64/older v11 acceptance passes leading/consecutive/trailing empty, spaced,
+quoted, UTF-8 and star arguments; eight missing-file errors followed by a valid
+spawn; try_wait/EOF/cached wait; 131072 bytes each of stdout/stderr with child
+exit 9; and eight spawns during 977 allocation iterations in a second thread.
+Child::kill reaches ENOSYS, with a naturally exiting child reaped.
+
+Two bytewise framing cases pass: two UTF-8 messages with separate stderr,
+stdout EOF and child exit 7, plus rejection/cleanup after a bad response.
+Ordinary 8 KiB Stdin/BufReader framing still blocks on this PIPE handler's
+read-until-requested-length/EOF behavior. The explicit bytewise fixture is a
+workaround, not acceptance of generic buffered LSP/stdin or a real server.
+
+The permission-denied fixture passes on native RAM:. Its initial permission
+setup on RESULTS: FAT failed and is retained as a separate transport-volume
+limitation. Combined native matrix: nine passes and one unsupported kill.
+Host regression: 23 Python tests, six Limpet tests, five framing tests and one
+integration test with 12 host process cases pass. New isolated production
+toolchain: aros-exec-20261015. Shared sysroots are unchanged.
+See [corrected scoped evidence](evidence/2026-10-15-process-exec/REPORT.md).
+
+Next: provide a reusable framed transport with an explicit small-read policy
+and error/EOF ownership, then test a real pinned language server. General
+buffered stdio on DOS PIPE needs its own runtime design. Keep cancellation,
+process signals, general PATH/environment/cwd behavior, v11 2026.09, v1 and
+arm64/Macaros as separate unaccepted criteria.

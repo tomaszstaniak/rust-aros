@@ -1,0 +1,3 @@
+Directory "RAM:pr" on Thursday 10/15/26:
+process-stdio            2086424 ---rwed Today       14:49:30
+1 file - 4076 blocks used

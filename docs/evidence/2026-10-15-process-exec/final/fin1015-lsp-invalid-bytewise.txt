@@ -1,0 +1,1 @@
+CASE_DONE case=lsp-invalid-bytewise result=pass invalid_response_rejected=true child_exit=7 reader_joined=true

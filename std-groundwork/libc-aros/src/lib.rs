@@ -339,6 +339,7 @@ extern "C" {
     pub fn gmtime_r(t: *const time_t, tm: *mut tm) -> *mut tm;
     pub fn waitpid(pid: pid_t, status: *mut c_int, options: c_int) -> pid_t;
     pub fn execv(path: *const c_char, argv: *const *const c_char) -> c_int;
+    #[link_name = "rs_execvp"]
     pub fn execvp(file: *const c_char, argv: *const *const c_char) -> c_int;
     pub fn kill(pid: pid_t, sig: c_int) -> c_int;
 }

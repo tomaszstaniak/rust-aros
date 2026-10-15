@@ -1,0 +1,1 @@
+CASE_FAILED case=spawn-error error=Custom { kind: InvalidData, error: "missing executable error kind: Os { code: 0, kind: Uncategorized, message: \"No error\" }" }

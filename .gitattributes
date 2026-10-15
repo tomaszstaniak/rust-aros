@@ -1,0 +1,3 @@
+# Preserve the native diagnostic reports' final blank separator verbatim.
+docs/evidence/2026-10-15-process-exec/cspawn/csp1015-posix-probe.txt whitespace=-blank-at-eof
+docs/evidence/2026-10-15-process-exec/ffi/abi1015-a.txt whitespace=-blank-at-eof

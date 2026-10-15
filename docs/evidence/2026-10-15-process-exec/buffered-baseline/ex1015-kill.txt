@@ -1,0 +1,1 @@
+CASE_DONE case=kill result=unsupported kill_error=Os { code: 78, kind: Unsupported, message: "Function not implemented" } natural_exit=0 reaped=true

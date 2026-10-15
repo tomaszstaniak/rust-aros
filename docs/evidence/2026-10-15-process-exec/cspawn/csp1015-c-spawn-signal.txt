@@ -1,0 +1,1 @@
+CASE_DONE case=c-spawn-signal result=diagnostic reset_signal=true SpawnProbe { pid: 91, waited: 91, signal_result: 1, child_errno: 0, parent_errno: 13, status: 0 }

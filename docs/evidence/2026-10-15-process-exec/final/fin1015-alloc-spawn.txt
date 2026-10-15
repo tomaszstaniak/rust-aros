@@ -1,0 +1,1 @@
+CASE_DONE case=alloc-spawn result=pass children=8 allocation_iterations=977 worker_joined=true

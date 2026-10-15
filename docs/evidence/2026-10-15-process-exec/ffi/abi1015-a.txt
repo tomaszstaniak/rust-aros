@@ -1,0 +1,20 @@
+CASE_DONE case=posix-probe result=diagnostic
+mode=rust pipe=0 fds=[3, 4] rust_errno=0 gcc_errno=0
+mode=rust step=get result=0 rust_errno=0 gcc_errno=0
+mode=rust step=set result=0 rust_errno=0 gcc_errno=0
+mode=rust step=get-set result=1 rust_errno=0 gcc_errno=0
+mode=rust step=clear result=0 rust_errno=0 gcc_errno=0
+mode=rust step=get-clear result=0 rust_errno=0 gcc_errno=0
+mode=rust close=0 rust_errno=0 gcc_errno=0
+mode=rust close=0 rust_errno=0 gcc_errno=0
+mode=rust invalid-fd=-1 rust_errno=9 gcc_errno=9
+mode=gcc pipe=0 fds=[3, 4] rust_errno=0 gcc_errno=0
+mode=gcc step=get result=0 rust_errno=0 gcc_errno=0
+mode=gcc step=set result=0 rust_errno=0 gcc_errno=0
+mode=gcc step=get-set result=1 rust_errno=0 gcc_errno=0
+mode=gcc step=clear result=0 rust_errno=0 gcc_errno=0
+mode=gcc step=get-clear result=0 rust_errno=0 gcc_errno=0
+mode=gcc close=0 rust_errno=0 gcc_errno=0
+mode=gcc close=0 rust_errno=0 gcc_errno=0
+mode=gcc invalid-fd=-1 rust_errno=9 gcc_errno=9
+

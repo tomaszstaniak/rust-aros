@@ -1,0 +1,1 @@
+CASE_DONE case=output result=pass stdout_bytes=131072 stderr_bytes=131072 child_exit=9

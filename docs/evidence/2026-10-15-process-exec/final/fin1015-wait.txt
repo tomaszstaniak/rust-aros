@@ -1,0 +1,1 @@
+CASE_DONE case=wait result=pass try_wait_running=true stdin_eof=true repeated_wait=true child_exit=0
