@@ -8,7 +8,7 @@
                          .insert(id.clone(), service.cancellation_token());
 +                    crate::request_trace::record("registered", &id);
                      let cancellation_tokens = Arc::clone(&self.cancellation_tokens);
-                     std::thread::spawn(move || {
+                     workers.spawn(move || {
 -                        let _ = stdio::write(Self::handle_request(service, id.clone(), method, params));
 +                        crate::request_trace::record("worker_start", &id);
 +                        let response = Self::handle_request(service, id.clone(), method, params);
@@ -17,7 +17,7 @@
 +                        crate::request_trace::record(if written { "write_ok" } else { "write_error" }, &id);
                          cancellation_tokens.write().remove(&id);
 +                        crate::request_trace::record("token_removed", &id);
-                     });
+                     }).map_err(anyhow::Error::msg)?;
                  }
                  Message::OkResponse {
 @@ -136,7 +142,11 @@

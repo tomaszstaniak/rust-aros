@@ -33,6 +33,8 @@ if dest.exists():
     parser.error("destination must not exist")
 shutil.copytree(source, dest, ignore=shutil.ignore_patterns("target", ".git"))
 subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("transport.patch").resolve())], cwd=dest, check=True)
+subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("worker-lifecycle.patch").resolve())], cwd=dest, check=True)
+shutil.copyfile(Path(__file__).with_name("workers.rs"), dest / "crates/server/src/workers.rs")
 if args.request_trace or args.probe_checkpoint:
     subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("request-trace.patch").resolve())], cwd=dest, check=True)
     shutil.copyfile(Path(__file__).with_name("request-trace.rs"), dest / "crates/server/src/request_trace.rs")

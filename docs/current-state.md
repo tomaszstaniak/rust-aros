@@ -283,3 +283,26 @@ Earlier unsynchronized all-normal results remain unchanged.
 See [checkpoint evidence](evidence/2026-10-15-wat-checkpoint/REPORT.md).
 Next: active-worker teardown and reproducible explicit unwind build/profile
 integration. v1 and arm64/Macaros remain deferred.
+
+
+## Worker ownership and active teardown accepted on v11-2 (2026-10-15)
+
+The pinned WAT server discarded request JoinHandles. A controlled host exit
+with request10 paused returned server0 without worker completion; the new
+guard correctly rejected it. Ordinary port preparation now applies a separate
+worker-lifecycle patch: retain/reap handles, cancel outstanding tokens outside
+the map lock, and join workers before returning on loop exit/EOF/error.
+Worker failures are reported without hiding an existing loop failure.
+
+Host active-exit and active-EOF tests pass cancelled-response accounting,
+worker completion/join trace, EOF, child wait and client reader joins. All five
+native scenarios also pass on the explicitly reserved older x86_64 ABIv11
+pool slot v11-2, GCC10.5 / AROS/sdk with isolated aros-exec-20261015 unwind:
+baseline, cancellation/recovery, shutdown acknowledgement, active exit, active
+EOF. Client/server0; no timeout/panic/write errors or dropped trace. Diagnostic
+stderr contains the intentional trace. The guest was stopped and released.
+
+See [teardown evidence](evidence/2026-10-15-wat-teardown/REPORT.md).
+Next: reproducible profile/build integration and a unified validation entry
+point. Joins still lack forced termination for blocked/noncooperative peers;
+the accepted teardown uses a synchronized Salsa checkpoint and drained output.

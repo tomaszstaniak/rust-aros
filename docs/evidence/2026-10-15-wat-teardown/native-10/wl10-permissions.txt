@@ -1,0 +1,7 @@
+Directory "RAM:wl" on Thursday 10/15/26:
+interactive-check        2468360 ---rwed Today       23:51:02
+lsp-check                2373264 ---rwed Today       23:51:02
+payload-sha256.json          344 ---rw-d Today       23:51:54
+run-tests                    990 ---rw-d Today       23:51:54
+wat-server               12518072 ---rwed Today       23:50:58
+5 files - 33911 blocks used

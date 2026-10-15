@@ -22,7 +22,7 @@
              support_refresh_inlay_hint: false,
 @@ -73,6 +73,15 @@
                      let cancellation_tokens = Arc::clone(&self.cancellation_tokens);
-                     std::thread::spawn(move || {
+                     workers.spawn(move || {
                          crate::request_trace::record("worker_start", &id);
 +                        if id == NumberOrString::Integer(10) && std::env::args().any(|arg| arg == "--probe-checkpoint") {
 +                            wat_service::probe_checkpoint::arm(|| {
@@ -46,3 +46,17 @@
                              } else {
                                  crate::request_trace::record("cancel_miss", &params.id);
                              }
+--- a/crates/server/src/server.rs
++++ b/crates/server/src/server.rs
+@@ -1,3 +1,10 @@
+-        for (_id, token) in tokens { token.cancel(); }
++        for (_id, token) in tokens {
++            token.cancel();
++            crate::request_trace::record("teardown_cancel_applied", &_id);
++            if _id == NumberOrString::Integer(10) { wat_service::probe_checkpoint::release(); }
++        }
+         let cleanup = workers.finish().map_err(anyhow::Error::msg);
++        if cleanup.is_ok() {
++            crate::request_trace::record("workers_joined", &NumberOrString::Integer(10));
++        }
+         match (result, cleanup) {

@@ -1,0 +1,7 @@
+
+running 2 tests
+test tests::panic_is_reported_after_other_workers_are_joined ... ok
+test tests::finish_joins_all_workers_before_returning ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

@@ -21,3 +21,9 @@ docs/evidence/2026-10-15-wat-checkpoint/gate-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-checkpoint/process-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-checkpoint/transport-tests.log whitespace=-blank-at-eof
 ports/wat-server/probe-checkpoint.patch whitespace=-blank-at-eol
+# Preserve original worker lifecycle transcripts and unified-diff context.
+docs/evidence/2026-10-15-wat-teardown/client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/worker-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/transport-tests.log whitespace=-blank-at-eof
+ports/wat-server/worker-lifecycle.patch whitespace=-blank-at-eol

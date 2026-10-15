@@ -82,3 +82,17 @@ if a.probe_checkpoint:
     script.write_text(script.read_text().replace(marker, f"""RAM:wl/interactive-check RAM:wl/wat-server --trace-requests --probe-checkpoint --probe-shutdown >RESULTS:{a.prefix}-shutdown.txt
 Echo $RC >RESULTS:{a.prefix}-shutdown.rc
 {marker}"""))
+
+if a.probe_checkpoint:
+    script = a.destination / "run-tests"
+    marker = f"Echo DONE >RESULTS:{a.prefix}-done.txt"
+    script.write_text(script.read_text().replace(marker, f"""RAM:wl/interactive-check RAM:wl/wat-server --trace-requests --probe-checkpoint --probe-shutdown --probe-exit >RESULTS:{a.prefix}-active-exit.txt
+Echo $RC >RESULTS:{a.prefix}-active-exit.rc
+{marker}"""))
+
+if a.probe_checkpoint:
+    script = a.destination / "run-tests"
+    marker = f"Echo DONE >RESULTS:{a.prefix}-done.txt"
+    script.write_text(script.read_text().replace(marker, f"""RAM:wl/interactive-check RAM:wl/wat-server --trace-requests --probe-checkpoint --probe-shutdown --probe-exit --probe-eof >RESULTS:{a.prefix}-active-eof.txt
+Echo $RC >RESULTS:{a.prefix}-active-eof.rc
+{marker}"""))

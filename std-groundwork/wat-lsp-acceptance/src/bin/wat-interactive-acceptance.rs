@@ -164,6 +164,38 @@ fn document(version: i64, final_document: bool) -> String {
     text.push(')');
     text
 }
+fn exit_worker_completed(trace: &str) -> bool {
+    if [
+        "REQUEST_TRACE_DROPPED",
+        "write_error",
+        "AROS_PROBE_GATE_TIMEOUT",
+        "panicked",
+    ]
+    .iter()
+    .any(|marker| trace.contains(marker))
+    {
+        return false;
+    }
+    let expected = [
+        "salsa_checkpoint",
+        "query_done",
+        "token_removed",
+        "workers_joined",
+    ];
+    let mut next = 0;
+    for line in trace.lines() {
+        let fields: Vec<_> = line.split_whitespace().collect();
+        if fields.len() == 4
+            && fields[0] == "REQUEST_TRACE"
+            && fields[3] == "Integer(10)"
+            && next < expected.len()
+            && fields[2] == expected[next]
+        {
+            next += 1;
+        }
+    }
+    next == expected.len()
+}
 fn checkpoint_ready(message: &Value) -> bool {
     message == &json!({"jsonrpc":"2.0","method":"$/arosProbeCheckpoint","params":{"id":10}})
 }
@@ -211,6 +243,12 @@ fn exercise(
                 return Err("invalid outstanding shutdown response".into());
             }
             println!("PASS shutdown response while request 10 remains at checkpoint");
+            if std::env::args().any(|arg| arg == "--probe-exit") {
+                println!(
+                    "OBSERVE exit with request 10 still paused; no explicit client cancellation"
+                );
+                return Ok(());
+            }
         }
         send(
             writer,
@@ -319,10 +357,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if let Err(error) = &result {
         println!("CASE_ERROR {error}");
     }
-    let exit = send(
-        &mut writer,
-        json!({"jsonrpc":"2.0","method":"exit","params":null}),
-    );
+    let exit = if std::env::args().any(|arg| arg == "--probe-eof") {
+        println!("OBSERVE close stdin with request 10 still paused");
+        Ok(())
+    } else {
+        send(
+            &mut writer,
+            json!({"jsonrpc":"2.0","method":"exit","params":null}),
+        )
+    };
     drop(writer);
     // A deadline is diagnostic, not forced termination: this native profile
     // still needs its external VM supervisor if a peer stops making progress.
@@ -335,9 +378,23 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
     result?;
     exit?;
-    match rx.recv_timeout(Duration::from_secs(30))? {
-        Event::Eof => {}
-        _ => return Err("unexpected trailing server output".into()),
+    if std::env::args().any(|arg| arg == "--probe-exit")
+        && !exit_worker_completed(&String::from_utf8_lossy(&stderr))
+    {
+        println!("CASE_ERROR process exited without observed completion of active worker 10");
+        return Err("active-worker teardown not accepted".into());
+    }
+    let exiting_active = std::env::args().any(|arg| arg == "--probe-exit");
+    let mut final_worker = Outstanding::new([10]);
+    loop {
+        match rx.recv_timeout(Duration::from_secs(30))? {
+            Event::Eof => break,
+            Event::Message(message) if exiting_active => final_worker.observe(&message)?,
+            _ => return Err("unexpected trailing server output".into()),
+        }
+    }
+    if exiting_active && (!final_worker.complete(0) || final_worker.cancelled != 1) {
+        return Err("missing cancelled worker response before EOF".into());
     }
     if !status.success() {
         return Err("server failed".into());
@@ -363,6 +420,18 @@ mod tests {
         ] {
             assert!(!checkpoint_ready(&message));
         }
+    }
+    #[test]
+    fn process_exit_does_not_imply_worker_completion() {
+        let active = "REQUEST_TRACE 0 registered Integer(10)\nREQUEST_TRACE 1 worker_start Integer(10)\nREQUEST_TRACE 2 salsa_checkpoint Integer(10)\n";
+        assert!(!exit_worker_completed(active));
+        assert!(!exit_worker_completed(&(active.to_owned()+"REQUEST_TRACE 3 query_done Integer(99)\nREQUEST_TRACE 4 token_removed Integer(99)\n")));
+        assert!(!exit_worker_completed(
+            &(active.to_owned() + "REQUEST_TRACE 3 query_done Integer(10)\n")
+        ));
+        assert!(exit_worker_completed(&(active.to_owned()+"REQUEST_TRACE 3 query_done Integer(10)\nREQUEST_TRACE 4 token_removed Integer(10)\nREQUEST_TRACE 5 workers_joined Integer(10)\n")));
+        assert!(!exit_worker_completed("REQUEST_TRACE 1 token_removed Integer(10)\nREQUEST_TRACE 2 query_done Integer(10)\nREQUEST_TRACE 3 salsa_checkpoint Integer(10)\n"));
+        assert!(!exit_worker_completed(&(active.to_owned()+"REQUEST_TRACE 3 query_done Integer(10)\nREQUEST_TRACE 4 token_removed Integer(10)\nREQUEST_TRACE 5 workers_joined Integer(10)\nREQUEST_TRACE_DROPPED 1\n")));
     }
     fn diagnostic() -> Value {
         json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///interactive.wat","diagnostics":[]}})

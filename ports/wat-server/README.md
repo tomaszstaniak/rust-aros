@@ -5,7 +5,7 @@ Reference workload: upstream wasm-language-tools / wat_server 0.11.0 at
 https://github.com/g-plane/wasm-language-tools/tree/428f74da7fcb85d2fca9bd9828f5ff7434c19af8
 
 This is an actual server with the upstream parser, Salsa analysis, diagnostics,
-formatter, symbols and request worker threads. The port changes transport and
+formatter, symbols and request worker threads. The port changes transport, request worker lifecycle and
 constructor registration; it does not replace language analysis with a fixture.
 
 ## Prepare and build
@@ -180,7 +180,7 @@ guarantee.
 
 `prepare.py SOURCE NEW_WORKSPACE --probe-checkpoint` applies the transport,
 trace and separate checkpoint patches. Build this disposable workspace with
-the existing explicit native unwind recipe. Ordinary preparation is unchanged.
+the existing explicit native unwind recipe. Ordinary preparation includes the worker lifecycle patch; checkpoint instrumentation remains optional.
 The client mode `SERVER --probe-checkpoint --trace-requests` waits for a real
 Salsa cancellation-check event before sending cancellation and then verifies
 recovery. Adding `--probe-shutdown` acknowledges shutdown while that request
@@ -194,3 +194,19 @@ Use only a server prepared with the diagnostic patch. This is controlled
 checkpoint coverage, not a measurement of natural scheduling or interruption
 midway through a query body. Process exit with active workers remains open.
 See [native and host evidence](../../docs/evidence/2026-10-15-wat-checkpoint/REPORT.md).
+
+
+### Request worker lifecycle
+
+Ordinary preparation applies `worker-lifecycle.patch` and copies `workers.rs`.
+The server reaps finished workers as new requests arrive. Leaving the loop
+through exit, EOF or a propagated error cancels outstanding tokens outside
+the token-map lock and joins retained workers. Cleanup and loop failures are
+both retained. This does not provide forced termination or bounded joins.
+
+The diagnostic client additionally accepts `--probe-checkpoint --probe-shutdown
+--probe-exit --trace-requests` to exit with the checkpoint request still held;
+add `--probe-eof` to close stdin without sending exit. Completion is accepted
+only with its cancelled response and ordered completion/join trace. Diagnostic
+staging now includes both cases as fresh sessions after the prior three.
+[Host and native evidence](../../docs/evidence/2026-10-15-wat-teardown/REPORT.md).

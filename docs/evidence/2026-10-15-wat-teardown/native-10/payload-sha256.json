@@ -1,0 +1,6 @@
+{
+  "lsp-check": "77dc61176d14b7c32701e8c5ac8c757de1bc0bcd6be522c3f2a1ca7273c69f96",
+  "interactive-check": "94e78e745ab3a7952cca56acda5c6e1f4e70f15600f762ca604d8693c519a369",
+  "wat-server": "d1ca2ddbdc198b2bbd77b966a545cdf400f2d3772c720afc3c65518b3e7de7a3",
+  "run-tests": "7af9394286001ae08ee2f686dfd9fc8fa44ac6c900c8e1afe57eb38874544776"
+}
