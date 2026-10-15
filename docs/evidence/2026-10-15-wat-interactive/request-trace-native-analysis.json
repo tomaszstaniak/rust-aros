@@ -1,0 +1,152 @@
+{
+  "summary": {
+    "cancel_applied_after_query_completion": 12
+  },
+  "requests": {
+    "10": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 0,
+        "worker_start": 1,
+        "query_done": 2,
+        "cancel_hit": 3,
+        "cancel_applied": 4,
+        "write_ok": 5,
+        "token_removed": 6
+      }
+    },
+    "11": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 7,
+        "worker_start": 8,
+        "query_done": 9,
+        "cancel_hit": 10,
+        "cancel_applied": 11,
+        "write_ok": 12,
+        "token_removed": 13
+      }
+    },
+    "12": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 14,
+        "worker_start": 15,
+        "query_done": 16,
+        "cancel_hit": 17,
+        "cancel_applied": 18,
+        "write_ok": 19,
+        "token_removed": 20
+      }
+    },
+    "13": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 21,
+        "worker_start": 22,
+        "query_done": 23,
+        "cancel_hit": 24,
+        "cancel_applied": 25,
+        "write_ok": 26,
+        "token_removed": 27
+      }
+    },
+    "14": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 28,
+        "worker_start": 29,
+        "query_done": 30,
+        "cancel_hit": 31,
+        "cancel_applied": 32,
+        "write_ok": 33,
+        "token_removed": 34
+      }
+    },
+    "15": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 35,
+        "worker_start": 36,
+        "query_done": 37,
+        "cancel_hit": 38,
+        "cancel_applied": 39,
+        "write_ok": 40,
+        "token_removed": 41
+      }
+    },
+    "16": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 42,
+        "worker_start": 43,
+        "query_done": 44,
+        "cancel_hit": 45,
+        "cancel_applied": 46,
+        "write_ok": 47,
+        "token_removed": 48
+      }
+    },
+    "17": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 49,
+        "worker_start": 50,
+        "query_done": 51,
+        "cancel_hit": 52,
+        "cancel_applied": 53,
+        "write_ok": 54,
+        "token_removed": 55
+      }
+    },
+    "18": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 56,
+        "worker_start": 57,
+        "query_done": 58,
+        "cancel_hit": 59,
+        "cancel_applied": 60,
+        "write_ok": 61,
+        "token_removed": 62
+      }
+    },
+    "19": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 63,
+        "worker_start": 64,
+        "query_done": 65,
+        "cancel_hit": 66,
+        "cancel_applied": 67,
+        "write_ok": 68,
+        "token_removed": 69
+      }
+    },
+    "20": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 70,
+        "worker_start": 71,
+        "query_done": 72,
+        "cancel_hit": 73,
+        "cancel_applied": 74,
+        "write_ok": 75,
+        "token_removed": 76
+      }
+    },
+    "21": {
+      "category": "cancel_applied_after_query_completion",
+      "events": {
+        "registered": 77,
+        "worker_start": 78,
+        "query_done": 79,
+        "cancel_hit": 80,
+        "cancel_applied": 81,
+        "write_ok": 82,
+        "token_removed": 83
+      }
+    }
+  },
+  "write_errors": 0
+}

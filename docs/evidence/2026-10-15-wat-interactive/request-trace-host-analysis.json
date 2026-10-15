@@ -1,0 +1,152 @@
+{
+  "summary": {
+    "cancel_applied_before_worker_start": 12
+  },
+  "requests": {
+    "10": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 0,
+        "cancel_hit": 1,
+        "cancel_applied": 2,
+        "worker_start": 3,
+        "query_done": 4,
+        "write_ok": 5,
+        "token_removed": 6
+      }
+    },
+    "11": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 7,
+        "cancel_hit": 8,
+        "cancel_applied": 9,
+        "worker_start": 10,
+        "query_done": 11,
+        "write_ok": 12,
+        "token_removed": 13
+      }
+    },
+    "12": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 14,
+        "cancel_hit": 15,
+        "cancel_applied": 16,
+        "worker_start": 17,
+        "query_done": 18,
+        "write_ok": 19,
+        "token_removed": 20
+      }
+    },
+    "13": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 21,
+        "cancel_hit": 22,
+        "cancel_applied": 23,
+        "worker_start": 24,
+        "query_done": 25,
+        "write_ok": 26,
+        "token_removed": 27
+      }
+    },
+    "14": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 28,
+        "cancel_hit": 29,
+        "cancel_applied": 30,
+        "worker_start": 31,
+        "query_done": 32,
+        "write_ok": 33,
+        "token_removed": 34
+      }
+    },
+    "15": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 35,
+        "cancel_hit": 36,
+        "cancel_applied": 37,
+        "worker_start": 38,
+        "query_done": 39,
+        "write_ok": 40,
+        "token_removed": 41
+      }
+    },
+    "16": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 42,
+        "cancel_hit": 43,
+        "cancel_applied": 44,
+        "worker_start": 45,
+        "query_done": 46,
+        "write_ok": 47,
+        "token_removed": 48
+      }
+    },
+    "17": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 49,
+        "cancel_hit": 50,
+        "cancel_applied": 51,
+        "worker_start": 52,
+        "query_done": 53,
+        "write_ok": 54,
+        "token_removed": 55
+      }
+    },
+    "18": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 56,
+        "cancel_hit": 57,
+        "cancel_applied": 58,
+        "worker_start": 59,
+        "query_done": 60,
+        "write_ok": 61,
+        "token_removed": 62
+      }
+    },
+    "19": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 63,
+        "cancel_hit": 64,
+        "cancel_applied": 65,
+        "worker_start": 66,
+        "query_done": 67,
+        "write_ok": 68,
+        "token_removed": 69
+      }
+    },
+    "20": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 70,
+        "cancel_hit": 71,
+        "cancel_applied": 72,
+        "worker_start": 73,
+        "query_done": 74,
+        "write_ok": 75,
+        "token_removed": 76
+      }
+    },
+    "21": {
+      "category": "cancel_applied_before_worker_start",
+      "events": {
+        "registered": 77,
+        "cancel_hit": 78,
+        "cancel_applied": 79,
+        "worker_start": 80,
+        "query_done": 81,
+        "write_ok": 82,
+        "token_removed": 83
+      }
+    }
+  },
+  "write_errors": 0
+}

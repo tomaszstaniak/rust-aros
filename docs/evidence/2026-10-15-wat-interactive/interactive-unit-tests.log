@@ -1,0 +1,22 @@
+   Compiling wat-lsp-acceptance v0.1.0 (/Users/tumash/Work/AROS-dev/rust-aros/std-groundwork/wat-lsp-acceptance)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.68s
+     Running unittests src/bin/wat-interactive-acceptance.rs (/Users/tumash/Work/AROS/local/rust-lsp/build/client-host/debug/build/wat-lsp-acceptance/59c9cc0822cc758d/out/wat_interactive_acceptance-59c9cc0822cc758d)
+
+running 6 tests
+test tests::interleaved_diagnostics_and_cancelled_results_complete_exactly_once ... ok
+test tests::request_cancelled_error_is_accounted_without_failing_the_session ... ok
+test tests::partial_group_write_failure_prevents_later_exit_frame ... ok
+test tests::valid_documents_reject_error_diagnostics_and_hybrid_messages ... ok
+test tests::duplicate_unrequested_and_malformed_messages_are_rejected ... ok
+test tests::complete_request_and_cancel_frames_share_one_underlying_write ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/Users/tumash/Work/AROS/local/rust-lsp/build/client-host/debug/build/wat-lsp-acceptance/2891a100ab700801/out/wat_lsp_acceptance-2891a100ab700801)
+
+running 2 tests
+test tests::batch_matches_results_by_id_instead_of_arrival_order ... ok
+test tests::duplicate_or_unrequested_responses_fail_the_batch ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

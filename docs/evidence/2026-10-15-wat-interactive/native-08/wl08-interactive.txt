@@ -1,0 +1,153 @@
+SEND {"bytes":107,"id":1,"method":"initialize","version":null}
+RECV {"diagnostics":null,"error":null,"id":1,"method":null,"result_items":null,"result_null":false}
+SEND {"bytes":52,"id":null,"method":"initialized","version":null}
+SEND {"bytes":64500,"id":null,"method":"textDocument/didOpen","version":1}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+SEND {"bytes":124,"id":10,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":2}
+SEND {"bytes":124,"id":11,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":3}
+SEND {"bytes":124,"id":12,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":4}
+SEND {"bytes":124,"id":13,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":5}
+SEND {"bytes":124,"id":14,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":6}
+SEND {"bytes":124,"id":15,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":7}
+SEND {"bytes":124,"id":16,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":8}
+SEND {"bytes":124,"id":17,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":64504,"id":null,"method":"textDocument/didChange","version":9}
+SEND {"bytes":124,"id":18,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":67577,"id":null,"method":"textDocument/didChange","version":10}
+SEND {"bytes":124,"id":19,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":67577,"id":null,"method":"textDocument/didChange","version":11}
+SEND {"bytes":124,"id":20,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":67577,"id":null,"method":"textDocument/didChange","version":12}
+SEND {"bytes":124,"id":21,"method":"textDocument/documentSymbol","version":null}
+SEND {"bytes":63,"id":null,"method":"$/cancelRequest","version":null}
+SEND {"bytes":67577,"id":null,"method":"textDocument/didChange","version":13}
+RECV {"diagnostics":null,"error":null,"id":10,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":11,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":12,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":13,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":14,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":15,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":16,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":17,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":18,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":19,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":20,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+RECV {"diagnostics":null,"error":null,"id":21,"method":null,"result_items":1,"result_null":false}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+CASE_ERROR all requests completed normally; interruption was not exercised
+SEND {"bytes":47,"id":null,"method":"exit","version":null}
+SERVER_STATUS exit status: 0; STDERR_BYTES 3434
+SERVER_STDERR REQUEST_TRACE 0 registered Integer(10)
+REQUEST_TRACE 1 worker_start Integer(10)
+REQUEST_TRACE 2 query_done Integer(10)
+REQUEST_TRACE 3 cancel_hit Integer(10)
+REQUEST_TRACE 4 cancel_applied Integer(10)
+REQUEST_TRACE 5 write_ok Integer(10)
+REQUEST_TRACE 6 token_removed Integer(10)
+REQUEST_TRACE 7 registered Integer(11)
+REQUEST_TRACE 8 worker_start Integer(11)
+REQUEST_TRACE 9 query_done Integer(11)
+REQUEST_TRACE 10 cancel_hit Integer(11)
+REQUEST_TRACE 11 cancel_applied Integer(11)
+REQUEST_TRACE 12 write_ok Integer(11)
+REQUEST_TRACE 13 token_removed Integer(11)
+REQUEST_TRACE 14 registered Integer(12)
+REQUEST_TRACE 15 worker_start Integer(12)
+REQUEST_TRACE 16 query_done Integer(12)
+REQUEST_TRACE 17 cancel_hit Integer(12)
+REQUEST_TRACE 18 cancel_applied Integer(12)
+REQUEST_TRACE 19 write_ok Integer(12)
+REQUEST_TRACE 20 token_removed Integer(12)
+REQUEST_TRACE 21 registered Integer(13)
+REQUEST_TRACE 22 worker_start Integer(13)
+REQUEST_TRACE 23 query_done Integer(13)
+REQUEST_TRACE 24 cancel_hit Integer(13)
+REQUEST_TRACE 25 cancel_applied Integer(13)
+REQUEST_TRACE 26 write_ok Integer(13)
+REQUEST_TRACE 27 token_removed Integer(13)
+REQUEST_TRACE 28 registered Integer(14)
+REQUEST_TRACE 29 worker_start Integer(14)
+REQUEST_TRACE 30 query_done Integer(14)
+REQUEST_TRACE 31 cancel_hit Integer(14)
+REQUEST_TRACE 32 cancel_applied Integer(14)
+REQUEST_TRACE 33 write_ok Integer(14)
+REQUEST_TRACE 34 token_removed Integer(14)
+REQUEST_TRACE 35 registered Integer(15)
+REQUEST_TRACE 36 worker_start Integer(15)
+REQUEST_TRACE 37 query_done Integer(15)
+REQUEST_TRACE 38 cancel_hit Integer(15)
+REQUEST_TRACE 39 cancel_applied Integer(15)
+REQUEST_TRACE 40 write_ok Integer(15)
+REQUEST_TRACE 41 token_removed Integer(15)
+REQUEST_TRACE 42 registered Integer(16)
+REQUEST_TRACE 43 worker_start Integer(16)
+REQUEST_TRACE 44 query_done Integer(16)
+REQUEST_TRACE 45 cancel_hit Integer(16)
+REQUEST_TRACE 46 cancel_applied Integer(16)
+REQUEST_TRACE 47 write_ok Integer(16)
+REQUEST_TRACE 48 token_removed Integer(16)
+REQUEST_TRACE 49 registered Integer(17)
+REQUEST_TRACE 50 worker_start Integer(17)
+REQUEST_TRACE 51 query_done Integer(17)
+REQUEST_TRACE 52 cancel_hit Integer(17)
+REQUEST_TRACE 53 cancel_applied Integer(17)
+REQUEST_TRACE 54 write_ok Integer(17)
+REQUEST_TRACE 55 token_removed Integer(17)
+REQUEST_TRACE 56 registered Integer(18)
+REQUEST_TRACE 57 worker_start Integer(18)
+REQUEST_TRACE 58 query_done Integer(18)
+REQUEST_TRACE 59 cancel_hit Integer(18)
+REQUEST_TRACE 60 cancel_applied Integer(18)
+REQUEST_TRACE 61 write_ok Integer(18)
+REQUEST_TRACE 62 token_removed Integer(18)
+REQUEST_TRACE 63 registered Integer(19)
+REQUEST_TRACE 64 worker_start Integer(19)
+REQUEST_TRACE 65 query_done Integer(19)
+REQUEST_TRACE 66 cancel_hit Integer(19)
+REQUEST_TRACE 67 cancel_applied Integer(19)
+REQUEST_TRACE 68 write_ok Integer(19)
+REQUEST_TRACE 69 token_removed Integer(19)
+REQUEST_TRACE 70 registered Integer(20)
+REQUEST_TRACE 71 worker_start Integer(20)
+REQUEST_TRACE 72 query_done Integer(20)
+REQUEST_TRACE 73 cancel_hit Integer(20)
+REQUEST_TRACE 74 cancel_applied Integer(20)
+REQUEST_TRACE 75 write_ok Integer(20)
+REQUEST_TRACE 76 token_removed Integer(20)
+REQUEST_TRACE 77 registered Integer(21)
+REQUEST_TRACE 78 worker_start Integer(21)
+REQUEST_TRACE 79 query_done Integer(21)
+REQUEST_TRACE 80 cancel_hit Integer(21)
+REQUEST_TRACE 81 cancel_applied Integer(21)
+REQUEST_TRACE 82 write_ok Integer(21)
+REQUEST_TRACE 83 token_removed Integer(21)
+

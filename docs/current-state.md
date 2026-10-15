@@ -217,3 +217,47 @@ the tested engine abort/unwind boundary in the explicit profile. Full
 $/cancelRequest lifecycle and document writes overlapping active requests
 remain next, along with shutdown during active work. v1/arm64/Macaros remain
 deferred.
+
+
+## Interactive LSP probe and native interruption coverage (2026-10-15)
+
+A separate client now drains stdout/stderr continuously, sends repeated symbol
+requests, cancellation notifications and full-document changes, accounts for
+interleaved responses/empty diagnostics, and checks the final document before
+shutdown. Six interactive unit tests and the two baseline client tests pass;
+original and patched host servers pass with 12 nullable results and recovery.
+
+Native coverage is deliberately narrower. The initial 128-function live-edit
+run passes 12 all-normal responses, empty diagnostics, final-version recovery,
+server/client0 and joined readers. It establishes handling of the tested edit/
+all-normal-response sequence, not interrupted work.
+
+Two stricter 1024-function native runs reject insufficient interruption
+coverage with client rc1: both ordinary per-frame writes and coalesced
+request/cancel/change groups yield 12 normal replies, empty diagnostics and a
+healthy server exit0/stderr0. Their coverage guard stops before final-version
+recovery, so those runs do not establish that later step. They are not
+reported as passing cancellation acceptance.
+
+See [scoped evidence](evidence/2026-10-15-wat-interactive/REPORT.md).
+Next: instrument the server's request/token lifecycle and native scheduling/
+transport boundaries to determine whether cancellation reaches a still-active
+request. Further load changes alone do not settle that question. Keep the
+already accepted deterministic engine cancellation separate from wire-level
+coverage. Shutdown with outstanding work remains unaccepted. Active platform
+scope stays x86_64 v11; v1 and arm64/Macaros remain deferred.
+
+
+The follow-up optional lifecycle trace resolves the lookup question for its
+diagnostic native run: all 12 cancellations find the token and are applied,
+but only after query_done, before write_ok/token removal. No write errors or
+trace truncation occurred. The host trace instead applies all 12 cancellations
+before worker_start. This establishes late cancellation in that diagnostic
+sequence, not ignored notifications or a failed unwind mechanism.
+
+The optional trace uses bounded in-memory events and deferred stderr output;
+mutexes/allocations still perturb scheduling, so its timing does not transfer
+automatically to the ordinary server. Native active-query interruption
+coverage remains open; the observed late-cancellation behavior is valid.
+Next: a controlled observation of cancellation during real computation and
+shutdown with outstanding work, then reusable profile/build wiring.

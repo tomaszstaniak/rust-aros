@@ -9,3 +9,9 @@ docs/evidence/2026-10-15-wat-concurrency/batch-client-tests.log whitespace=-blan
 docs/evidence/2026-10-15-wat-concurrency/batch-process-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-concurrency/batch-transport-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-unwind/unwind-client-tests.log whitespace=-blank-at-eof
+# Preserve original diagnostic separators and unified-diff context.
+docs/evidence/2026-10-15-wat-interactive/interactive-process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/interactive-transport-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/interactive-unit-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/native-08/wl08-interactive.txt whitespace=-blank-at-eof
+ports/wat-server/request-trace.patch whitespace=-blank-at-eol

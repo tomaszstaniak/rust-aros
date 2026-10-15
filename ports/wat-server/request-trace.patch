@@ -1,0 +1,53 @@
+# Diagnostic only: bound and defer request/token lifecycle logging on pinned WAT.
+# Applied after transport.patch; no scheduling outcome or runtime fix implied.
+--- a/crates/server/src/server.rs
++++ b/crates/server/src/server.rs
+@@ -69,10 +69,16 @@
+                     self.cancellation_tokens
+                         .write()
+                         .insert(id.clone(), service.cancellation_token());
++                    crate::request_trace::record("registered", &id);
+                     let cancellation_tokens = Arc::clone(&self.cancellation_tokens);
+                     std::thread::spawn(move || {
+-                        let _ = stdio::write(Self::handle_request(service, id.clone(), method, params));
++                        crate::request_trace::record("worker_start", &id);
++                        let response = Self::handle_request(service, id.clone(), method, params);
++                        crate::request_trace::record("query_done", &id);
++                        let written = stdio::write(response).is_ok();
++                        crate::request_trace::record(if written { "write_ok" } else { "write_error" }, &id);
+                         cancellation_tokens.write().remove(&id);
++                        crate::request_trace::record("token_removed", &id);
+                     });
+                 }
+                 Message::OkResponse {
+@@ -136,7 +142,11 @@
+                     match try_cast_notification::<CancelNotification>(&method, params) {
+                         Ok(Ok(params)) => {
+                             if let Some(token) = self.cancellation_tokens.write().remove(&params.id) {
++                                crate::request_trace::record("cancel_hit", &params.id);
+                                 token.cancel();
++                                crate::request_trace::record("cancel_applied", &params.id);
++                            } else {
++                                crate::request_trace::record("cancel_miss", &params.id);
+                             }
+                             continue;
+                         }
+--- a/crates/server/src/main.rs
++++ b/crates/server/src/main.rs
+@@ -1,6 +1,7 @@
+ use crate::server::Server;
+ use std::{env, path, time::SystemTime};
+ 
++mod request_trace;
+ mod message;
+ mod sent;
+ mod server;
+@@ -62,5 +63,7 @@
+         let _ = dispatch.chain(log_file).apply();
+     }
+ 
+-    Server::new().run()
++    let result = Server::new().run();
++    request_trace::dump();
++    result
+ }

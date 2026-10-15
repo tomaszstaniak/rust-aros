@@ -119,3 +119,58 @@ stage.py --unwind-probe PATH. Its separate rc precedes the real LSP session;
 the engine cancellation probe remains a separate final result. Compare this
 profile's native results with the recorded abort-profile rc20, rather than
 inferring recovery from compilation.
+
+## Interactive edit/cancel/recovery workload
+
+wat-interactive-acceptance is a separate binary in the acceptance package:
+
+    cargo +nightly build --manifest-path std-groundwork/wat-lsp-acceptance/Cargo.toml --release
+    PATH_TO_INTERACTIVE_CLIENT PATH_TO_SERVER
+
+Cross-build from the acceptance package with the existing AROS toolchain and
+inventory patch config. Use the unwind-enabled WAT server. stage.py accepts
+--interactive-client PATH and writes distinct interactive output/rc after the
+baseline session, launching a new server process.
+
+This client continuously drains stdout on one thread and stderr on another.
+It opens a 1024-function valid WAT document, sends 12 symbol/cancelRequest/
+didChange cycles (each three-frame group is encoded before write_all/flush), and accounts for every response and empty diagnostic
+notification regardless of order. At least one nullable/cancelled result is required; all-normal completion
+rejects the run as insufficient interruption coverage. The final query checks a fresh document's
+first/last expected function names before shutdown, EOF, wait and both joins.
+
+Coalescing preserves framing and reduces gaps between delivery of related
+messages; it does not promise atomic writes or force a scheduling outcome.
+The client-only sender refuses groups larger than three messages/1 MiB and
+retains terminal write-failure state across cleanup.
+
+The traffic log summarizes frames (method, ID, version, size, result/diagnostic
+counts) without dumping every large document/symbol payload. A null response
+or RequestCancelled error is allowed for the stressed requests; the counter is
+labelled null_or_cancelled. It does not attribute each cancellation to an
+explicit notification rather than a pending document write. The deterministic
+engine probe supplies separate cancellation-mechanism evidence.
+
+The 30-second receive deadline is diagnostic. Writes, wait and joins may still
+need the external VM supervisor if a peer wedges; this is not process-kill or
+hard-timeout acceptance. Shutdown happens after replies are accounted for;
+shutdown with active outstanding work remains a separate case.
+
+## Diagnostic request lifecycle trace
+
+prepare.py --request-trace applies a separate diagnostic-only patch and copies
+the owned request-trace module into a new disposable workspace. Build it with
+the same explicit unwind profile. Pass --trace-requests to the server (the
+interactive client forwards arguments after SERVER); stage.py --trace-requests
+adds it only to the interactive session.
+
+The trace stores at most 512 events and reports truncation. It dumps them to
+stderr after the server loop ends: registration, worker start, query completion,
+write success/error, token removal, cancellation lookup hit/miss, and
+cancel_applied after the token has actually been set. A lookup hit alone is
+not evidence that cancellation was applied before worker start.
+
+Deferred output avoids per-event logging I/O, but mutexes, allocations and the
+diagnostic build still perturb scheduling. Keep these results separate from
+ordinary-server acceptance. The trace is not a runtime repair or a scheduling
+guarantee.

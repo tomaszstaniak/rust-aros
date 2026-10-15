@@ -13,6 +13,7 @@ LOCK_SHA256 = "e82670be946eaeeb414796a5a86092aa289e8f5d9d87a856b88a3b4aff0098fb"
 parser = argparse.ArgumentParser(__doc__)
 parser.add_argument("source", type=Path)
 parser.add_argument("destination", type=Path)
+parser.add_argument("--request-trace", action="store_true", help="apply optional diagnostic-only lifecycle trace")
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 source, dest = args.source.resolve(), args.destination.resolve()
@@ -31,6 +32,9 @@ if dest.exists():
     parser.error("destination must not exist")
 shutil.copytree(source, dest, ignore=shutil.ignore_patterns("target", ".git"))
 subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("transport.patch").resolve())], cwd=dest, check=True)
+if args.request_trace:
+    subprocess.run(["patch", "-p1", "-i", str(Path(__file__).with_name("request-trace.patch").resolve())], cwd=dest, check=True)
+    shutil.copyfile(Path(__file__).with_name("request-trace.rs"), dest / "crates/server/src/request_trace.rs")
 with (dest / "crates/server/Cargo.toml").open("a") as out:
     out.write('\n[dependencies.aros-lsp-transport]\npath = ' + json.dumps(str(repo / "transport")) + '\n')
 print(dest)

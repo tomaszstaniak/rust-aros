@@ -1,0 +1,22 @@
+[
+  {
+    "file": "interactive-check",
+    "bytes": 2446088,
+    "sha256": "145160a76351f7103b7aa546192636d0a37301d5ded011991a205dc07f895f38"
+  },
+  {
+    "file": "lsp-check",
+    "bytes": 2373264,
+    "sha256": "085dbbd9fa0baac61ed935fcf0246940aa681869628c3a2931b9d445565ebfab"
+  },
+  {
+    "file": "run-tests",
+    "bytes": 432,
+    "sha256": "44c34bc536fdfd030cb338e528cd86433b3be7fe1cca9670c1765c644430b45c"
+  },
+  {
+    "file": "wat-server",
+    "bytes": 12464728,
+    "sha256": "db34010798d55d6f97d5d73c03b4f094da40203b08165b4df63975c9484f6724"
+  }
+]
