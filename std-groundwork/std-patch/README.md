@@ -19,18 +19,29 @@ error chain.
 ## Setting it up
 
 ```sh
-rustup toolchain install nightly --profile minimal --component rust-src
-./make-std-toolchain.sh          # creates the "aros-nightly" toolchain
+rustup toolchain install nightly-2026-08-31 --profile minimal --component rust-src
+./make-std-toolchain.sh /absolute/new/sysroot aros-local
 cd ../std-hello
-cargo +aros-nightly run --release
+cargo +aros-local build --release
 ```
 
-`make-std-toolchain.sh` builds a sysroot that borrows everything from nightly
+The destination must not exist and the toolchain name must be new. The installer
+refuses the shared `aros-nightly` name, checks the exact compiler version before
+creating output, and registers the new toolchain only after patching succeeds.
+It does not update Rust or replace a previous sysroot. To use an already
+installed base offline, set `AROS_RUST_BASE=nightly`; the same exact-version
+check still applies. Existing users of `aros-nightly` can keep using it.
+
+`make-std-toolchain.sh` builds a sysroot that borrows everything from the pinned nightly
 except `lib/rustlib/src/rust`, which is a copy with `patch-std.py` applied and
 the AROS `libc` crate dropped in. rustc finds std's sources under its own
 sysroot, which is why a plain `-Z build-std` cannot be pointed elsewhere and a
 linked toolchain is used instead. Nothing in `~/.rustup/toolchains/nightly` is
-modified.
+modified. Keep the base installation available: the generated toolchain refers
+to its binaries and host libraries. Switching Cargo's `+toolchain` selects a
+different sysroot without changing other projects. To remove only this new
+registration, use `rustup toolchain uninstall aros-local`; archive or remove the
+explicit sysroot directory separately after checking that no consumer uses it.
 
 A project then needs, in `.cargo/config.toml`:
 

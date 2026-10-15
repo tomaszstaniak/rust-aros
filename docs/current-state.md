@@ -1,0 +1,61 @@
+# Rust AROS renewal: current state
+
+Verified 2026-10-15. Implementation base: rust-aros `8d35fda`.
+
+## Platform policy
+
+AROS ABIv11 is primary; ABIv1/mainline is next. Architectures in scope are
+x86_64 and arm64 through hosted Macaros. The local Macaros installation is not
+yet reliable, so arm64 execution acceptance is pending. Native Raspberry Pi is
+outside this project scope. Determine Macaros's actual ABI from its SDK.
+
+Zed is a reference workload for platform quality, not a delivered port. Audit a
+pinned Zed revision before committing to its dependencies: its async stack is
+not exclusively Tokio, and its GPUI backend is a separate platform project.
+
+## Completed first M0 slice
+
+- Work is isolated in `AROS/local/rust-aros-renewal`, a local clone of the
+  original checkout. Consumers in AROS-dev are unchanged.
+- The std installer requires a new destination and a new local rustup name.
+  It rejects shared names, existing destinations (including dangling links),
+  registered names and compiler mismatches; failed construction is cleaned up.
+- Base defaults to nightly-2026-08-31 and must identify itself exactly as
+  `rustc 1.100.0-nightly (0dfb098f3 2026-08-31)`. An installed base can be
+  explicitly selected with AROS_RUST_BASE, subject to the same check.
+- Wrapper paths are shell-quoted as literal data. The review finding was
+  reproduced by a failing argv test and fixed; tests also cover literal
+  metacharacters in the base executable path.
+- Eleven host installer tests pass. Run `python3 -m unittest discover -s tests -v`.
+- Existing no_std template and std-hello built offline. std-hello also built
+  from a new isolated sysroot; serde's host proc macro compiled in that build.
+- Both binaries executed on v11-1 with exit status 0. See
+  [the scoped report](evidence/2026-10-15-m0/REPORT.md).
+
+The shared aros-nightly still points to the original sysroot-8d35fda. New local
+registrations are aros-m0-20261015 and aros-m0-verified-20261015, with sysroots
+under AROS/local. No registration replaces the shared toolchain.
+
+## Next acceptance criteria
+
+M0 remains open: centralize explicit per-profile configuration (compiler,
+archiver, SDK, target, sysroot and build output), fix libc-aros's stale TARGET
+JSON parsing and hardcoded C-library choice, and exercise threads, processes and
+network-up/down cases on an explicitly matched v11 SDK/guest. The fresh run here
+used the older AROS One v11 profile, not the 2026.09 release profile.
+
+Then reuse arospkg's pinned jitterentropy/platform code for the v11 entropy
+adapter, with real failures propagated. Inspect system getentropy separately on
+each other profile. Validate the selected getrandom/rand crate versions rather
+than assuming a libc symbol enables all versions.
+
+Reuse Limpet SDK 0.3.0 and inspect aros-xterm/tools/rust-tty before adding terminal
+adapters. Mainline Ratatui/Crossterm acceptance already exists with an isolated
+experimental posixc runtime; this does not establish stock v11 compatibility.
+
+## Limitations
+
+No fresh v1, arm64/Macaros, async networking, HTTPS, watcher, SQLite or GPUI
+acceptance in this slice. Current getentropy remains clock/random based until
+M1. This slice does not make that source cryptographically suitable. The exact
+remote Git SHA was unavailable during initial inspection due to shell DNS.

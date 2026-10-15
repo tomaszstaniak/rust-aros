@@ -1,0 +1,3 @@
+hello from Rust on AROS x86_64
+3 words: Amiga, AROS, Rust
+exec.library gave us 1024 bytes, first=42

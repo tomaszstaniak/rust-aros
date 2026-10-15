@@ -39,8 +39,8 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 ## Requirements
 
 * An AROS x86_64 SDK and cross toolchain (`x86_64-aros-gcc`).
-* Rust nightly with the sources:
-  `rustup toolchain install nightly --profile minimal --component rust-src`
+* The tested Rust nightly with the sources:
+  `rustup toolchain install nightly-2026-08-31 --profile minimal --component rust-src`
   Nightly is required because custom target files and `-Z build-std` are not
   stable features.
 
@@ -49,7 +49,7 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 ```sh
 ./setup.sh                    # finds your toolchain, writes x86_64-aros.json
 cd template
-cargo +nightly build --release
+cargo +nightly-2026-08-31 build --release
 ```
 
 `setup.sh` looks for `x86_64-aros-gcc` on your `PATH` and for the SDK beside
@@ -139,9 +139,9 @@ buf[0] = 42;
 
 ## Limitations
 
-* **`std` is experimental.** It passes its own tests and runs `serde`, but it
-  has not yet carried a large real program; `ripgrep` and `tokio` are the
-  next things to try. The `no_std` path is the one to rely on today.
+* **`std` is experimental.** Existing evidence covers the examples, ripgrep
+  and Tokio's runtime/timers, not every API or crate. Async networking remains
+  open. See `docs/current-state.md` for platform scope and fresh checks.
 * **Nightly only**, and nightly moves; a future release may need the target
   file adjusted.
 * **Safety stops at the API boundary.** Calls into AROS are `unsafe` FFI like
