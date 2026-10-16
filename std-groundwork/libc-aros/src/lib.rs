@@ -291,11 +291,16 @@ extern "C" {
     /// `open` symbol belongs to exec.library and is a different function.
     #[link_name = "__open_CrtBase_wrapper"]
     pub fn open(path: *const c_char, oflag: c_int, ...) -> c_int;
+    #[link_name = "rs_fd_close"]
     pub fn close(fd: c_int) -> c_int;
+    #[link_name = "rs_fd_read"]
     pub fn read(fd: c_int, buf: *mut c_void, count: size_t) -> ssize_t;
+    #[link_name = "rs_fd_write"]
     pub fn write(fd: c_int, buf: *const c_void, count: size_t) -> ssize_t;
     pub fn lseek(fd: c_int, offset: off_t, whence: c_int) -> off_t;
+    #[link_name = "rs_fd_fcntl"]
     pub fn fcntl(fd: c_int, cmd: c_int, ...) -> c_int;
+    #[link_name = "rs_fd_dup2"]
     pub fn dup2(old: c_int, new: c_int) -> c_int;
     pub fn pipe(fds: *mut c_int) -> c_int;
     pub fn isatty(fd: c_int) -> c_int;
@@ -556,6 +561,7 @@ extern "C" {
     pub fn fchmod(fd: c_int, mode: mode_t) -> c_int;
     pub fn chown(path: *const c_char, uid: uid_t, gid: gid_t) -> c_int;
     pub fn fchown(fd: c_int, uid: uid_t, gid: gid_t) -> c_int;
+    #[link_name = "rs_fd_dup"]
     pub fn dup(fd: c_int) -> c_int;
     pub fn dirfd(dirp: *mut DIR) -> c_int;
     pub fn getpid() -> pid_t;
@@ -567,6 +573,7 @@ extern "C" {
     pub fn setuid(uid: uid_t) -> c_int;
     pub fn setgid(gid: gid_t) -> c_int;
     pub fn setsid() -> pid_t;
+    #[link_name = "rs_fd_ioctl"]
     pub fn ioctl(fd: c_int, req: c_ulong, ...) -> c_int;
     pub fn sysconf(name: c_int) -> c_long;
     pub fn strnlen(s: *const c_char, n: size_t) -> size_t;
@@ -574,6 +581,7 @@ extern "C" {
     pub fn sigemptyset(set: *mut sigset_t) -> c_int;
     pub fn sigaddset(set: *mut sigset_t, sig: c_int) -> c_int;
     pub fn sigaction(sig: c_int, act: *const sigaction, old: *mut sigaction) -> c_int;
+    #[link_name = "rs_fd_writev"]
     pub fn writev(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
     pub fn fdatasync(fd: c_int) -> c_int;
     #[link_name = "___geterrnoptr"]
@@ -648,6 +656,7 @@ extern "C" {
     pub fn poll(fds: *mut pollfd, n: nfds_t, timeout: c_int) -> c_int;
     pub fn pread(fd: c_int, b: *mut c_void, n: size_t, off: off_t) -> ssize_t;
     pub fn pwrite(fd: c_int, b: *const c_void, n: size_t, off: off_t) -> ssize_t;
+    #[link_name = "rs_fd_readv"]
     pub fn readv(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
     pub fn mmap(addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int, off: off_t) -> *mut c_void;
     pub fn munmap(addr: *mut c_void, len: size_t) -> c_int;

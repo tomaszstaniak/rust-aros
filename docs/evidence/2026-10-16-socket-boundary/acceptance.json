@@ -1,0 +1,39 @@
+{
+  "platform": "x86_64-aros-v11",
+  "machine": "v11-2",
+  "rustc": "1.100.0-nightly (0dfb098f3 2026-08-31)",
+  "private_alias": "aros-net-20261016",
+  "gcc": "10.5.0",
+  "sdk": "AROS/sdk",
+  "socket_tag": 1073741824,
+  "source_sha256": {
+    "std-groundwork/libc-aros/csrc/compat.c": "0e96e49b531828a802d452dcadc8678b10a086afbcb9561c561df1f410d62efb",
+    "std-groundwork/libc-aros/src/lib.rs": "7e53c124b4c2b8a919b91e952f4b36c15d3b9f681fc0b50a4aa8c9c14c00e134",
+    "std-groundwork/async-network/src/main.rs": "a3ec79a5b15f4df960dfcdee9bd89ba8753ca785fad5cfef561500c5951378a9",
+    "std-groundwork/async-network/fixture.py": "135ed34704e7fa01cfbeffb4688ee687cc3f37a827fd05cc494406f72c6d2872",
+    "tests/test_socket_boundary.py": "aa5ca16fbf4ef19fb616a05b4e355bbca9143f8c90559d48e65fe97819850471"
+  },
+  "binary_sha256": {
+    "stage-01/socket-probe": "2e9c61496cf42774c592bdd0181829d69369a18ee71c0b5a4204e7427b360f8b",
+    "stage-02/socket-probe": "d5641f2588ae294c1fa61eea30525b4e9a8ac0a63aa8b5acc327a9192e838e0e",
+    "stage-05/socket-probe": "85e528e427e59a515ff44cf2e0ae10c14af7475781fdb05be298bbdbae43e46c"
+  },
+  "host_test_count": 34,
+  "fixture_completed": 83,
+  "status": "accepted-scoped-socket-boundary",
+  "reports_sha256": {
+    "fixture.jsonl": "7c6d4fbb03e4f17111607af0396aac2829726fa8e36cfe36a70e32b7c942495a",
+    "lsp-validation.json": "d0279e0703b0c8e92011134907d908322e388302f0a98cb6909aa41deab4ed18",
+    "rn03-process-args.txt": "d51ba7237a6b448995ec668a5f811eb82ba095f979118f95d0547decf2f9ea69",
+    "rn03-process-lsp-bytewise.txt": "e81db6d93e97185aee13c5f9525cc9417b052f213e09ff3b3c4a426ee8f2f1b8",
+    "rn03-process-output.txt": "4f0a52221f64f2cd2009dc56b9a5513a16bcec8c644f6a5a62e59a30a9048db8",
+    "rn03-process-spawn-error.txt": "b43b0d2a9187394a0fd8315e3aae43da176e1bd1ca996cd241de9bd106ad3b87",
+    "rn03-process-status.txt": "2ebe2ea056e1a854ec8e9458d7ddf1523c74a9f9b13ab60897426a7a4126ed0b",
+    "rust-net-01.log": "73ba82ab424d4069baf70711e0902ee30677735d2bf3974f9197d7894273a4ea",
+    "rust-net-02.log": "d4351a2e5b7b5f1a2942e8e09e3ce4ea63096cfba8b2c02ba43d8e71ee6923bb",
+    "rust-net-03-entropy.log": "d099b992b139b8bc207d5366619b50a5dc7b0d8835cd08e60f71dd9cc7849d70",
+    "rust-net-03.log": "eabd3626fa1dec1e256d98d3277cf2f24a96c65b6f6dcb1413866abb29f484b1",
+    "rust-net-04.log": "eabd3626fa1dec1e256d98d3277cf2f24a96c65b6f6dcb1413866abb29f484b1",
+    "rust-net-06.log": "a93fc68f596d4960238e1aa764634e02ca91da11a50fff0d1f97e462cc9ba4f5"
+  }
+}

@@ -5,9 +5,12 @@
  *     C compiler handles; Rust just sees ordinary functions.
  *  2. *at() family: AROS has no directory file descriptors, so these are
  *     implemented for AT_FDCWD only and fail with ENOTSUP otherwise.
- *  3. things AROS cannot do (fork, poll, chroot...): return -1/ENOSYS so that
+ *  3. unavailable process/filesystem operations: return -1/ENOSYS so that
  *     std's error paths engage instead of the link failing. */
 #include <errno.h>
+#include <stdarg.h>
+#include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <stdint.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -41,10 +44,53 @@
  * and the socket calls below fail with ENETDOWN. A stack started after the
  * program is not picked up. */
 struct Library *SocketBase = NULL;
+static struct Task *rs_socket_owner;
+/* BSD and DOS descriptors are separate namespaces in the named old v11.
+ * Rust-owned socket handles carry a private tag. They are not raw BSD fds.
+ * Only the library-opening task performs socket I/O. Foreign-task drops are
+ * queued until its next socket operation or library shutdown. */
+#define RS_SOCKET_TAG 0x40000000
+struct rs_socket_slot { unsigned char live, pending; int fdflags, status; };
+static struct rs_socket_slot rs_socket_slots[FD_SETSIZE];
+static int rs_socket_tagged(int fd) { return fd >= RS_SOCKET_TAG; }
+static int rs_socket_index(int fd) {
+    if (!rs_socket_tagged(fd)) { errno = EBADF; return -1; }
+    int raw = fd - RS_SOCKET_TAG;
+    if (raw >= FD_SETSIZE ||
+        !rs_socket_slots[raw].live || rs_socket_slots[raw].pending) {
+        errno = EBADF; return -1;
+    }
+    return raw;
+}
+static int rs_socket_drain(void) {
+    for (int i = 0; i < FD_SETSIZE; i++) {
+        Forbid();
+        int pending = rs_socket_slots[i].pending;
+        Permit();
+        if (!pending) continue;
+        if (CloseSocket(i) < 0) { errno = Errno(); return -1; }
+        Forbid();
+        rs_socket_slots[i].pending = rs_socket_slots[i].live = 0;
+        Permit();
+    }
+    return 0;
+}
+static int rs_socket_ready(void) {
+    if (!SocketBase) { errno = ENETDOWN; return -1; }
+    if (FindTask(NULL) != rs_socket_owner) { errno = ENOTSUP; return -1; }
+    return rs_socket_drain();
+}
+static int rs_socket_wrap(int raw) {
+    if (raw < 0) { errno = Errno(); return -1; }
+    if (raw >= FD_SETSIZE) { CloseSocket(raw); errno = EMFILE; return -1; }
+    rs_socket_slots[raw] = (struct rs_socket_slot){1, 0, 0, O_RDWR};
+    return RS_SOCKET_TAG + raw;
+}
 extern STRPTR _ProgramName;
 
 static ULONG rs_open_sockets(void)
 {
+    rs_socket_owner = FindTask(NULL);
     if ((SocketBase = OpenLibrary("bsdsocket.library", 4)) != NULL)
         SocketBaseTags(SBTM_SETVAL(SBTC_ERRNOPTR(sizeof(errno))), (IPTR)&errno,
                        SBTM_SETVAL(SBTC_LOGTAGPTR), (IPTR)_ProgramName,
@@ -55,6 +101,7 @@ static ULONG rs_open_sockets(void)
 static void rs_close_sockets(void)
 {
     if (SocketBase) {
+        rs_socket_drain();
         CloseLibrary(SocketBase);
         SocketBase = NULL;
     }
@@ -65,32 +112,101 @@ ADD2EXIT(rs_close_sockets, 10);
 
 static int sockerr(int r) { if (r < 0) errno = Errno(); return r; }
 static long sockerrl(long r) { if (r < 0) errno = Errno(); return r; }
-#define NEEDSOCK if (!SocketBase) { errno = ENETDOWN; return -1; }
+#define NEEDSOCK if (rs_socket_ready() < 0) return -1
+#define SOCKET_FD(s) NEEDSOCK; int raw = rs_socket_index(s); if (raw < 0) return -1
 
-int rs_socket(int d, int t, int p)                                   { NEEDSOCK; return sockerr(socket(d, t, p)); }
-int rs_connect(int s, const struct sockaddr *a, socklen_t l)         { NEEDSOCK; return sockerr(connect(s, (struct sockaddr *)a, l)); }
-int rs_bind(int s, const struct sockaddr *a, socklen_t l)            { NEEDSOCK; return sockerr(bind(s, (struct sockaddr *)a, l)); }
-int rs_listen(int s, int b)                                          { NEEDSOCK; return sockerr(listen(s, b)); }
-int rs_accept(int s, struct sockaddr *a, socklen_t *l)               { NEEDSOCK; return sockerr(accept(s, a, l)); }
-long rs_send(int s, const void *b, size_t n, int f)                  { NEEDSOCK; return sockerrl(send(s, b, n, f)); }
-long rs_recv(int s, void *b, size_t n, int f)                        { NEEDSOCK; return sockerrl(recv(s, b, n, f)); }
-long rs_sendto(int s, const void *b, size_t n, int f, const struct sockaddr *a, socklen_t l)
-                                                                     { NEEDSOCK; return sockerrl(sendto(s, b, n, f, (struct sockaddr *)a, l)); }
-long rs_recvfrom(int s, void *b, size_t n, int f, struct sockaddr *a, socklen_t *l)
-                                                                     { NEEDSOCK; return sockerrl(recvfrom(s, b, n, f, a, l)); }
-int rs_shutdown(int s, int how)                                      { NEEDSOCK; return sockerr(shutdown(s, how)); }
-int rs_getsockname(int s, struct sockaddr *a, socklen_t *l)          { NEEDSOCK; return sockerr(getsockname(s, a, l)); }
-int rs_getpeername(int s, struct sockaddr *a, socklen_t *l)          { NEEDSOCK; return sockerr(getpeername(s, a, l)); }
-int rs_setsockopt(int s, int lv, int o, const void *v, socklen_t l)  { NEEDSOCK; return sockerr(setsockopt(s, lv, o, (void *)v, l)); }
-int rs_getsockopt(int s, int lv, int o, void *v, socklen_t *l)       { NEEDSOCK; return sockerr(getsockopt(s, lv, o, v, l)); }
-int rs_closesocket(int s)                                            { NEEDSOCK; return sockerr(CloseSocket(s)); }
+int rs_socket(int d, int t, int p) { NEEDSOCK; return rs_socket_wrap(socket(d, t, p)); }
+int rs_connect(int s, const struct sockaddr *a, socklen_t l) { SOCKET_FD(s); return sockerr(connect(raw, (struct sockaddr *)a, l)); }
+int rs_bind(int s, const struct sockaddr *a, socklen_t l) { SOCKET_FD(s); return sockerr(bind(raw, (struct sockaddr *)a, l)); }
+int rs_listen(int s, int b) { SOCKET_FD(s); return sockerr(listen(raw, b)); }
+int rs_accept(int s, struct sockaddr *a, socklen_t *l) { SOCKET_FD(s); return rs_socket_wrap(accept(raw, a, l)); }
+long rs_send(int s, const void *b, size_t n, int f) { SOCKET_FD(s); return sockerrl(send(raw, b, n, f)); }
+long rs_recv(int s, void *b, size_t n, int f) { SOCKET_FD(s); return sockerrl(recv(raw, b, n, f)); }
+long rs_sendto(int s, const void *b, size_t n, int f, const struct sockaddr *a, socklen_t l) {
+    SOCKET_FD(s); return sockerrl(sendto(raw, b, n, f, (struct sockaddr *)a, l));
+}
+long rs_recvfrom(int s, void *b, size_t n, int f, struct sockaddr *a, socklen_t *l) {
+    SOCKET_FD(s); return sockerrl(recvfrom(raw, b, n, f, a, l));
+}
+int rs_shutdown(int s, int how) { SOCKET_FD(s); return sockerr(shutdown(raw, how)); }
+int rs_getsockname(int s, struct sockaddr *a, socklen_t *l) { SOCKET_FD(s); return sockerr(getsockname(raw, a, l)); }
+int rs_getpeername(int s, struct sockaddr *a, socklen_t *l) { SOCKET_FD(s); return sockerr(getpeername(raw, a, l)); }
+int rs_setsockopt(int s, int lv, int o, const void *v, socklen_t l) { SOCKET_FD(s); return sockerr(setsockopt(raw, lv, o, (void *)v, l)); }
+int rs_getsockopt(int s, int lv, int o, void *v, socklen_t *l) { SOCKET_FD(s); return sockerr(getsockopt(raw, lv, o, v, l)); }
+int rs_closesocket(int s) {
+    int raw = rs_socket_index(s); if (raw < 0) return -1;
+    if (FindTask(NULL) != rs_socket_owner) {
+        Forbid(); rs_socket_slots[raw].pending = 1; Permit(); return 0;
+    }
+    int rc = sockerr(CloseSocket(raw));
+    if (rc == 0) rs_socket_slots[raw].live = 0;
+    return rc;
+}
+
+/* Rust bindings call these dispatchers; C SDK file calls remain untouched. */
+int rs_fd_close(int fd) { return rs_socket_tagged(fd) ? rs_closesocket(fd) : close(fd); }
+long rs_fd_read(int fd, void *b, size_t n) { return rs_socket_tagged(fd) ? rs_recv(fd, b, n, 0) : read(fd, b, n); }
+long rs_fd_write(int fd, const void *b, size_t n) { return rs_socket_tagged(fd) ? rs_send(fd, b, n, 0) : write(fd, b, n); }
+int rs_fd_ioctl(int fd, unsigned long request, ...) {
+    if ((uint32_t)request == (uint32_t)FIOCLEX || (uint32_t)request == (uint32_t)FIONCLEX) {
+        int flags = (uint32_t)request == (uint32_t)FIOCLEX ? FD_CLOEXEC : 0;
+        if (!rs_socket_tagged(fd)) return fcntl(fd, F_SETFD, flags);
+        SOCKET_FD(fd); rs_socket_slots[raw].fdflags = flags; return 0;
+    }
+    /* Other zero-sized requests have no supported contract here. Do not read
+       a nonexistent variadic argument to reject one. */
+    if (IOCPARM_LEN(request) == 0) { errno = ENOTTY; return -1; }
+    va_list ap; va_start(ap, request); void *arg = va_arg(ap, void *); va_end(ap);
+    if (!rs_socket_tagged(fd)) return ioctl(fd, (int)request, arg);
+    SOCKET_FD(fd);
+    /* IoctlSocket's AROS library boundary expects a canonical LONG request,
+       including sign extension for _IOW requests such as FIONBIO. */
+    LONG command = (LONG)(int32_t)(uint32_t)request;
+    int rc = sockerr(IoctlSocket(raw, command, arg));
+    if (rc == 0 && (uint32_t)request == (uint32_t)FIONBIO)
+        rs_socket_slots[raw].status = O_RDWR | (*(int *)arg ? O_NONBLOCK : 0);
+    return rc;
+}
+int rs_fd_fcntl(int fd, int cmd, ...) {
+    if (cmd < F_DUPFD || cmd > F_SETFL) { errno = EINVAL; return -1; }
+    int arg = 0;
+    if (cmd != F_GETFD && cmd != F_GETFL) {
+        va_list ap; va_start(ap, cmd); arg = va_arg(ap, int); va_end(ap);
+    }
+    if (!rs_socket_tagged(fd)) {
+        if (cmd == F_GETFD || cmd == F_GETFL) return fcntl(fd, cmd);
+        return fcntl(fd, cmd, arg);
+    }
+    SOCKET_FD(fd);
+    switch (cmd) {
+    case F_GETFD: return rs_socket_slots[raw].fdflags;
+    case F_SETFD:
+        if (arg & ~FD_CLOEXEC) { errno = EINVAL; return -1; }
+        rs_socket_slots[raw].fdflags = arg; return 0;
+    case F_GETFL: return rs_socket_slots[raw].status;
+    case F_SETFL: {
+        if (arg & ~(O_RDWR | O_NONBLOCK)) { errno = ENOTSUP; return -1; }
+        int nonblocking = !!(arg & O_NONBLOCK);
+        return rs_fd_ioctl(fd, (unsigned long)FIONBIO, &nonblocking);
+    }
+    default: errno = ENOTSUP; return -1;
+    }
+}
+int rs_fd_dup(int fd) {
+    if (!rs_socket_tagged(fd)) return dup(fd);
+    errno = ENOTSUP; return -1;
+}
+int rs_fd_dup2(int fd, int target) {
+    if (!rs_socket_tagged(fd) && !rs_socket_tagged(target)) return dup2(fd, target);
+    errno = ENOTSUP; return -1;
+}
 /* This bsdsocket.library has no getaddrinfo; resolve IPv4 names with
  * gethostbyname and build a single-entry addrinfo list. */
 #include <netinet/in.h>
 #include <stdlib.h>
 struct rs_addrinfo { long flags, family, socktype, protocol; size_t addrlen; char *canon; struct sockaddr *addr; struct rs_addrinfo *next; };
 int rs_getaddrinfo(const char *node, const char *service, const struct rs_addrinfo *hints, struct rs_addrinfo **res) {
-    if (!SocketBase) return 11 /* EAI_SYSTEM */;
+    if (rs_socket_ready() < 0) return 11 /* EAI_SYSTEM */;
     struct sockaddr_in *sin = calloc(1, sizeof *sin);
     struct rs_addrinfo *ai = calloc(1, sizeof *ai);
     if (!sin || !ai) { free(sin); free(ai); return 10 /* EAI_MEMORY */; }
@@ -108,7 +224,7 @@ int rs_getaddrinfo(const char *node, const char *service, const struct rs_addrin
 }
 void rs_freeaddrinfo(struct rs_addrinfo *a) { while (a) { struct rs_addrinfo *n = a->next; free(a->addr); free(a); a = n; } }
 const char *gai_strerror(int e) { (void)e; return "name resolution failed"; }
-int rs_gethostname(char *b, size_t n) { if (!SocketBase) { strncpy(b, "aros", n); return 0; } return sockerr(gethostname(b, n)); }
+int rs_gethostname(char *b, size_t n) { if (!SocketBase) { strncpy(b, "aros", n); return 0; } NEEDSOCK; return sockerr(gethostname(b, n)); }
 int socketpair(int d, int t, int p, int sv[2])                       { (void)d;(void)t;(void)p;(void)sv; ENOSYS_RET; }
 
 /* --- *at family, AT_FDCWD only ------------------------------------------ */
@@ -224,25 +340,33 @@ int getpwuid_r(uid_t u, void *pw, char *b, size_t n, void **r)        { (void)u;
 /* poll over select: enough for std's connect_timeout and friends */
 struct rs_pollfd { int fd; short events; short revents; };
 int poll(struct rs_pollfd *fds, unsigned long n, int timeout) {
-    if (!SocketBase) ENOSYS_RET;
-    fd_set r, w, e; FD_ZERO(&r); FD_ZERO(&w); FD_ZERO(&e); int max = -1;
-    for (unsigned long i = 0; i < n; i++) {
-        if (fds[i].fd < 0) continue;
-        if (fds[i].events & 0x1) FD_SET(fds[i].fd, &r);
-        if (fds[i].events & 0x4) FD_SET(fds[i].fd, &w);
-        FD_SET(fds[i].fd, &e);
-        if (fds[i].fd > max) max = fds[i].fd;
-    }
-    struct timeval tv; tv.tv_sec = timeout / 1000; tv.tv_usec = (timeout % 1000) * 1000;
-    int rc = WaitSelect(max + 1, &r, &w, &e, timeout < 0 ? NULL : &tv, NULL);
-    if (rc < 0) { errno = Errno(); return -1; }
-    int cnt = 0;
+    if (rs_socket_ready() < 0) return -1;
+    if (n && !fds) { errno = EFAULT; return -1; }
+    fd_set r, w, e; FD_ZERO(&r); FD_ZERO(&w); FD_ZERO(&e);
+    int max = -1, invalid = 0;
     for (unsigned long i = 0; i < n; i++) {
         fds[i].revents = 0;
         if (fds[i].fd < 0) continue;
-        if (FD_ISSET(fds[i].fd, &r)) fds[i].revents |= 0x1;
-        if (FD_ISSET(fds[i].fd, &w)) fds[i].revents |= 0x4;
-        if (FD_ISSET(fds[i].fd, &e)) fds[i].revents |= 0x8;
+        int raw = rs_socket_index(fds[i].fd);
+        if (raw < 0) { fds[i].revents = 0x20; invalid++; continue; }
+        /* This adapter accepts socket IN/OUT readiness only. select's
+           exceptfds means urgent data, not POLLERR; do not mislabel it. */
+        if (!fds[i].events || (fds[i].events & ~0x5)) { errno = ENOTSUP; return -1; }
+        if (fds[i].events & 0x1) FD_SET(raw, &r);
+        if (fds[i].events & 0x4) FD_SET(raw, &w);
+        if (raw > max) max = raw;
+    }
+    if (invalid) timeout = 0;
+    struct timeval tv; tv.tv_sec = timeout / 1000; tv.tv_usec = (timeout % 1000) * 1000;
+    int rc = WaitSelect(max + 1, &r, &w, &e, timeout < 0 ? NULL : &tv, NULL);
+    if (rc < 0) { errno = Errno(); return -1; }
+    int cnt = invalid;
+    for (unsigned long i = 0; i < n; i++) {
+        if (fds[i].fd < 0 || fds[i].revents) continue;
+        int raw = rs_socket_index(fds[i].fd);
+        if (raw < 0) { fds[i].revents = 0x20; cnt++; continue; }
+        if (FD_ISSET(raw, &r)) fds[i].revents |= 0x1;
+        if (FD_ISSET(raw, &w)) fds[i].revents |= 0x4;
         if (fds[i].revents) cnt++;
     }
     return cnt;
@@ -259,9 +383,21 @@ long pwrite(int fd, const void *b, size_t n, off_t off) {
     if (lseek(fd, off, SEEK_SET) < 0) return -1;
     long r = write(fd, b, n); lseek(fd, cur, SEEK_SET); return r;
 }
-struct rs_iovec { void *base; size_t len; };
-long readv(int fd, const struct rs_iovec *v, int n) {
+long readv(int fd, const struct iovec *v, int n) {
     long total = 0;
-    for (int i = 0; i < n; i++) { long r = read(fd, v[i].base, v[i].len); if (r < 0) return total ? total : r; total += r; if ((size_t)r < v[i].len) break; }
+    for (int i = 0; i < n; i++) { long r = read(fd, v[i].iov_base, v[i].iov_len); if (r < 0) return total ? total : r; total += r; if ((size_t)r < v[i].iov_len) break; }
     return total;
+}
+
+long rs_fd_readv(int fd, const struct iovec *v, int n) {
+    if (!rs_socket_tagged(fd)) return readv(fd, v, n);
+    if (n < 0) { errno = EINVAL; return -1; }
+    for (int i = 0; i < n; i++) if (v[i].iov_len) return rs_recv(fd, v[i].iov_base, v[i].iov_len, 0);
+    return 0;
+}
+long rs_fd_writev(int fd, const struct iovec *v, int n) {
+    if (!rs_socket_tagged(fd)) return writev(fd, (const struct iovec *)v, n);
+    if (n < 0) { errno = EINVAL; return -1; }
+    for (int i = 0; i < n; i++) if (v[i].iov_len) return rs_send(fd, v[i].iov_base, v[i].iov_len, 0);
+    return 0;
 }

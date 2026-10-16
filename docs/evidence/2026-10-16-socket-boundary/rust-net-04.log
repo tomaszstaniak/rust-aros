@@ -1,0 +1,5 @@
+START
+CONNECTED fd=1073741824 stdin_flags=0
+PASS pending read is WouldBlock
+PASS writable, deadline, vectored write, delayed read, EOF, invalid descriptors
+DONE

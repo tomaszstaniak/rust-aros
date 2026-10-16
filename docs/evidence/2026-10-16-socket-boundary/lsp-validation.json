@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "profile": "unwind",
+  "cases": [
+    "baseline",
+    "interactive",
+    "shutdown",
+    "active-exit",
+    "active-eof",
+    "unwind",
+    "cancellation"
+  ],
+  "report_sha256": {
+    "rn16-payload.json": "66fbdc131029e6c55a49ca07ed2786344a48934cad6154e6032336b9edd4baa3",
+    "rn16-complete.json": "66fbdc131029e6c55a49ca07ed2786344a48934cad6154e6032336b9edd4baa3",
+    "rn16-done.txt": "8221ac66be71558c921fb44cfb66f7997699aea754d917763882d6d9eddc836e",
+    "rn16-rc.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-transcript.txt": "2b4ecb9fcc8807764efadf7132c7948c206075219e92e587502bdb2ce3949580",
+    "rn16-interactive.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-interactive.txt": "fbfab761d31e2eccf9b68a65b761599ac1095f0cab468dc6a8d23f376ab5f113",
+    "rn16-shutdown.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-shutdown.txt": "bd0f79ac798f9c213607b3e97558e886948d40cd13c20b6804a9725760b6a112",
+    "rn16-active-exit.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-active-exit.txt": "eb5435b5b417858167d1866f7a6301e4925ef78df31fa0af241d53e523bba60e",
+    "rn16-active-eof.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-active-eof.txt": "6475b839479a1f33b36a940bd79d2dd6cdeec7975aaf0301aa26c8c7ac689974",
+    "rn16-unwind.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-unwind.txt": "3818df5473e7b938e8b0c0e5b942ff6db17c975dd251745f316638f141536e47",
+    "rn16-cancellation.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rn16-cancellation.txt": "4c8b347a0f246142cf21e3406ef486d21b3f5a4d9014d8f692bec1f1edc5f79f"
+  },
+  "machine": "v11-2",
+  "runtime_profile": "Older AROS One ABIv11, GCC10.5 AROS/sdk, private aros-net-20261016",
+  "build_run_sha256": "7edc52f5ec37515cdb554df0789173fb711db9a15b5dd54ece37e83b12d97fa9"
+}

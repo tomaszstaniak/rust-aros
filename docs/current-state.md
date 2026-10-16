@@ -345,3 +345,22 @@ archives compile and its blocking SDK example links with ordinary and forced
 entropy-failure adapters. No new guest networking or HTTPS runtime result is
 claimed. Socket namespace/ownership probes are built but waiting for a free
 named v11 machine. See [the preparation report](evidence/2026-10-16-async-network/REPORT.md).
+
+
+### M3 prerequisite accepted: socket/file boundary (2026-10-16)
+
+Native x86_64 older v11-2 / GCC10.5 / AROS/sdk / private aros-net-20261016
+now passes the bounded socket gate: real nonblocking reads, IN/OUT readiness,
+deadlines, vectored write, delayed data/EOF, 80 lifecycles, stdin preservation,
+DOS file read/write/dup, and explicit task ownership. libc-aros tags its socket
+handles and dispatches Rust fd operations to the correct DOS/BSD namespace.
+Foreign drops defer cleanup to owner-side guarded I/O/creation/readiness or
+library shutdown. RawFd is private to this adapter; socket duplication,
+general worker-thread networking and generic POSIX polling remain unaccepted.
+
+Regressions: host34, native entropy, process5 and existing unwind LSP7 pass.
+The old profile's File::try_clone still returns EINVAL (F_DUPFD_CLOEXEC gap),
+while ordinary libc::dup passes. This is recorded separately, not hidden.
+See [native boundary evidence](evidence/2026-10-16-socket-boundary/REPORT.md).
+The real async-net/polling adaptation and verified TLS remain next; the earlier
+rustix compile failure is not resolved by this prerequisite alone.

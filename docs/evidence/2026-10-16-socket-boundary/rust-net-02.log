@@ -1,0 +1,7 @@
+START
+CONNECTED fd=1073741824 stdin_flags=0
+NONBLOCK Ok(())
+PASS pending read is WouldBlock
+READY rc=1 revents=1 elapsed_ms=253
+PASS nonblocking/readiness/drop preserve file descriptors
+DONE

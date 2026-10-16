@@ -1,0 +1,3 @@
+START
+CONNECTED fd=0 stdin_flags=0
+NONBLOCK Ok(())
