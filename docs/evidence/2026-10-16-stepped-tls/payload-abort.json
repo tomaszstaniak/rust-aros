@@ -1,0 +1,14 @@
+{
+  "run_id": "6879a4f7-0541-41cf-88d6-611beda02b28",
+  "profile": "abort",
+  "build_manifest_sha256": "a98d28b1020462ee0be6b407cd4c5d7d46cdf98d83182bb2b793cb350ae69e7a",
+  "guest_directory": "RAM:rh5/abort",
+  "result_prefix": "rust-https-10-abort",
+  "files": {
+    "aros-https-entropy-fail": "a8f7683a62f2a5c1eeff434131f504ba369e4c0098cd6edc4cbe09d41a5bec6b",
+    "aros-https-normal": "37ebff4ee167dba7906d54f9b68b49e597aaa2f555a6683838012be05461a58b",
+    "other.pem": "599966660b14c06c65a5acb8217db3302751576b48c3321fe7406c078ccebc87",
+    "root.pem": "08fae73a7a872f4eff3674f7574b39e74b22ec9e1afa5c51f19d5910540ae28d",
+    "run-https": "2d72bdf6e8ca0349d528e375a7584bcb12ee8001d59376ccb45c0d9c6f93b934"
+  }
+}

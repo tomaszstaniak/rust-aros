@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "run_id": "acc633d1-021f-4f2a-863a-b086c2940aff",
+  "profile": "unwind",
+  "build_manifest_sha256": "7962523dbca79d2223d4584ce73fdea7342beff207640075c78dab2d23a7b710",
+  "binaries": {
+    "aros-https-normal": "3f2f9f1cb73a348b4ac891ae58b5e3ef0a1cdafcb7fbb3479331a121fec84d5d",
+    "aros-https-entropy-fail": "6cf4c805d6d8eb9fa9742714180a1889f3f086d0c4e9f697396bd89c87bcb7e0"
+  },
+  "reports": {
+    "rust-https-11-unwind.log": "f695adeab3cbc906b6d89fc0cef5c05f26d6c3af67d0940a8f3eb996eea73b32",
+    "rust-https-11-unwind-entropy.log": "6f2e23886a0d6002be4ad1e3be3e19be42b4e88c7bc9fcd55da207ffd397ddaa",
+    "rust-https-11-unwind-shell.log": "ff0a09c0b3b3949ad88e6b1f566c566e0985ed4c9711c5d656d2280170b65766"
+  },
+  "fixture_sha256": "e1ad07e9ebb2feab87ea8e3c244c0d9b1b403c8278aaa04bf0dc4a8c64a768f2"
+}

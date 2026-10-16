@@ -1,6 +1,11 @@
 # Rust AROS renewal: current state
 
-Verified 2026-10-15. Implementation base: rust-aros `8d35fda`.
+Verified through 2026-10-16. Implementation base: rust-aros `8d35fda`.
+
+Latest accepted: bounded real async TCP and certificate-verified stepped TLS
+on older x86_64 ABIv11, both abort and unwind. Historical slices below record
+the progression; see the latest TLS section and linked evidence for current
+limits. Combined acceptance automation remains open.
 
 ## Platform policy
 
@@ -383,3 +388,23 @@ Fresh socket,entropy,process 5 and LSP 7 regressions and 37 host tests pass.
 See [native evidence](evidence/2026-10-16-real-async/REPORT.md) and
 [checked build/contract](../ports/async-network/README.md). HTTPS through
 stepped Mbed TLS is still pending; private static build/link is not runtime TLS.
+
+
+### M3 bounded stepped HTTPS accepted (2026-10-16)
+
+Mbed TLS3.6.7 with jitterentropy3.7.0 now runs on older x86_64 v11-2,
+GCC10.5/AROS-sdk/private aros-net-20261016, in abort and unwind profiles.
+Each final fixture sees10 expected connections/errors[]: four verified HTTP
+exchanges (including two concurrent contexts), wrong-name/expired/untrusted
+rejections, pending-handshake cancellation, established drop and transport
+truncation rejection. Forced entropy failure occurs before any connection.
+Four foreign constructors are rejected while an owner context remains usable.
+The fixture negotiated TLS1.3. Opaque owner-task steps yield WANT conditions
+to the accepted async driver; required verification and authenticated EOF have
+no insecure fallback. Host suite43 passes. No libc change in this TLS slice.
+
+See [runtime evidence](evidence/2026-10-16-stepped-tls/REPORT.md) and
+[private recipe/contract](../ports/async-network/README.md). This is a bounded
+example transport, not yet a reusable HTTP/TLS SDK or a Zed port. DNS and the
+combined socket/async/TLS/process/LSP acceptance command remain next, alongside
+the explicitly tracked File::try_clone gap. v1/arm64/Macaros remain deferred.

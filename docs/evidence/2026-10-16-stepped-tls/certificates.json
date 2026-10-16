@@ -1,0 +1,10 @@
+{
+  "status": "prepared-not-run",
+  "openssl": "OpenSSL 4.0.3 29 Sep 2026 (Library: OpenSSL 4.0.3 29 Sep 2026)",
+  "cert_sha256": {
+    "root.pem": "08fae73a7a872f4eff3674f7574b39e74b22ec9e1afa5c51f19d5910540ae28d",
+    "other.pem": "599966660b14c06c65a5acb8217db3302751576b48c3321fe7406c078ccebc87",
+    "valid.pem": "cae844b6d6d16a4bbc6fd10ab8b332b61ca43cf4163122e6a7c2c003f4b651c8",
+    "expired.pem": "1aa16529a09c510dd49faea49cab651aefea050174adf4c55f6740f33a7d4ee2"
+  }
+}

@@ -48,10 +48,10 @@ Files: ports/async-network prepare/build + versioned dependency patches; accepta
 ### Task 3: Stepped Mbed TLS HTTPS on the accepted async boundary
 
 Files: ports/async-network TLS C adapter/build recipe, Rust wrapper and controlled TLS fixture.
-- [ ] Copy and hash apkg Mbed TLS3.6.7/jitterentropy3.7.0 sources/config/port glue; preserve upstream compile flags (jent -O0/-fwrapv).
-- [ ] Opaque context with handshake/read/write steps; distinguish WANT_READ/WANT_WRITE/error, explicit resource ownership, required CA/name/date checks.
-- [ ] Bounded local certificate fixture: trusted valid exchange; wrong hostname; expired certificate; untrusted CA; forced entropy failure. No host trust-store/guest settings changes.
-- [ ] Native checked results plus lifecycle after rejected connections; commit only demonstrated scope.
+- [x] Copy and hash apkg Mbed TLS3.6.7/jitterentropy3.7.0 sources/config/port glue; preserve upstream compile flags (jent -O0/-fwrapv).
+- [x] Opaque context with handshake/read/write steps; distinguish WANT_READ/WANT_WRITE/error, explicit resource ownership, required CA/name/date checks.
+- [x] Bounded local certificate fixture: trusted valid exchange; wrong hostname; expired certificate; untrusted CA; forced entropy failure. No host trust-store/guest settings changes.
+- [x] Native checked results plus lifecycle after rejected connections; commit only demonstrated scope.
 
 ### Task 4: Repeatable acceptance and integration review
 

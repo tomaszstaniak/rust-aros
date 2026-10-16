@@ -78,3 +78,79 @@ a refusal fixture. Never repair the guest based on that timeout.
 There is no rustix port claim: the AROS path removes its incompatible backend
 from these selected crates, using the verified socket boundary instead. The
 old File::try_clone/F_DUPFD_CLOEXEC gap remains separate.
+
+## Stepped verified HTTPS
+
+`std-groundwork/async-https` is a bounded transport consumer of the same
+owner-task async-io backend. It is not a reqwest, rustls, full smol or Zed port.
+Its opaque C interface hides Mbed TLS structure layouts. Each handshake call
+advances one state, and read/write/close return WANT_READ/WANT_WRITE to the
+reactor. Handles remain !Send/!Sync. Destruction releases memory without I/O;
+explicit async close sends close_notify. Reusing a stream after cancelling a
+write is outside this acceptance contract; cancelling construction destroys the
+whole context. CPU work, including entropy startup and crypto, runs on the
+owner task. An async deadline cannot preempt a synchronous C operation.
+
+The backend is pinned apkg `91ac4d8f00bbaf5ac5b057322d3937a61acd1cd7`:
+Mbed TLS3.6.7 and jitterentropy3.7.0. The build reads a Git archive of that
+revision, its authoritative SDK source list, config and AROS adapters. It never
+runs apkg's packaging script or writes its SDK. Jitter core retains -O0 and
+-fwrapv; normal Mbed code uses -O2. apkg's gmtime port is accepted only under
+this serial owner-task contract. Required chain/hostname/date validation has
+no insecure option. Entropy failure has no fallback and occurs before connect.
+Foreign constructors are rejected before accessing mutable owner-only TLS state.
+A live-context count retains global PSA/jitter state until the last context is
+freed. Only authenticated close_notify becomes successful TLS EOF.
+
+Use a **new build output for each accepted run**; its UUID is compiled into
+both variants and required by the report checker. Existing build/payload/
+validation output is refused. Paths below are examples, not shared defaults:
+
+```sh
+python3 ports/async-network/tls-build.py "$archives" "$apkg" "$new_build" \
+  --toolchain aros-net-20261016 --cargo-home "$cargo_home" --profile abort
+python3 ports/async-network/tls-fixture.py "$new_certificates" --prepare
+python3 ports/async-network/tls-stage.py "$new_build" "$new_certificates" \
+  "$new_payload" --guest-dir RAM:rh/abort --prefix rust-https-unique-abort
+```
+
+Fixture preparation needs OpenSSL with x509 -not_before/-not_after support
+(verified host OpenSSL4.0.3). It verifies the valid and all three negative
+certificate cases on the host before running. Private keys stay in the host
+fixture directory; the payload contains only root/other public CA certificates.
+Test roots are explicit files and never installed in a host/guest trust store.
+The deliberately broad 2020–2040 validity window avoids generation-time clock
+skew; expired leaf is 2000–2001. The guest still validates its current date.
+
+Follow the guarded VM pool stop/stage/start and screenshot/input procedure.
+Extract the immutable payload into the exact private RAM path selected above,
+check UnZip's return code/log, then run `Execute RAM:rh/abort/run-https` only
+while the finite host fixture is ready:
+
+```sh
+python3 ports/async-network/tls-fixture.py "$new_certificates" \
+  --run-id "$compiled_run_id" --deadline 180 > "$fixture_log"
+```
+
+The fixture binds loopback only (guest destination10.0.2.2), ports18771–18776.
+It expects ten connections: four authenticated HTTP exchanges, three certificate
+rejections before HTTP, cancelled pending ClientHello, established drop, and
+truncated transport. Port18773 monitors the forced-entropy variant and must
+receive zero connections. Once **both** guest binaries have completed, signal
+only this fixture process with SIGINT; it joins bounded workers and writes the
+final summary. Do not end monitoring before the forced-failure binary runs.
+A hard deadline ends an incomplete run as failure. Stop the owned guest,
+collect to a new directory, and release its lease.
+
+```sh
+python3 ports/async-network/tls-check.py "$new_build" "$collected" \
+  rust-https-unique-abort "$fixture_log" --output "$new_validation"
+```
+
+The checker verifies both retained binary hashes, actual compiled source/header
+copies, complete run UUID/start/end markers, zero shell return codes, all guest
+cases, controller collection hashes and exact fixture counts. This detects
+stale/missing/changed evidence; it is not an attestation against malicious
+rewriting of manifests. Shared SDK/toolchain contents are identified, not fully
+vendored or claimed hermetic. Guest binary bytes are not independently rehashed.
+Do not accept a reused build UUID as a fresh independent runtime attempt.

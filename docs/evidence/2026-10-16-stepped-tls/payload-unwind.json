@@ -1,0 +1,14 @@
+{
+  "run_id": "acc633d1-021f-4f2a-863a-b086c2940aff",
+  "profile": "unwind",
+  "build_manifest_sha256": "7962523dbca79d2223d4584ce73fdea7342beff207640075c78dab2d23a7b710",
+  "guest_directory": "RAM:rh5/unwind",
+  "result_prefix": "rust-https-11-unwind",
+  "files": {
+    "aros-https-entropy-fail": "6cf4c805d6d8eb9fa9742714180a1889f3f086d0c4e9f697396bd89c87bcb7e0",
+    "aros-https-normal": "3f2f9f1cb73a348b4ac891ae58b5e3ef0a1cdafcb7fbb3479331a121fec84d5d",
+    "other.pem": "599966660b14c06c65a5acb8217db3302751576b48c3321fe7406c078ccebc87",
+    "root.pem": "08fae73a7a872f4eff3674f7574b39e74b22ec9e1afa5c51f19d5910540ae28d",
+    "run-https": "b2d0b6bf1b6638a99027de51ffd09866b8b04cf484426aee161f0ae00445c645"
+  }
+}
