@@ -1,0 +1,58 @@
+{
+  "status": "accepted-scoped-real-async",
+  "date": "2026-10-16",
+  "machine": "v11-2",
+  "platform": "x86_64-aros-v11",
+  "compiler": "Rust 1.100.0-nightly (0dfb098f3), GCC10.5",
+  "sdk": "AROS/sdk",
+  "profiles": [
+    "abort",
+    "unwind"
+  ],
+  "host_tests": 37,
+  "fixture_connections_per_async_run": 87,
+  "top_level_versions": {
+    "async-net": "2.0.0",
+    "async-io": "2.6.0",
+    "polling": "3.11.0",
+    "futures-lite": "2.6.1"
+  },
+  "source_sha256": {
+    "std-groundwork/libc-aros/csrc/compat.c": "21f7a17561a0dd9c6181a4bab3dac0a90c5d58d209e0484b845f5dad8635dfe3",
+    "std-groundwork/libc-aros/csrc/selector_aros.inc": "371650b35c40c4166cb55dd0245be8538032d02894cbfb592796de1065dfe5f1",
+    "std-groundwork/async-consumer/src/main.rs": "aa38d7c77f3186fd0c0e7e13b1ece81096dbd0da5a195a57dfe87d2cb12ab093",
+    "std-groundwork/async-consumer/Cargo.lock": "c8544e1f36aff01edb96fa19f54f049512b7b064d41e46878f9a7859c3d66b40",
+    "ports/async-network/async-io-aros.patch": "e23725699e76671e6128ef9e0f953d8c409d330e6be26dc4f48c94dc5444d2f9",
+    "ports/async-network/async-net-aros.patch": "b94c47764fe3dd80a8ebc400fff6479e23db57de07240b81dca2893c97b80b38",
+    "ports/async-network/asyncio-aros.rs": "ede2ad4a280381b8ba76eaebf2e98becaf6b14b978ec5ce0435c8395766b7a7b",
+    "ports/async-network/build.py": "1517d1b12ceb4436befa7505396923b328f1d9509c010d4bc7533ea7826702d0",
+    "ports/async-network/driver-aros.rs": "6a7b951baaa1119f332d6f10c7a97db00b56475c64f905f7d8a94ffa2bf1b4cb",
+    "ports/async-network/fixture.py": "56860abee696ff61bf3bc58262083452ab8b6d05db7e758b9ab78f02c042570a",
+    "ports/async-network/inputs.json": "07745234daa4f80a87ee89d73145381d44015e797decd2a802c2d83ad1eb02bc",
+    "ports/async-network/polling-aros.patch": "00440f11c4674c7c9006f041d42059317dcd0d85e9204d5d163e0d706aab3407",
+    "ports/async-network/polling-aros.rs": "0b26cec0bb8dae66387fbea0967babfe7872d09597d4ecc26842b74bc4f150f6",
+    "ports/async-network/prepare.py": "89aed5f3d85b8614e093e33115af9f9567a9f15262a6c2f3f8b8121b75b2d175"
+  },
+  "reports_sha256": {
+    "build-abort.json": "475ad1d83e4700be54039ec30daf1864f4ef3a8cbd189be88521e7a9e11be8fc",
+    "build-unwind.json": "d802f425aba8da3096d5de8e972b75c3beab91926e98c9244f0e69aa320c1083",
+    "connect-select-probe.c": "9419e31fd9ba1151d607f88243cbc790f54b61400fabf13d43b02d0782159d42",
+    "fixture-abort.jsonl": "b6347fb2f61d2e27e4f9de7f4cadd656974e443e12b532ddc3e130ffbd500420",
+    "fixture-boundary.jsonl": "50eda46820dbd88c5a52a7fd907579a24e52602ff44cfec13db5817b7dd37d58",
+    "fixture-unwind.jsonl": "b6347fb2f61d2e27e4f9de7f4cadd656974e443e12b532ddc3e130ffbd500420",
+    "lsp-validation.json": "ab65a546fece82aff1965819d114070f9e7535acca92fc419fe7db6e241aca81",
+    "negative-send.log": "c54de00d638abf8d6ef03a9503da342d8dcea60c0c6406c3b5cd9449d48c4b82",
+    "ra04-process-args.txt": "d51ba7237a6b448995ec668a5f811eb82ba095f979118f95d0547decf2f9ea69",
+    "ra04-process-lsp-bytewise.txt": "e81db6d93e97185aee13c5f9525cc9417b052f213e09ff3b3c4a426ee8f2f1b8",
+    "ra04-process-output.txt": "4f0a52221f64f2cd2009dc56b9a5513a16bcec8c644f6a5a62e59a30a9048db8",
+    "ra04-process-spawn-error.txt": "b43b0d2a9187394a0fd8315e3aae43da176e1bd1ca996cd241de9bd106ad3b87",
+    "ra04-process-status.txt": "2ebe2ea056e1a854ec8e9458d7ddf1523c74a9f9b13ab60897426a7a4126ed0b",
+    "rust-async-01.log": "ab00449dd5040320eafde20e3bc12957d4c942cd68ea9ae00adea01bb63b2958",
+    "rust-async-03.log": "7b5a4729db6bc7ceaac9ce4f8c46a2622fb0020dbb80e71fc93b30940a9eacc2",
+    "rust-async-04-boundary.log": "a93fc68f596d4960238e1aa764634e02ca91da11a50fff0d1f97e462cc9ba4f5",
+    "rust-async-04-entropy.log": "d099b992b139b8bc207d5366619b50a5dc7b0d8835cd08e60f71dd9cc7849d70",
+    "rust-async-04.log": "7b5a4729db6bc7ceaac9ce4f8c46a2622fb0020dbb80e71fc93b30940a9eacc2",
+    "rust-connect-02.log": "36c5c77f03f93137792b98df8f8cd458adde398f92ee14753ae139c37bc25890",
+    "rust-connect-03.log": "ff44247383f2c8397f68e15bc428597ce8448e817765d61c87f18dbd566fb7a0"
+  }
+}

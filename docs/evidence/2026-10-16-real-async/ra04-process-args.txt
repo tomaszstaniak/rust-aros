@@ -1,0 +1,1 @@
+CASE_DONE case=args result=pass spaced_quoted_unicode_star_empty_arguments=true

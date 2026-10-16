@@ -1,0 +1,88 @@
+warning: patch `async-io v2.6.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/async-io)` was not used in the crate graph
+warning: patch `async-net v2.0.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/async-net)` was not used in the crate graph
+warning: patch `polling v3.11.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/polling)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[64317]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `libc` (build script) generated 1 warning
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[64343]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `async-io` (build script) generated 1 warning
+    Checking pin-project-lite v0.2.17
+    Checking parking v2.2.1
+    Checking futures-core v0.3.34
+    Checking fastrand v2.5.0
+    Checking futures-io v0.3.34
+    Checking crossbeam-utils v0.8.23
+    Checking libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/libc-source)
+    Checking cfg-if v1.0.5
+    Checking atomic-waker v1.1.2
+    Checking slab v0.4.12
+    Checking async-task v4.7.1
+    Checking polling v3.11.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/polling)
+    Checking event-listener v5.4.2
+    Checking futures-lite v2.6.1
+    Checking piper v0.2.5
+    Checking concurrent-queue v2.5.0
+    Checking event-listener-strategy v0.5.4
+    Checking async-channel v2.5.0
+    Checking async-io v2.6.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/async-io)
+    Checking blocking v1.7.0
+warning: method `try_lock` is never used
+   --> /Users/tumash/Work/AROS/local/rust-async/recipe-01/async-io/src/reactor.rs:194:19
+    |
+ 91 | impl Reactor {
+    | ------------ method in this implementation
+...
+194 |     pub(crate) fn try_lock(&self) -> Option<ReactorLock<'_>> {
+    |                   ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `async-io` (lib) generated 1 warning
+    Checking async-net v2.0.0 (/Users/tumash/Work/AROS/local/rust-async/recipe-01/async-net)
+    Checking aros-async-consumer v0.1.0 (/Users/tumash/Work/AROS/local/rust-async/negative-send-01)
+error[E0277]: `Rc<()>` cannot be shared between threads safely
+   --> src/main.rs:2:28
+    |
+  2 | fn main() { require_send::<async_net::TcpStream>(); }
+    |                            ^^^^^^^^^^^^^^^^^^^^ `Rc<()>` cannot be shared between threads safely
+    |
+    = help: within `async_io::Async<std::net::TcpStream>`, the trait `Sync` is not implemented for `Rc<()>`
+note: required because it appears within the type `PhantomData<Rc<()>>`
+   --> /Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/core/src/marker.rs:811:12
+    |
+811 | pub struct PhantomData<T: PointeeSized>;
+    |            ^^^^^^^^^^^
+note: required because it appears within the type `async_io::Async<std::net::TcpStream>`
+   --> /Users/tumash/Work/AROS/local/rust-async/recipe-01/async-io/src/lib.rs:633:12
+    |
+633 | pub struct Async<T> {
+    |            ^^^^^
+    = note: required for `Arc<async_io::Async<std::net::TcpStream>>` to implement `Send`
+note: required because it appears within the type `async_net::TcpStream`
+   --> /Users/tumash/Work/AROS/local/rust-async/recipe-01/async-net/src/tcp.rs:338:12
+    |
+338 | pub struct TcpStream {
+    |            ^^^^^^^^^
+note: required by a bound in `require_send`
+   --> src/main.rs:1:20
+    |
+  1 | fn require_send<T: Send>() {}
+    |                    ^^^^ required by this bound in `require_send`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `aros-async-consumer` (bin "aros-async-consumer") due to 1 previous error

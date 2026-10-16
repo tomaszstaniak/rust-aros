@@ -1,0 +1,1 @@
+CASE_DONE case=spawn-error result=pass missing_executable_errors=8 next_spawn=true

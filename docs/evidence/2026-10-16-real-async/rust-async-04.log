@@ -1,0 +1,7 @@
+START
+START async-net2.0.0 async-io2.6.0 polling3.11.0 owner-task v11
+PASS selector signal isolation, 32 notify races, level/oneshot, signal lifecycle
+PASS 32 cross-thread future wakes, all test workers joined
+PASS real async-net concurrent TCP, timer race, cancellation/drop, 80 lifecycles, 16 refusals, EOF
+PASS real async consumer acceptance
+DONE

@@ -358,9 +358,28 @@ Foreign drops defer cleanup to owner-side guarded I/O/creation/readiness or
 library shutdown. RawFd is private to this adapter; socket duplication,
 general worker-thread networking and generic POSIX polling remain unaccepted.
 
-Regressions: host34, native entropy, process5 and existing unwind LSP7 pass.
+Regressions: host34, native entropy, process 5 and existing unwind LSP 7 pass.
 The old profile's File::try_clone still returns EINVAL (F_DUPFD_CLOEXEC gap),
 while ordinary libc::dup passes. This is recorded separately, not hidden.
 See [native boundary evidence](evidence/2026-10-16-socket-boundary/REPORT.md).
 The real async-net/polling adaptation and verified TLS remain next; the earlier
 rustix compile failure is not resolved by this prerequisite alone.
+
+
+### M3 bounded real async TCP accepted (2026-10-16)
+
+Real async-net2.0.0/async-io2.6.0/polling3.11.0 now pass on the named older
+x86_64 v11-2/GCC10.5/AROS-sdk profile in both abort and unwind builds. The
+AROS backend uses owner-task WaitSelect plus Exec signals, preserves wakeups,
+and supports level/oneshot readiness with bounded event delivery. Numeric IPv4
+concurrent local futures, timers, cancellation/drop,80 lifecycles,16 refused
+connections,EOF and cross-thread notification pass. Async handles are !Send/
+!Sync. Drive them with async_io::block_on on their opening task. DNS,IPv6,
+Unix sockets, generic async files/pipes, external executors and full smol/Zed
+are not accepted by this gate. The incompatible rustix AROS path is bypassed
+by versioned target-specific adapters, not ported wholesale.
+
+Fresh socket,entropy,process 5 and LSP 7 regressions and 37 host tests pass.
+See [native evidence](evidence/2026-10-16-real-async/REPORT.md) and
+[checked build/contract](../ports/async-network/README.md). HTTPS through
+stepped Mbed TLS is still pending; private static build/link is not runtime TLS.

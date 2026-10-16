@@ -39,11 +39,11 @@ Files: docs evidence/current-state; std-groundwork/libc-aros/{src/lib.rs,csrc/*}
 ### Task 2: Real pinned async TCP consumer
 
 Files: ports/async-network prepare/build + versioned dependency patches; acceptance package/tests.
-- [ ] Compile pinned consumer to obtain actual API/feature gaps. Do not infer support from target cfg alone.
-- [ ] Add an AROS selector using verified socket readiness and task-signal wakeups, with level/oneshot semantics and explicit edge/foreign-task errors if unsupported.
-- [ ] Adapt async-io nonblocking/connect/driver ownership based on Task1 measurements; keep any owner-task restriction visible in APIs/docs.
-- [ ] Run delayed host reply, timer race, cross-thread wake notification, concurrent logical tasks, cancellation/drop, refused connect, EOF and repeated lifecycle cases.
-- [ ] Prove the same cases fail without required adaptation and pass after it; retain output/provenance and commit.
+- [x] Compile pinned consumer to obtain actual API/feature gaps. Do not infer support from target cfg alone.
+- [x] Add an AROS selector using verified socket readiness and task-signal wakeups, with level/oneshot semantics and explicit edge/foreign-task errors if unsupported.
+- [x] Adapt async-io nonblocking/connect/driver ownership based on Task1 measurements; keep any owner-task restriction visible in APIs/docs.
+- [x] Run delayed host reply, timer race, cross-thread wake notification, concurrent logical tasks, cancellation/drop, refused connect, EOF and repeated lifecycle cases.
+- [x] Prove the same cases fail without required adaptation and pass after it; retain output/provenance and commit.
 
 ### Task 3: Stepped Mbed TLS HTTPS on the accepted async boundary
 

@@ -9,11 +9,11 @@ This is not a real async reactor or HTTPS runtime milestone.
 
 Next gates:
 
-1. Adapt exact pinned polling/async-io/async-net inputs. Provide owner-task
+1. Accepted 2026-10-16: exact pinned polling/async-io/async-net inputs adapted. Provide owner-task
    selector notification through Exec signals, preserve oneshot/level semantics,
    test lost-wakeup races, cross-thread future notification and timer deadlines.
    Remove assumptions about a worker thread driving the opening task's SocketBase.
-2. Accept the bounded real async-net consumer: concurrent logical tasks, delayed
+2. Accepted 2026-10-16 on older v11-2, abort and unwind: bounded real async-net consumer: concurrent logical tasks, delayed
    host reply, refusal, EOF, cancelled future/drop and repeated lifecycles.
 3. Add opaque stepped Mbed TLS3.6.7 + jitterentropy3.7.0; require chain/name/date
    verification, trusted/wrong-name/expired/untrusted cases and entropy failure.
@@ -28,3 +28,5 @@ Next gates:
 
 v1, arm64/Macaros and full Zed/GPUI remain later work. No unsupported-platform
 conclusion is implied by this adapter's deliberate current restrictions.
+
+Runtime details and limits: [real async acceptance](../evidence/2026-10-16-real-async/REPORT.md). Timer-only use without SocketBase and broader executor integration remain separate.

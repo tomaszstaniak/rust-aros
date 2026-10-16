@@ -1,0 +1,6 @@
+attempt=0 fd=0 nonblock=0 connect=-1 errno=36
+select=0 errno=36 readable=0 writable=0 exception=0 elapsed_us=2012958
+getsockopt=0 so_error=0 errno=36
+attempt=1 fd=0 nonblock=0 connect=-1 errno=36
+select=0 errno=36 readable=0 writable=0 exception=0 elapsed_us=2002123
+getsockopt=0 so_error=0 errno=36

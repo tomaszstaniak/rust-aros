@@ -45,6 +45,7 @@
  * program is not picked up. */
 struct Library *SocketBase = NULL;
 static struct Task *rs_socket_owner;
+static void rs_selector_shutdown(void);
 /* BSD and DOS descriptors are separate namespaces in the named old v11.
  * Rust-owned socket handles carry a private tag. They are not raw BSD fds.
  * Only the library-opening task performs socket I/O. Foreign-task drops are
@@ -102,6 +103,7 @@ static void rs_close_sockets(void)
 {
     if (SocketBase) {
         rs_socket_drain();
+        rs_selector_shutdown();
         CloseLibrary(SocketBase);
         SocketBase = NULL;
     }
@@ -401,3 +403,5 @@ long rs_fd_writev(int fd, const struct iovec *v, int n) {
     for (int i = 0; i < n; i++) if (v[i].iov_len) return rs_send(fd, v[i].iov_base, v[i].iov_len, 0);
     return 0;
 }
+
+#include "selector_aros.inc"

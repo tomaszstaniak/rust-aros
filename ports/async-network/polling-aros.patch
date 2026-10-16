@@ -1,0 +1,48 @@
+Subject: [AROS] Owner-task socket adapter for polling 3.11.0
+
+Scope: exact published crate; private x86_64 ABIv11 networking consumer.
+Use the accepted libc-aros boundary and Exec notifications. Other targets
+retain their upstream paths. AROS numeric IPv4, local Async handles only;
+unsupported DNS, Unix sockets and worker-task I/O are not enabled.
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -123,7 +123,7 @@
+ [target.'cfg(all(unix, not(target_os="vita")))'.dev-dependencies.signal-hook]
+ version = "0.3.17"
+ 
+-[target.'cfg(any(unix, target_os = "fuchsia", target_os = "vxworks"))'.dependencies.rustix]
++[target.'cfg(all(not(target_os = "aros"), any(unix, target_os = "fuchsia", target_os = "vxworks")))'.dependencies.rustix]
+ version = "1.0.5"
+ features = [
+     "event",
+@@ -169,3 +169,6 @@
+     "cfg(polling_test_poll_backend)",
+     "cfg(polling_test_epoll_pipe)",
+ ]
++
++[target.'cfg(target_os = "aros")'.dependencies.libc]
++version = "=0.2.189"
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -77,7 +77,10 @@
+ cfg_if! {
+     // Note: This cfg is intended to make it easy for polling developers to test
+     // the backend that uses poll, and is not a public API.
+-    if #[cfg(polling_test_poll_backend)] {
++    if #[cfg(target_os = "aros")] {
++        mod aros;
++        use aros as sys;
++    } else if #[cfg(polling_test_poll_backend)] {
+         mod poll;
+         use poll as sys;
+     } else if #[cfg(any(
+@@ -743,6 +746,8 @@
+     }
+ 
+     fn wait_impl(&self, events: &mut Events, deadline: Option<Instant>) -> io::Result<usize> {
++        #[cfg(target_os = "aros")]
++        self.poller.owner()?;
+         #[cfg(feature = "tracing")]
+         let span = tracing::trace_span!("Poller::wait", ?deadline);
+         #[cfg(feature = "tracing")]
