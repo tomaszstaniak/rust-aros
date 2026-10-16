@@ -330,3 +330,18 @@ See [baseline evidence](evidence/2026-10-16-wat-baseline/REPORT.md) and
 closed. VM execution/collection still follows the guarded testbench workflow.
 Next is M3 async readiness/networking/HTTPS; natural-load cancellation and
 forced termination remain open. v1 and arm64/Macaros stay deferred.
+
+
+### M3 preparation: async networking and TLS (2026-10-16)
+
+Use Mbed TLS 3.6.7 with jitterentropy 3.7.0 for the current v11 HTTPS work.
+The old shared v11 OpenSSL is not the selected backend. Newer OpenSSL from
+v1 would need a separate private v11 build. v1/arm64 remain deferred.
+
+A disposable real async-net/async-io/polling consumer does not yet compile:
+rustix 1.1.4 (matching the audited Zed lock version) produces 395 diagnostics
+against the current libc adaptation. Private apkg-derived Mbed TLS/jent
+archives compile and its blocking SDK example links with ordinary and forced
+entropy-failure adapters. No new guest networking or HTTPS runtime result is
+claimed. Socket namespace/ownership probes are built but waiting for a free
+named v11 machine. See [the preparation report](evidence/2026-10-16-async-network/REPORT.md).
