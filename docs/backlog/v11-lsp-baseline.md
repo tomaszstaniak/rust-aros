@@ -1,31 +1,30 @@
-# Next delivery gate: reproducible x86_64 v11 LSP baseline
+# Accepted delivery gate: repeatable x86_64 v11 LSP baseline
 
-Updated 2026-10-15. This is a scoped M3 process/LSP gate, not completion of
-M3 async networking or a Zed port. No calendar deadline has been agreed.
-Planning estimate: two to three further complete implementation/validation
-iterations, conditional on compatible VM availability and no new runtime issue.
+Accepted 2026-10-16 on the named older pool v11-2 / GCC10.5 / AROS/sdk /
+aros-exec-20261015 profile. This closes the scoped M3 process/LSP delivery gate,
+not M3 async networking or a Zed port.
 
-## Closing criteria
+## Closing criteria and evidence
 
-1. Accept active-exit and active-EOF worker cancellation/completion/join on the
-   named older ABIv11 profile; retain exact binaries, logs and return codes.
-   Accepted on host and older v11-2 with explicit unwind; see teardown evidence.
-2. Integrate explicit abort/unwind selection into the reproducible build flow,
-   retaining abort by default and isolated outputs. Reject conflicting ambient
-   flags and validate the selected profile rather than just a successful link.
-3. Provide one documented entry point for preparation, build and validation
-   reports, pinning source/toolchain inputs and preserving failure status.
-4. Retain the current entropy, process framing, baseline LSP, cancellation,
-   edit/recovery and teardown regressions. Clearly list unaccepted behavior.
+1. Active-exit and active-EOF worker cancellation/completion/join: accepted
+   with response accounting, exact trace order and zero return codes.
+2. Explicit abort/unwind build selection: shared helper, abort default,
+   isolated output and rejection of ambient overrides. Compiler cfg verified;
+   fresh native abort baseline and full unwind bundle both pass.
+3. Common entry point: baseline.py build prepares/builds/stages and records
+   inputs/logs; baseline.py check validates stopped guest reports. VM ownership,
+   focus inspection and collection remain the shared testbench workflow.
+4. Regressions and limits: native LSP/probes, 33 Python tests, guarded unique
+   output prefixes, start/completion receipts and failure-status propagation.
+   Existing entropy/transport/process adapters remain unchanged.
 
-## Scope and risks
+See [scoped evidence](../evidence/2026-10-16-wat-baseline/REPORT.md) and
+[commands](../../ports/wat-server/README.md).
 
-Focus stays x86_64 ABIv11 with its named GCC/SDK/runtime combination. v1 and
-arm64/Macaros remain deferred. Async readiness/network/HTTPS and representative
-Zed/GPUI dependencies follow separately. No full-Zed delivery date is claimed.
+## Remaining work
 
-The current constraint is turning individually verified paths into one
-repeatable supported profile. Native VM contention delays the runtime gate;
-a blocked writer or noncooperative worker may require a separate termination
-policy and invalidate the estimate. Do not substitute a newer guest profile
-or treat host success as native acceptance to meet the estimate.
+M3 async readiness/network/HTTPS and representative Zed/GPUI dependencies
+follow separately. Natural-load interruption, blocked writer/noncooperative
+worker termination, other SDK profiles, v1 and arm64/Macaros remain open.
+No full-Zed delivery date, hermetic SDK distribution or bit-identical build
+claim is made by this gate.

@@ -210,3 +210,57 @@ add `--probe-eof` to close stdin without sending exit. Completion is accepted
 only with its cancelled response and ordered completion/join trace. Diagnostic
 staging now includes both cases as fresh sessions after the prior three.
 [Host and native evidence](../../docs/evidence/2026-10-15-wat-teardown/REPORT.md).
+
+## Unified native baseline entry point
+
+`baseline.py` combines pinned-source preparation, ordinary/diagnostic server
+builds, acceptance clients, payload staging and stopped-result checking. It
+requires the already validated private std toolchain and selected v11 GCC/SDK
+configuration (`aros-env.toml` / `x86_64-aros.json`); it does not install them.
+Use a new output directory and a unique guest report prefix for every build:
+
+```sh
+python3 ports/wat-server/baseline.py build UPSTREAM_EXPORT NEW_RUN_DIRECTORY \
+  --toolchain YOUR_ISOLATED_AROS_TOOLCHAIN --cargo-home YOUR_PRIVATE_CARGO_HOME \
+  --profile unwind --prefix UNIQUE_PREFIX
+```
+
+Omitting `--profile` selects **abort**, which builds/stages the ordinary baseline
+only. Explicit **unwind** adds checkpoint cancellation/recovery, outstanding
+shutdown, active exit, active EOF, independent unwinding and deterministic
+Salsa cancellation: seven cases in total. The ordinary baseline always runs
+the separate uninstrumented server, including its worker-lifecycle fix.
+
+The same profile selection is available directly as
+`build.py --aros --panic-profile abort|unwind`; `--unwind` remains an alias.
+Both profiles reject ambient `RUSTFLAGS`, `CARGO_ENCODED_RUSTFLAGS`,
+`CARGO_BUILD_RUSTFLAGS`, `CARGO_TARGET_X86_64_AROS_RUSTFLAGS` and
+`CARGO_PROFILE_RELEASE_PANIC` rather than silently accepting overrides.
+Outputs are private to the new run/profile. Client sources and Cargo.lock are
+copied before building; the repository lock remains unchanged. libc-aros is
+copied/hashed, and the resolved sysroot plus Rust library source hash is
+recorded. Compiler cfg must match the selected panic profile. Port/config and
+std source mutation during a build is rejected.
+
+A completed build writes `run.json` with status `built-not-run`, command logs,
+source identities and payload hashes. This is not runtime acceptance. Use the
+shared VM pool's existing reservation/stop/stage/start workflow to deploy
+`NEW_RUN_DIRECTORY/payload` to the matching older x86_64 v11 installation.
+In the inspected guest Shell, extract `POOLINPUT:payload.zip` to `RAM:wl` with
+redirected UnZip output, verify extraction, then `Execute RAM:wl/run-tests`.
+The script refuses an existing suite report prefix and writes start/completion
+manifest receipts. A random per-build identifier prevents receipt reuse.
+Stop the owned guest before collection, then run:
+
+```sh
+python3 ports/wat-server/baseline.py check NEW_RUN_DIRECTORY COLLECTED_RESULTS \
+  --machine RESERVED_MACHINE --runtime-profile 'ACTUAL_ABI_OS_GCC_SDK_PROFILE'
+```
+
+`validation.json` is passed only when receipts match this build, all required
+return codes are zero, completion markers are present and active teardown
+trace ordering is correct. Missing/failed reports replace any previous passed
+summary with failed status and a nonzero command exit. The copied receipts
+identify the staged manifest; they are not a guest-side rehash of executables.
+VM supervision, focus checks, forced termination and collection remain the
+shared testbench workflow; this entry point does not bypass ownership.

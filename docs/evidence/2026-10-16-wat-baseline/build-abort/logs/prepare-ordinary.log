@@ -1,0 +1,5 @@
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/stdio.rs'
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/main.rs'
+/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary

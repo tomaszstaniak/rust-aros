@@ -1,0 +1,10 @@
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/stdio.rs'
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/main.rs'
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/main.rs'
+patching file 'crates/service/src/lib.rs'
+patching file 'crates/server/src/server.rs'
+patching file 'crates/server/src/server.rs'
+/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic

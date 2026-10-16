@@ -306,3 +306,27 @@ See [teardown evidence](evidence/2026-10-15-wat-teardown/REPORT.md).
 Next: reproducible profile/build integration and a unified validation entry
 point. Joins still lack forced termination for blocked/noncooperative peers;
 the accepted teardown uses a synchronized Salsa checkpoint and drained output.
+
+
+## Repeatable v11 LSP baseline gate accepted (2026-10-16)
+
+ports/wat-server/baseline.py now owns pinned preparation, ordinary/diagnostic
+server builds, copied client/probe sources, private profile outputs, staging
+and stopped-result validation. Abort remains the default; explicit unwind
+selects all seven cancellation/lifecycle/unwind cases. Compiler cfg and input
+identities are recorded, including copied libc-aros and resolved patched std
+sources. Conflicting native flag/panic environment overrides are rejected.
+
+Fresh generated bundles pass on the explicitly reserved older v11-2 profile,
+x86_64 ABIv11 / GCC10.5 / AROS/sdk / aros-exec-20261015: seven unwind cases0,
+ordinary abort baseline0, both checker summaries passed. Native duplicate
+prefix execution is refused with rc20. Matching start/completion manifest
+receipts, a unique build ID and existing-output guards prevent stale success;
+receipts do not claim a guest-side executable rehash. All 33 Python tests pass.
+No shared installations or original Cargo.lock changed. VM stopped/released.
+
+See [baseline evidence](evidence/2026-10-16-wat-baseline/REPORT.md) and
+[entry point](../ports/wat-server/README.md). The scoped LSP delivery gate is
+closed. VM execution/collection still follows the guarded testbench workflow.
+Next is M3 async readiness/networking/HTTPS; natural-load cancellation and
+forced termination remain open. v1 and arm64/Macaros stay deferred.

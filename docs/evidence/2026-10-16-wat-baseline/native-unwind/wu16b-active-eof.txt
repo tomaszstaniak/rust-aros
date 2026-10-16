@@ -1,0 +1,28 @@
+SEND {"bytes":107,"id":1,"method":"initialize","version":null}
+RECV {"diagnostics":null,"error":null,"id":1,"method":null,"result_items":null,"result_null":false}
+SEND {"bytes":52,"id":null,"method":"initialized","version":null}
+SEND {"bytes":64500,"id":null,"method":"textDocument/didOpen","version":1}
+RECV {"diagnostics":0,"error":null,"id":null,"method":"textDocument/publishDiagnostics","result_items":null,"result_null":false}
+SEND {"bytes":124,"id":10,"method":"textDocument/documentSymbol","version":null}
+RECV {"diagnostics":null,"error":null,"id":null,"method":"$/arosProbeCheckpoint","result_items":null,"result_null":false}
+SEND {"bytes":59,"id":99,"method":"shutdown","version":null}
+RECV {"diagnostics":null,"error":null,"id":99,"method":null,"result_items":null,"result_null":true}
+PASS shutdown response while request 10 remains at checkpoint
+OBSERVE exit with request 10 still paused; no explicit client cancellation
+OBSERVE close stdin with request 10 still paused
+SERVER_STATUS exit status: 0; STDERR_BYTES 539
+SERVER_STDERR REQUEST_TRACE 0 registered Integer(10)
+REQUEST_TRACE 1 worker_start Integer(10)
+REQUEST_TRACE 2 salsa_checkpoint Integer(10)
+REQUEST_TRACE 3 registered Integer(99)
+REQUEST_TRACE 4 worker_start Integer(99)
+REQUEST_TRACE 5 query_done Integer(99)
+REQUEST_TRACE 6 write_ok Integer(99)
+REQUEST_TRACE 7 token_removed Integer(99)
+REQUEST_TRACE 8 teardown_cancel_applied Integer(10)
+REQUEST_TRACE 9 query_done Integer(10)
+REQUEST_TRACE 10 write_ok Integer(10)
+REQUEST_TRACE 11 token_removed Integer(10)
+REQUEST_TRACE 12 workers_joined Integer(10)
+
+PASS interactive shutdown, EOF, child wait and both reader joins

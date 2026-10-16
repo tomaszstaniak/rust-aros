@@ -1,0 +1,210 @@
+{
+  "status": "built-not-run",
+  "platform": "x86_64-aros-v11",
+  "profile": "unwind",
+  "rustc": "rustc 1.100.0-nightly (0dfb098f3 2026-08-31)",
+  "toolchain": "aros-exec-20261015",
+  "prefix": "wu16b",
+  "resolved_sysroot": "/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot",
+  "rust_library_sha256": "dbfe3afef8cefdbdddc2ad9cacb94e352956a0aa3860c3e1b8f1f7383c67de3f",
+  "input_sha256": {
+    "aros-env.toml": "06188bdd7475334234e3172d928f96ec59b5a7833286599e419e769b50302d4c",
+    "ports/wat-server/README.md": "51eb364f12b54a2b4baff8e0221e9b0b858a1d719cc0aea248136c2444a8d0ac",
+    "ports/wat-server/baseline.py": "1b3c1dd7b39e54aa8df65cc2509d38808ace652f33af3dffb4b660a04a7be54e",
+    "ports/wat-server/build.py": "e99b5f3733709452035e7e17b6cc9f3ba661e495f8bf85763454cf805d4fc0b5",
+    "ports/wat-server/cancellation-probe.rs": "859930c608738e971686e16b498d9b1b5e6e811d04ae4dcd793f282a12aa7e3d",
+    "ports/wat-server/inventory-aros.patch": "cffd5da610f0192eb74088b6736f0c4c04b589e1bd3221093a7a30acf737c0a4",
+    "ports/wat-server/native_profile.py": "58504856e2355ea697109d606c0af59f3c1c3363f5fffb5e5b11c77851fa45b0",
+    "ports/wat-server/prepare.py": "345a1d6b9498246b5681d56ad16ea90bfd94c499b6d46c930785ee873b77ad3b",
+    "ports/wat-server/probe-checkpoint.patch": "2300e61ba7c26462109e55ff05ae2cf13ca482ad45908cd8c694d7c34ccaf8ae",
+    "ports/wat-server/probe-checkpoint.rs": "384c24e8be6cb3e380ab0a5d54ba1e13f6bab9cb3a238c834978b9ff8f4a5f78",
+    "ports/wat-server/probe-gate.rs": "707b49239a6f518adfbfca096ca0f9a9199c0fa9f522ff19857f6880fa837912",
+    "ports/wat-server/request-trace.patch": "6ff910865df19a30b8e98b6f9ad3a0f1884266da3dd402f4c913ea61922b8607",
+    "ports/wat-server/request-trace.rs": "0799a94b428c6c2f7a66383884fae8fc8814dbac18cbd1d4a92c9353c15b2de9",
+    "ports/wat-server/stage.py": "7e4a9a5be93ccdc3ba9b1b1ac325d7df33db378dcf45ce8679be77f3e5a03bcc",
+    "ports/wat-server/transport.patch": "31f8746812dde7f2d4fbd19eb07352e62364292819008a44616bd4cc44c85d79",
+    "ports/wat-server/worker-lifecycle.patch": "a95ee0d4f78be4ae7e4388fea02ba180953c69bbe903c57c5fdb2ea93987cf6d",
+    "ports/wat-server/workers.rs": "3c4e29af8b28a1ca2be0cc936d8c88c91d34f7ac1e513c70796f42c862923c52",
+    "x86_64-aros.json": "c0704fb10883332010c2b8fc4e48c5fa86dbb3fd4c0e9a942d11aacdfeae86a7"
+  },
+  "commands": [
+    {
+      "command": [
+        "rustc",
+        "+aros-exec-20261015",
+        "--print",
+        "cfg",
+        "--target",
+        "/Users/tumash/Work/AROS-dev/rust-aros/x86_64-aros.json",
+        "-Zunstable-options",
+        "-Cpanic=unwind"
+      ],
+      "log": "logs/profile-cfg.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/prepare.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/upstream/wat-428f74d",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/ordinary"
+      ],
+      "log": "logs/prepare-ordinary.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/build.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/ordinary",
+        "--toolchain",
+        "aros-exec-20261015",
+        "--aros",
+        "--panic-profile",
+        "unwind",
+        "--libc-source",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source"
+      ],
+      "log": "logs/build-ordinary.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/prepare.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/upstream/wat-428f74d",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic",
+        "--probe-checkpoint"
+      ],
+      "log": "logs/prepare-diagnostic.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/build.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic",
+        "--toolchain",
+        "aros-exec-20261015",
+        "--aros",
+        "--panic-profile",
+        "unwind",
+        "--libc-source",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source"
+      ],
+      "log": "logs/build-diagnostic.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/build.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic",
+        "--toolchain",
+        "aros-exec-20261015",
+        "--aros",
+        "--panic-profile",
+        "unwind",
+        "--libc-source",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source",
+        "--cancellation-probe"
+      ],
+      "log": "logs/build-cancellation.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "+aros-exec-20261015",
+        "build",
+        "--release",
+        "--offline",
+        "--manifest-path",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/client-source/std-groundwork/wat-lsp-acceptance/Cargo.toml",
+        "--target",
+        "/Users/tumash/Work/AROS-dev/rust-aros/x86_64-aros.json",
+        "-Zbuild-std=std,panic_unwind",
+        "-Zjson-target-spec",
+        "--config",
+        "build.rustflags=[\"-Cpanic=unwind\", \"-Cforce-unwind-tables=yes\"]",
+        "--config",
+        "/Users/tumash/Work/AROS-dev/rust-aros/aros-env.toml",
+        "--config",
+        "patch.crates-io.libc.path=\"/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source\"",
+        "--config",
+        "patch.crates-io.inventory.path=\"/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic-deps/inventory-0.3.24\""
+      ],
+      "log": "logs/build-clients.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "+aros-exec-20261015",
+        "build",
+        "--release",
+        "--offline",
+        "--manifest-path",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/client-source/std-groundwork/unwind-acceptance/Cargo.toml",
+        "--target",
+        "/Users/tumash/Work/AROS-dev/rust-aros/x86_64-aros.json",
+        "-Zbuild-std=std,panic_unwind",
+        "-Zjson-target-spec",
+        "--config",
+        "build.rustflags=[\"-Cpanic=unwind\", \"-Cforce-unwind-tables=yes\"]",
+        "--config",
+        "/Users/tumash/Work/AROS-dev/rust-aros/aros-env.toml",
+        "--config",
+        "patch.crates-io.libc.path=\"/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source\"",
+        "--config",
+        "patch.crates-io.inventory.path=\"/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic-deps/inventory-0.3.24\""
+      ],
+      "log": "logs/build-unwind.log"
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/tumash/Work/AROS-dev/rust-aros/ports/wat-server/stage.py",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/artifacts/wat-server-diagnostic",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/build/unwind/clients/x86_64-aros/release/wat-lsp-acceptance",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/payload",
+        "--prefix",
+        "wu16b",
+        "--interactive-client",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/build/unwind/clients/x86_64-aros/release/wat-interactive-acceptance",
+        "--probe-checkpoint",
+        "--unwind-probe",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/build/unwind/clients/x86_64-aros/release/unwind-acceptance",
+        "--cancellation-probe",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/artifacts/cancel-probe",
+        "--baseline-server",
+        "/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/artifacts/wat-server-ordinary"
+      ],
+      "log": "logs/stage.log"
+    }
+  ],
+  "sdk_tools": {
+    "AROS_GCC": "/Users/tumash/Work/AROS/toolchain/x86_64-aros-gcc",
+    "AROS_SDK": "/Users/tumash/Work/AROS/sdk",
+    "AROS_AR": "/Users/tumash/Work/AROS/toolchain/x86_64-aros-ar"
+  },
+  "libc_source_sha256": "92e6e59b995caa3ee1f46149888728c691ac3a8d170e9953eb4b6c88b20d8b09",
+  "payload_sha256": {
+    "lsp-check": "a84df6fb090847106d76008c7a07bb35252dd5838488cb8376f3f9be55ec7110",
+    "interactive-check": "32934cc787319e6c88a44d7a13e0e4207678885dd2ef5042bc35b87bfa6cfd94",
+    "cancel-probe": "b292d89aeb4ccd7685930cc8131848a42376511f82c646ff6eb8cf48fae68b16",
+    "run-id": "89ea39e3369162af955eafbd4c4502e4b771bfe3ee67b7991f3b649aa4b54341",
+    "baseline-server": "1642a86e3fd21f77e3b35e448f3bbe5a457e261a1fd0ed1a3a76a4ce52834141",
+    "wat-server": "2e8c6c533be290df8b315e6afa2fd2ce56ab72f2d6153416fcad16a37a33d4bb",
+    "unwind-probe": "bb608407773614a9d860e7d4bb7b9ec811ec07bbdb62f5b5c8f3656576b4025b",
+    "run-tests": "f0673043b8e35cb0366aaf08e9c292b7db3d97287dbc99d873902f39fce1fdae"
+  },
+  "client_source_sha256": {
+    "std-groundwork/unwind-acceptance/Cargo.lock": "17e5398c25437cd10ac580de52e972984d8ad9c4b080f4cf5d3593deb93f3b5f",
+    "std-groundwork/unwind-acceptance/Cargo.toml": "d7f329350301b74120a5d2272d3ca96751befa4b6a2a9e1502ba290a3318f95c",
+    "std-groundwork/unwind-acceptance/README.md": "7e90e8684cf3c84aa2d4f6f4432834d9a44888625eec75c0ae5d42a8e04a780c",
+    "std-groundwork/unwind-acceptance/src/main.rs": "217e0010a58753bee545e9dcffcedd89953eb24736b5406d92acdfd20aee93b8",
+    "std-groundwork/wat-lsp-acceptance/Cargo.lock": "65933684d2a72521172cc8581f70ace96727fabeb503f074cbf2c12c432cfe69",
+    "std-groundwork/wat-lsp-acceptance/Cargo.toml": "8d5576e3a07d4d383a3555d5d7ef0795a197f9567102d041919678d64bb1fde2",
+    "std-groundwork/wat-lsp-acceptance/src/bin/wat-interactive-acceptance.rs": "aea498f4509eabe2c894778f203074dd31577c44f51b4630d1460945a69cf499",
+    "std-groundwork/wat-lsp-acceptance/src/main.rs": "25a8d22fbee7fbf4f1dd27a6d56d45a7362e1401395dd0ac27be217b6554d4d0",
+    "transport/Cargo.lock": "527c097b9e5f84f4addc0f626b47eb0888c82df02760bfeb74f1053fc794f576",
+    "transport/Cargo.toml": "7f0c4e46be740628cb2c41a3bd15c7888167ae1690f829d4f69a050783600e56",
+    "transport/README.md": "8b32feeaa4313ce2f7c56cb80655463495ca17eec9179c5ec4de9082efa19745",
+    "transport/src/lib.rs": "22cbbdc33974620c6c6f9007c6e5bf7cee37a9475ffb71134f9bc24508779ba3",
+    "transport/tests/framing.rs": "8e6bcb5b3d5ddd9a7e7ace2982e7a84a81687da352ac0dfd65b999be31c2f164"
+  }
+}

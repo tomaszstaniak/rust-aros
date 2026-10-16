@@ -27,3 +27,8 @@ docs/evidence/2026-10-15-wat-teardown/worker-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-teardown/process-tests.log whitespace=-blank-at-eof
 docs/evidence/2026-10-15-wat-teardown/transport-tests.log whitespace=-blank-at-eof
 ports/wat-server/worker-lifecycle.patch whitespace=-blank-at-eol
+# Preserve verbatim Cargo/dyld diagnostic whitespace in baseline build evidence.
+docs/evidence/2026-10-16-wat-baseline/build-abort/logs/build-ordinary.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-cancellation.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-diagnostic.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-ordinary.log whitespace=-blank-at-eol

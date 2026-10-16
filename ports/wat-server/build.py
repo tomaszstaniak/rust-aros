@@ -9,25 +9,32 @@ import tempfile
 import shutil
 from pathlib import Path
 import subprocess
+from native_profile import native_options
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("workspace", type=Path)
 p.add_argument("--toolchain", required=True)
 p.add_argument("--aros", action="store_true")
-p.add_argument("--unwind", action="store_true", help="explicit experimental AROS unwind profile")
+p.add_argument("--libc-source", type=Path, help="build-owned libc-aros source (default: repository source)")
+profiles = p.add_mutually_exclusive_group()
+profiles.add_argument("--unwind", action="store_true", help="compatibility alias for --panic-profile unwind")
+profiles.add_argument("--panic-profile", choices=("abort", "unwind"), help="native panic profile (default: abort)")
 p.add_argument("--cancellation-probe", action="store_true", help="build the deterministic Salsa cancellation probe")
 args = p.parse_args()
-if args.unwind and not args.aros:
-    p.error("--unwind requires --aros")
-if args.unwind and any(os.environ.get(name) for name in ("RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS")):
-    p.error("--unwind requires clearing ambient RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS")
+if (args.unwind or args.panic_profile) and not args.aros:
+    p.error("native panic profiles require --aros")
 repo = Path(__file__).resolve().parents[2]
+profile = "unwind" if args.unwind else (args.panic_profile or "abort")
+try:
+    native = native_options(repo, profile, os.environ) if args.aros else []
+except ValueError as error:
+    p.error(str(error))
 work = args.workspace.resolve()
 cargo = ["cargo", "+" + args.toolchain]
 config = []
 if args.aros:
     config = ["--config", str(repo / "aros-env.toml"), "--config",
-              'patch.crates-io.libc.path=' + json.dumps(str(repo / "std-groundwork/libc-aros"))]
+              'patch.crates-io.libc.path=' + json.dumps(str((args.libc_source or repo / "std-groundwork/libc-aros").resolve()))]
     cargo_home = Path(os.environ.get("CARGO_HOME", Path.home() / ".cargo"))
     archives = list((cargo_home / "registry/cache").glob("*/inventory-0.3.24.crate"))
     if len(archives) != 1:
@@ -67,9 +74,5 @@ if args.cancellation_probe:
     probe.parent.mkdir(exist_ok=True)
     shutil.copyfile(Path(__file__).with_name("cancellation-probe.rs"), probe)
 command = cargo + ["build", "-p", "wat_server", "--bin", binary, "--release", "--offline"]
-if args.aros:
-    panic_crate = "panic_unwind" if args.unwind else "panic_abort"
-    command += ["--target", str(repo / "x86_64-aros.json"), "-Zbuild-std=std," + panic_crate, "-Zjson-target-spec"]
-    if args.unwind:
-        command += ["--config", 'build.rustflags=["-Cpanic=unwind","-Cforce-unwind-tables=yes"]']
+command += native
 subprocess.run(command + config, cwd=work, check=True, env=os.environ)

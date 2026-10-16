@@ -9,6 +9,7 @@ p.add_argument("server", type=Path)
 p.add_argument("client", type=Path)
 p.add_argument("destination", type=Path)
 p.add_argument("--prefix", required=True)
+p.add_argument("--baseline-server", type=Path, help="ordinary server for the baseline session")
 p.add_argument("--cancellation-probe", type=Path)
 p.add_argument("--unwind-probe", type=Path)
 p.add_argument("--interactive-client", type=Path)
@@ -21,6 +22,8 @@ if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", a.prefix):
     p.error("prefix must be 1-32 ASCII letters, digits, underscores or hyphens")
 if not all(x.is_file() for x in (a.server, a.client)):
     p.error("server and client must be regular files")
+if a.baseline_server and not a.baseline_server.is_file():
+    p.error("baseline server must be a regular file")
 if a.cancellation_probe and not a.cancellation_probe.is_file():
     p.error("cancellation probe must be a regular file")
 if a.unwind_probe and not a.unwind_probe.is_file():
@@ -96,3 +99,11 @@ if a.probe_checkpoint:
     script.write_text(script.read_text().replace(marker, f"""RAM:wl/interactive-check RAM:wl/wat-server --trace-requests --probe-checkpoint --probe-shutdown --probe-exit --probe-eof >RESULTS:{a.prefix}-active-eof.txt
 Echo $RC >RESULTS:{a.prefix}-active-eof.rc
 {marker}"""))
+
+if a.baseline_server:
+    binary = a.destination / "baseline-server"
+    shutil.copy2(a.baseline_server, binary)
+    binary.chmod(0o755)
+    script = a.destination / "run-tests"
+    script.write_text(script.read_text().replace("Protect RAM:wl/wat-server +e", "Protect RAM:wl/wat-server +e\nProtect RAM:wl/baseline-server +e")
+                      .replace("RAM:wl/lsp-check RAM:wl/wat-server", "RAM:wl/lsp-check RAM:wl/baseline-server"))

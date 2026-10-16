@@ -1,0 +1,100 @@
+patching file 'src/lib.rs'
+      Adding aros-lsp-transport v0.1.0 (/Users/tumash/Work/AROS-dev/rust-aros/transport)
+      Adding inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary-deps/inventory-0.3.24)
+    Removing inventory v0.3.24
+      Adding libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/libc-source)
+    Removing libc v0.2.186
+note: pass `--verbose` to see 34 unchanged dependencies behind latest
+warning: patch `inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary-deps/inventory-0.3.24)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+   Compiling compiler_builtins v0.1.160 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/core)
+   Compiling libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/libc-source)
+   Compiling object v0.39.1
+   Compiling std v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/std)
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.228
+   Compiling autocfg v1.5.1
+   Compiling zmij v1.0.22
+   Compiling serde v1.0.228
+   Compiling crossbeam-utils v0.8.22
+   Compiling parking_lot_core v0.9.12
+   Compiling serde_json v1.0.150
+   Compiling typeid v1.0.3
+   Compiling portable-atomic v1.13.1
+   Compiling anyhow v1.0.103
+   Compiling memoffset v0.9.1
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[70847]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `libc` (build script) generated 1 warning
+   Compiling syn v2.0.118
+   Compiling serde_derive v1.0.228
+   Compiling salsa-macros v0.28.1
+   Compiling rustc-std-workspace-core v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-core)
+   Compiling alloc v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/alloc)
+   Compiling memchr v2.8.3
+   Compiling adler2 v2.0.1
+   Compiling rustc-demangle v0.1.28
+   Compiling cfg-if v1.0.4
+   Compiling rustc-literal-escaper v0.0.8
+   Compiling unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/unwind)
+   Compiling rustc-std-workspace-alloc v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-alloc)
+   Compiling panic_unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/panic_unwind)
+   Compiling panic_abort v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/panic_abort)
+   Compiling gimli v0.34.0
+   Compiling std_detect v0.1.5 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/std_detect)
+   Compiling miniz_oxide v0.9.1
+   Compiling hashbrown v0.17.1
+   Compiling addr2line v0.27.1
+   Compiling proc_macro v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/proc_macro)
+   Compiling allocator-api2 v0.2.21
+   Compiling equivalent v1.0.2
+   Compiling foldhash v0.2.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling once_cell v1.21.4
+   Compiling text-size v1.1.1
+   Compiling smallvec v1.15.2
+   Compiling scopeguard v1.2.0
+   Compiling rustc-hash v2.1.3
+   Compiling itoa v1.0.18
+   Compiling pin-project-lite v0.2.17
+   Compiling intrusive-collections v0.10.2
+   Compiling lock_api v0.4.14
+   Compiling servo_arc v0.5.0
+   Compiling thin-vec v0.2.18
+   Compiling salsa-macro-rules v0.28.1
+   Compiling boxcar v0.2.14
+   Compiling either v1.16.0
+   Compiling inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary-deps/inventory-0.3.24)
+   Compiling tracing-core v0.1.36
+   Compiling log v0.4.33
+   Compiling wat_syntax v0.11.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary/crates/syntax)
+   Compiling tiny_pretty v0.4.2
+   Compiling itertools v0.15.0
+   Compiling similar v3.1.1
+   Compiling humantime v2.4.0
+   Compiling bumpalo v3.20.3
+   Compiling parking_lot v0.12.5
+   Compiling crossbeam-queue v0.3.13
+   Compiling fern v0.7.1
+   Compiling aros-lsp-transport v0.1.0 (/Users/tumash/Work/AROS-dev/rust-aros/transport)
+   Compiling tracing v0.1.44
+   Compiling hashlink v0.12.1
+   Compiling indexmap v2.14.0
+   Compiling wat_parser v0.11.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary/crates/parser)
+   Compiling salsa v0.28.1
+   Compiling wat_formatter v0.11.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary/crates/formatter)
+   Compiling lspt v0.6.1
+   Compiling wat_service v0.11.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary/crates/service)
+   Compiling wat_server v0.11.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-abort-02/ordinary/crates/server)
+    Finished `release` profile [optimized] target(s) in 20.88s

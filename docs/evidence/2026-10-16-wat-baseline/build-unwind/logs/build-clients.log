@@ -1,0 +1,42 @@
+warning: patch `libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+     Locking 1 package to highest compatible version
+      Adding inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic-deps/inventory-0.3.24)
+warning: patch `inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic-deps/inventory-0.3.24)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+   Compiling compiler_builtins v0.1.160 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/core)
+   Compiling libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/libc-source)
+   Compiling object v0.39.1
+   Compiling std v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/std)
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.150
+   Compiling rustc-std-workspace-core v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-core)
+   Compiling alloc v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/alloc)
+   Compiling memchr v2.8.3
+   Compiling adler2 v2.0.1
+   Compiling cfg-if v1.0.4
+   Compiling rustc-demangle v0.1.28
+   Compiling rustc-literal-escaper v0.0.8
+   Compiling unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/unwind)
+   Compiling rustc-std-workspace-alloc v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-alloc)
+   Compiling panic_unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/panic_unwind)
+   Compiling panic_abort v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/panic_abort)
+   Compiling gimli v0.34.0
+   Compiling miniz_oxide v0.9.1
+   Compiling hashbrown v0.17.1
+   Compiling std_detect v0.1.5 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/std_detect)
+   Compiling addr2line v0.27.1
+   Compiling proc_macro v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-exec-sysroot/lib/rustlib/src/rust/library/proc_macro)
+   Compiling itoa v1.0.18
+   Compiling inventory v0.3.24 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/diagnostic-deps/inventory-0.3.24)
+   Compiling aros-lsp-transport v0.1.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/client-source/transport)
+   Compiling wat-lsp-acceptance v0.1.0 (/Users/tumash/Work/AROS/local/rust-lsp/baseline-unwind-02/client-source/std-groundwork/wat-lsp-acceptance)
+    Finished `release` profile [optimized] target(s) in 11.40s

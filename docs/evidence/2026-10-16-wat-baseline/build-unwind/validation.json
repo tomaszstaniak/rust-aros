@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "profile": "unwind",
+  "cases": [
+    "baseline",
+    "interactive",
+    "shutdown",
+    "active-exit",
+    "active-eof",
+    "unwind",
+    "cancellation"
+  ],
+  "report_sha256": {
+    "wu16b-payload.json": "d0ed91f4f0b1be2cd783607ec35f821a7b4d9cb575ee78d9b7aa3295c956ab51",
+    "wu16b-complete.json": "d0ed91f4f0b1be2cd783607ec35f821a7b4d9cb575ee78d9b7aa3295c956ab51",
+    "wu16b-done.txt": "8221ac66be71558c921fb44cfb66f7997699aea754d917763882d6d9eddc836e",
+    "wu16b-rc.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-transcript.txt": "2b4ecb9fcc8807764efadf7132c7948c206075219e92e587502bdb2ce3949580",
+    "wu16b-interactive.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-interactive.txt": "fbfab761d31e2eccf9b68a65b761599ac1095f0cab468dc6a8d23f376ab5f113",
+    "wu16b-shutdown.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-shutdown.txt": "bd0f79ac798f9c213607b3e97558e886948d40cd13c20b6804a9725760b6a112",
+    "wu16b-active-exit.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-active-exit.txt": "eb5435b5b417858167d1866f7a6301e4925ef78df31fa0af241d53e523bba60e",
+    "wu16b-active-eof.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-active-eof.txt": "6475b839479a1f33b36a940bd79d2dd6cdeec7975aaf0301aa26c8c7ac689974",
+    "wu16b-unwind.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-unwind.txt": "3818df5473e7b938e8b0c0e5b942ff6db17c975dd251745f316638f141536e47",
+    "wu16b-cancellation.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wu16b-cancellation.txt": "4c8b347a0f246142cf21e3406ef486d21b3f5a4d9014d8f692bec1f1edc5f79f"
+  },
+  "machine": "v11-2",
+  "runtime_profile": "older AROS One x86_64 ABIv11; GCC10.5; AROS/sdk; isolated aros-exec-20261015",
+  "build_run_sha256": "0b49197a1876f3284eb7613aa7770fcf3edb5e78841f84063feddb49822e633d"
+}

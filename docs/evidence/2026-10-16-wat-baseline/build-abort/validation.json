@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "profile": "abort",
+  "cases": [
+    "baseline"
+  ],
+  "report_sha256": {
+    "wa16b-payload.json": "8b6039ae9fbc292e68c754996ea04d7ab7354e117ce1d3e9724e2cff06c10b95",
+    "wa16b-complete.json": "8b6039ae9fbc292e68c754996ea04d7ab7354e117ce1d3e9724e2cff06c10b95",
+    "wa16b-done.txt": "8221ac66be71558c921fb44cfb66f7997699aea754d917763882d6d9eddc836e",
+    "wa16b-rc.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "wa16b-transcript.txt": "2b4ecb9fcc8807764efadf7132c7948c206075219e92e587502bdb2ce3949580"
+  },
+  "machine": "v11-2",
+  "runtime_profile": "older AROS One x86_64 ABIv11; GCC10.5; AROS/sdk; isolated aros-exec-20261015",
+  "build_run_sha256": "5f60aec46be2408a214e1428dee958a4bc067ca9c9a8e953806c96d43b8560e9"
+}
