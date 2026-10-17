@@ -21,20 +21,31 @@ def collect(listener, run_id, cases, timeout):
                 s['status'] = 'timeout'
         if not any(s['status'] in ('waiting', 'running') for s in state.values()):
             break
-        listener.settimeout(min(.1, max(.001, min(s['deadline'] for s in state.values() if s['status'] in ('waiting', 'running')) - now)))
+        remaining = min(s['deadline'] for s in state.values() if s['status'] in ('waiting', 'running')) - time.monotonic()
+        if remaining <= 0:
+            continue
+        listener.settimeout(min(.1, remaining))
         try:
             peer, _ = listener.accept()
         except socket.timeout:
             continue
         with peer:
-            peer.settimeout(min(1., max(.001, min(s['deadline'] for s in state.values() if s['status'] in ('waiting', 'running')) - time.monotonic())))
+            # One fixed budget for the entire receipt, never renewed by bytes.
+            deadline = min(time.monotonic() + 1., min(s['deadline'] for s in state.values() if s['status'] in ('waiting', 'running')))
+            def remaining_io():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError('receipt deadline expired')
+                peer.settimeout(remaining)
             data = b''
             try:
                 while b'\n' not in data and len(data) < 1024:
+                    remaining_io()
                     part = peer.recv(1024 - len(data))
                     if not part:
                         break
                     data += part
+                remaining_io()
                 peer.sendall(b'OK\n')
             except (OSError, socket.timeout) as error:
                 errors.append(str(error))

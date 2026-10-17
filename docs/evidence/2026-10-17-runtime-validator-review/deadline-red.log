@@ -1,0 +1,14 @@
+....F.
+======================================================================
+FAIL: test_slow_bytes_cannot_renew_absolute_receipt_deadline (test_runtime_observation.RuntimeObservationTests.test_slow_bytes_cannot_renew_absolute_receipt_deadline)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_observation.py", line 60, in test_slow_bytes_cannot_renew_absolute_receipt_deadline
+    self.assertLess(elapsed,.35,'per-recv timeout renewed beyond absolute host budget')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0.632974167005159 not less than 0.35 : per-recv timeout renewed beyond absolute host budget
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.274s
+
+FAILED (failures=1)

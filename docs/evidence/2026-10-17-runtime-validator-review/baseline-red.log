@@ -1,0 +1,131 @@
+FFFFFFFFFFFFF.F.........
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='detach', content='0\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='detach', content='20\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='detach', content='invalid\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='detach', content='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='parking', content='0\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='parking', content='20\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='parking', content='invalid\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='parking', content='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='rayon', content='0\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='rayon', content='20\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='rayon', content='invalid\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_baseline_exit_file_rejects_network_timeout_for_every_case (test_runtime_validation.RuntimeBaselineExitFileTests.test_baseline_exit_file_rejects_network_timeout_for_every_case) (case='rayon', content='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 93, in test_baseline_exit_file_rejects_network_timeout_for_every_case
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_manifested_exit_cannot_be_hidden_by_missing_file (test_runtime_validation.RuntimeBaselineExitFileTests.test_manifested_exit_cannot_be_hidden_by_missing_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 104, in test_manifested_exit_cannot_be_hidden_by_missing_file
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):self.validate()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_unmanifested_exit_file_also_rejects (test_runtime_validation.RuntimeBaselineExitFileTests.test_unmanifested_exit_file_also_rejects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/tests/test_runtime_validation.py", line 99, in test_unmanifested_exit_file_also_rejects
+    with self.assertRaisesRegex(ValueError,'baseline.*exit'):self.validate()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.031s
+
+FAILED (failures=14)

@@ -426,3 +426,9 @@ remain unchanged. Recipe: ports/runtime; evidence:
 [evidence/2026-10-17-runtime/REPORT.md](evidence/2026-10-17-runtime/REPORT.md).
 This acceptance does not extend to all pthread races, concurrent Rayon shutdown,
 Tokio networking or Fontique GUI. Native application rebuild stays separate.
+
+Runtime validator review follow-up (2026-10-17): checker now rejects any baseline
+rc file/manifest entry contradicting expected hang; observer enforces an absolute
+receive/ACK deadline under slow partial input. Both regressions reproduced before
+fixes; host71/71 passed, and the original native run revalidated successfully.
+No new VM execution. [Evidence](evidence/2026-10-17-runtime-validator-review/REPORT.md).

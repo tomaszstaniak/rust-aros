@@ -37,11 +37,16 @@ def baseline_case(case, receipt, log):
         require('PASS private-pool worker-exits=2' in log and 'rayon before-return' in log, 'wrong Rayon baseline failure')
 
 
-def collection(root, name):
+def collected_files(root):
     manifest = {}
     for line in (root / 'COLLECT-MANIFEST.sha256').read_text().splitlines():
         digest, path = line.split(None, 1)
         manifest[path.lstrip('*').removeprefix('./')] = digest
+    return manifest
+
+
+def collection(root, name):
+    manifest = collected_files(root)
     file = root / name
     require(file.is_file() and manifest.get(name) == sha(file), 'missing or changed collection: ' + name)
     return file
@@ -77,6 +82,9 @@ def check(run, before, after, observations):
                             'rayon': ['PASS private-pool worker-exits=2','PASS global-pool worker-exits=2','rayon before-return']}[case]
                 require(all(marker in log for marker in required) and 'FAIL' not in log and 'panicked' not in log, 'native case failed: ' + case)
             else:
+                rcfile = logfile[:-4] + '.rc'
+                require(not (root/rcfile).exists() and not (root/rcfile).is_symlink() and
+                        rcfile not in collected_files(root), 'baseline has contradictory Shell exit evidence: ' + rcfile)
                 baseline_case(case, old['cases'][case], log)
     return {'status':'passed','run_id':m['run_id'],'profile':m['profile'],
             'build_sha256':sha(run/'build.json'),'reports':reports,

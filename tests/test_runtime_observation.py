@@ -34,3 +34,29 @@ class RuntimeObservationTests(unittest.TestCase):
         self.assertTrue(self.run_peer(['old detach start 0'])['errors'])
     def test_end_before_start_fails(self):
         self.assertTrue(self.run_peer(['run1 detach end 0'])['errors'])
+
+    def test_slow_bytes_cannot_renew_absolute_receipt_deadline(self):
+        import time
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1',0));listener.listen()
+            replies=[]
+            def slow_peer():
+                try:
+                    with socket.create_connection(listener.getsockname(),timeout=1) as peer:
+                        for byte in b'run1 detach start 0\n':
+                            peer.sendall(bytes([byte]));time.sleep(.03)
+                        replies.append(peer.recv(32))
+                except OSError:
+                    pass
+            sender=threading.Thread(target=slow_peer)
+            sender.start()
+            started=time.monotonic()
+            try:
+                result=observe.collect(listener,'run1',['detach'],.1)
+                elapsed=time.monotonic()-started
+            finally:
+                sender.join(2)
+            self.assertFalse(sender.is_alive())
+            self.assertLess(elapsed,.35,'per-recv timeout renewed beyond absolute host budget')
+            self.assertNotIn(b'OK\n',replies,'receipt acknowledged after its absolute deadline')
+            self.assertEqual(result['cases']['detach']['status'],'timeout')

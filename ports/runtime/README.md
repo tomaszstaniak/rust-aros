@@ -59,3 +59,9 @@ template; this recipe does not provision a different toolchain/ABI.
 End receipts read the actual freshly written rc file, avoiding Shell variable
 expansion assumptions. Existing patch headers retain their original verification
 statements; the linked report records the new isolated native tests.
+
+Validator follow-up: baseline rc files must be absent both on disk and in the
+collection manifest; a network timeout cannot override evidence that the Shell
+returned. Receipt I/O uses a single absolute peer/case deadline, recomputed
+before each read and acknowledgment. Tests/revalidation are recorded in
+[the validator review follow-up](../../docs/evidence/2026-10-17-runtime-validator-review/REPORT.md).
