@@ -432,3 +432,13 @@ rc file/manifest entry contradicting expected hang; observer enforces an absolut
 receive/ACK deadline under slow partial input. Both regressions reproduced before
 fixes; host71/71 passed, and the original native run revalidated successfully.
 No new VM execution. [Evidence](evidence/2026-10-17-runtime-validator-review/REPORT.md).
+
+## Dedicated socket owner feasibility, verified 2026-10-18
+
+A throwaway C/SDK probe on older x86_64 v11-2 passed16 joined owner threads,64
+private SocketBase open/close and loopback TCP/EOF cycles, followed by actual
+process exit0. Rust adapter, async/TLS owner restrictions and Send acceptance
+remain unchanged. An explicit separate owner context is proposed for stage1;
+production implementation awaits review of the written ownership design.
+[Evidence](evidence/2026-10-18-socket-owner-feasibility/REPORT.md),
+[design](superpowers/specs/2026-10-18-socket-owner-lifecycle-design.md).

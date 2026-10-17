@@ -1,0 +1,34 @@
+{
+  "run_id": "5670ae8b-db9d-4b2e-ae70-fed6a849562d",
+  "cases": {
+    "owner": {
+      "status": "passed",
+      "started": 19.522826708009234,
+      "returncode": 0,
+      "elapsed": 3.3612107090011705
+    }
+  },
+  "errors": [],
+  "events": [
+    {
+      "message": [
+        "5670ae8b-db9d-4b2e-ae70-fed6a849562d",
+        "owner",
+        "start",
+        "0"
+      ],
+      "host_seconds": 19.522826708009234
+    },
+    {
+      "message": [
+        "5670ae8b-db9d-4b2e-ae70-fed6a849562d",
+        "owner",
+        "end",
+        "0"
+      ],
+      "host_seconds": 22.884037417010404
+    }
+  ],
+  "status": "passed",
+  "observer_sha256": "eb8220ffe851ba1ff465383142a0256b90f658d6888e7b086213bce4cb54c571"
+}

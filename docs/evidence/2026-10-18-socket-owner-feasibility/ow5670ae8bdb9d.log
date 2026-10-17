@@ -1,0 +1,18 @@
+RUN 5670ae8b-db9d-4b2e-ae70-fed6a849562d owner begin
+PASS owner-cycle=0 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=1 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=2 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=3 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=4 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=5 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=6 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=7 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=8 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=9 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=10 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=11 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=12 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=13 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=14 reopen=4 loopback=4 EOF=4
+PASS owner-cycle=15 reopen=4 loopback=4 EOF=4
+RUN 5670ae8b-db9d-4b2e-ae70-fed6a849562d owner pass threads=16 bases=64 exchanges=64 joins=16
