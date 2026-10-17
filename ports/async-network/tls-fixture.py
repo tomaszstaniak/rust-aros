@@ -30,6 +30,19 @@ def prepare(directory,openssl):
     (directory/'fixture.json').write_text(json.dumps(metadata,indent=2)+'\n')
     return metadata
 
+def wait_for_cancel(raw):
+    # The guest timer cannot preempt synchronous crypto or VM scheduling.
+    # This deliberately silent peer must not impose the ordinary 5s I/O limit.
+    raw.settimeout(60)
+    started=time.monotonic();hello=b''
+    while True:
+        block=raw.recv(8192)
+        if not block:break
+        hello+=block
+        if len(hello)>65536:raise ValueError('oversized ClientHello')
+    if len(hello)<5:raise ValueError('cancelled before ClientHello')
+    return len(hello),time.monotonic()-started
+
 def serve(directory,run_id,deadline):
     stop=threading.Event(); signal.signal(signal.SIGINT,lambda *_:stop.set()); signal.signal(signal.SIGTERM,lambda *_:stop.set())
     lock=threading.Lock(); records=[]; errors=[]; accepted=0; entropy=0
@@ -45,14 +58,8 @@ def serve(directory,run_id,deadline):
         try:
             raw.settimeout(5)
             if port==18775:
-                hello=b''
-                while True:
-                    block=raw.recv(8192)
-                    if not block: break
-                    hello+=block
-                    if len(hello)>65536: raise ValueError('oversized ClientHello')
-                if len(hello)<5: raise ValueError('cancelled before ClientHello')
-                record(kind='cancelled-handshake',port=port,bytes=len(hello)); return
+                count,elapsed=wait_for_cancel(raw)
+                record(kind='cancelled-handshake',port=port,bytes=count,host_elapsed_seconds=elapsed); return
             secured=contexts[port].wrap_socket(raw,server_side=True)
             if port==18776:
                 if secured.recv(1): raise ValueError('unexpected HTTP during live-drop case')

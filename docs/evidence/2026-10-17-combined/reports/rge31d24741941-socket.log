@@ -1,0 +1,6 @@
+CONNECTED fd=1073741824 stdin_flags=0
+PASS pending read is WouldBlock
+PASS writable, deadline, vectored write, delayed read, EOF, invalid descriptors
+PASS 80 socket lifecycles, stdin preserved, ordinary file read/write/dup/drop
+PASS foreign-task I/O refused, foreign drop followed by owner cleanup
+PASS socket boundary acceptance

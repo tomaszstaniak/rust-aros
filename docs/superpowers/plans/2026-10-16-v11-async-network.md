@@ -55,10 +55,10 @@ Files: ports/async-network TLS C adapter/build recipe, Rust wrapper and controll
 
 ### Task 4: Repeatable acceptance and integration review
 
-- [ ] Common preparation/build/fixture/report recipe with pinned inputs, immutable build-owned copies, unique run IDs and stale-result guards.
-- [ ] Rerun relevant existing libc/process/LSP regressions after boundary changes; retained independent entropy contract.
-- [ ] Fresh read-only review, fix material findings with meaningful tests, final native verification and ordinary commits.
-- [ ] Update accepted/backlog state; distinguish source/build/link/runtime, natural-load limits and remaining full-Zed requirements.
+- [x] Common preparation/build/fixture/report recipe with pinned inputs, immutable build-owned copies, unique run IDs and stale-result guards.
+- [x] Rerun relevant existing libc/process/LSP regressions after boundary changes; retained independent entropy contract.
+- [x] Fresh read-only review, fix material findings with meaningful tests, final native verification and ordinary commits.
+- [x] Update accepted/backlog state; distinguish source/build/link/runtime, natural-load limits and remaining full-Zed requirements.
 
 ## Execution rulings
 

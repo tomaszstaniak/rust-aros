@@ -38,3 +38,12 @@ fresh-run acceptance command, with consistent artifact/run identities. TLS now
 has private prepare/build/payload/fixture/check and stale-report/source guards;
 that does not yet constitute the combined gate. Then design a reusable HTTP/TLS
 crate boundary and measured resolver integration for larger consumers.
+
+## 2026-10-17 combined acceptance update
+
+Task4 complete: fresh unwind bundle passed42 required reports on older v11-2,
+socket83/async88, entropy/process5/LSP7/TLS/mmap together. Common build/fixtures/check
+recipe and stale-result refusal are in ports/acceptance. Evidence:
+../evidence/2026-10-17-combined/REPORT.md. Earlier open combined-gate notes are
+historical. Tokio network/Send bridge, listener lifecycle and full Fontique GUI
+remain unaccepted; audit: ../evidence/2026-10-17-project-audit/REPORT.md.

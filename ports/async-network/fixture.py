@@ -11,9 +11,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=18761)
     parser.add_argument('--refused-port', type=int, default=18762)
-    parser.add_argument('--connections', type=int, default=87)
+    parser.add_argument('--connections', type=int, default=88)
+    parser.add_argument('--deadline', type=float, default=60)
+    parser.add_argument('--empty-connections', type=int, default=0)
     args = parser.parse_args()
+    if args.deadline <= 0:
+        parser.error('deadline must be positive')
+    if not 0 <= args.empty_connections <= args.connections:
+        parser.error('empty-connections must be within total connection count')
     workers, errors = [], []
+    empty_count = [0]
+    timer_completed = threading.Event()
     lock = threading.Lock()
 
     def record(**entry):
@@ -31,6 +39,13 @@ def main():
                         break
                     request += part
                 record(connection=number, request=request.decode('ascii'))
+                if request == b'':
+                    with lock:
+                        empty_count[0] += 1
+                        allowed = empty_count[0] <= args.empty_connections
+                    if not allowed:
+                        raise ValueError('unexpected empty connection')
+                    return
                 if request == b'done\n':
                     return
                 if request == b'cancel\n':
@@ -38,7 +53,12 @@ def main():
                         raise ValueError('cancelled client sent additional data')
                     record(connection=number, cancelled=True)
                     return
-                if request not in (b'delayed\n', b'fast\n'):
+                if request == b'timer-done\n':
+                    timer_completed.set()
+                elif request == b'timer-race\n':
+                    if not timer_completed.wait(timeout=3):
+                        raise ValueError('timer completion control did not arrive')
+                elif request not in (b'delayed\n', b'fast\n'):
                     raise ValueError('unexpected request')
                 if request == b'delayed\n':
                     time.sleep(.25)
@@ -69,7 +89,7 @@ def main():
         listener.bind(('127.0.0.1', args.port))
         listener.listen()
         record(ready=args.port, refused=args.refused_port, expected=args.connections)
-        deadline = time.monotonic() + 60
+        deadline = time.monotonic() + args.deadline
         for number in range(args.connections):
             listener.settimeout(max(.001, deadline-time.monotonic()))
             connection, _ = listener.accept()
@@ -82,6 +102,8 @@ def main():
             if worker.is_alive():
                 errors.append('fixture worker did not terminate')
     verify_refusal()
+    if empty_count[0] != args.empty_connections:
+        errors.append('empty connection count mismatch')
     record(completed=len(workers), errors=errors)
     return int(bool(errors))
 

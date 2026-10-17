@@ -154,3 +154,13 @@ stale/missing/changed evidence; it is not an attestation against malicious
 rewriting of manifests. Shared SDK/toolchain contents are identified, not fully
 vendored or claimed hermetic. Guest binary bytes are not independently rehashed.
 Do not accept a reused build UUID as a fresh independent runtime attempt.
+
+
+The current async fixture expects88 connections. The timer/network gate uses
+`timer-race` and a separate `timer-done` control connection: only the local
+async timer's completion allows the host to release the waiting I/O response.
+This proves ordering without comparing host sleep duration to guest Instant,
+whose clock need not advance at the same rate under emulation. Older retained
+87-connection evidence belongs to the earlier timing-based consumer. Socket
+boundary runs explicitly select83 connections and exactly two empty closes;
+the async contract still rejects empty connections.

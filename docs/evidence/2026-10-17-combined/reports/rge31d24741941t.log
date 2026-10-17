@@ -1,0 +1,10 @@
+START TLS Mbed3.6.7 jitterentropy3.7 x86_64-v11 run=54f5d010-cb9a-49c0-b5a7-f998ba85824f
+PASS foreign TLS construction rejected; owner context preserved
+PASS verified HTTPS with authenticated EOF
+PASS certificate rejection port=18771 flag=4 Error { domain: 2, code: -9984, verify: 4, os_error: 0, message: "X509 - Certificate verification failed, e.g. CRL, CA or signature check failed" }
+PASS certificate rejection port=18772 flag=1 Error { domain: 2, code: -9984, verify: 1, os_error: 0, message: "X509 - Certificate verification failed, e.g. CRL, CA or signature check failed" }
+PASS certificate rejection port=18771 flag=8 Error { domain: 2, code: -9984, verify: 8, os_error: 0, message: "X509 - Certificate verification failed, e.g. CRL, CA or signature check failed" }
+PASS pending handshake cancellation, live drop, and subsequent connection
+PASS cleanup after rejection and concurrent TLS context lifetime
+PASS raw transport EOF rejected
+PASS HTTPS acceptance run=54f5d010-cb9a-49c0-b5a7-f998ba85824f

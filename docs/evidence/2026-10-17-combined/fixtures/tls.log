@@ -1,0 +1,12 @@
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "ready", "ports": [18771, 18772, 18773, 18774, 18775, 18776], "deadline": 300}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "verified-http", "port": 18771, "protocol": "TLSv1.3", "bytes": 63}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "certificate-alert", "port": 18771, "error": "[SSL: TLS_ALERT_BAD_CERTIFICATE] tls alert bad certificate (_ssl.c:1144)"}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "certificate-alert", "port": 18772, "error": "[SSL: TLS_ALERT_CERTIFICATE_EXPIRED] tls alert certificate expired (_ssl.c:1144)"}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "certificate-alert", "port": 18771, "error": "[SSL: TLSV1_ALERT_UNKNOWN_CA] tlsv1 alert unknown ca (_ssl.c:1144)"}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "cancelled-handshake", "port": 18775, "bytes": 224, "host_elapsed_seconds": 7.913467625010526}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "live-drop", "port": 18776, "protocol": null}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "verified-http", "port": 18771, "protocol": "TLSv1.3", "bytes": 63}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "verified-http", "port": 18771, "protocol": "TLSv1.3", "bytes": 63}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "verified-http", "port": 18771, "protocol": "TLSv1.3", "bytes": 63}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "truncated", "port": 18774, "protocol": "TLSv1.3"}
+{"run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f", "kind": "completed", "accepted": 10, "entropy_connections": 0, "errors": []}

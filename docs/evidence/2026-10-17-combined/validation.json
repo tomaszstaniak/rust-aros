@@ -1,0 +1,82 @@
+{
+  "status": "passed",
+  "run_id": "e31d2474-1941-4b2c-9907-1347133b29db",
+  "profile": "unwind",
+  "machine": "v11-2",
+  "lsp_cases": [
+    "baseline",
+    "interactive",
+    "shutdown",
+    "active-exit",
+    "active-eof",
+    "unwind",
+    "cancellation"
+  ],
+  "tls": {
+    "status": "passed",
+    "run_id": "54f5d010-cb9a-49c0-b5a7-f998ba85824f",
+    "profile": "unwind",
+    "build_manifest_sha256": "e1770f94d4059d35181c3666ec73b1f21b4848f567fc798c84471a88f52605a4",
+    "binaries": {
+      "aros-https-normal": "b49434a7ecc758e9337092ed7b19b6dd8eb5ef65246289a48254912452a66cff",
+      "aros-https-entropy-fail": "07d2d4f23d6426b405120563024f049bd3029776f59abca05ca3d114143ad6e4"
+    },
+    "reports": {
+      "rge31d24741941t.log": "a475146860e954d79deef8367a0028e1bd41acce6c1618ef12a8c9025add341e",
+      "rge31d24741941t-entropy.log": "b98f84c202f2e1fc28d12763e8324f2d7521c7f1c5db6806ba3117d722471209",
+      "rge31d24741941t-shell.log": "704d1549ce1b8f1cdeb125bbab173a4b8cbe1907c192292bff73be8507170868"
+    },
+    "fixture_sha256": "0fca904da568ef113edfa4cc636379e81742bfb1d5644d17b8cd7f6d168ffc66"
+  },
+  "suite_sha256": "b38fdf01df65dbbd7f11a0ceee1b5183dd9c5fa98df49c6c8f41d1ffa6a766c7",
+  "reports": {
+    "mm26767e2d736d4a.log": "f4e98bcf43f2ef8fcaa356a89856baa31aec8a0d0e1c645681e6026f2e47a381",
+    "mm26767e2d736d4a.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-async.log": "365b1ed495a954e4a0a5b2b5f4c87a4453e4bab5fb838a578e2dad7182be8508",
+    "rge31d24741941-async.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-done.json": "f86f3c5ea6cf6f0dc5ef54cdb867c889dda7179d69b89fbf8e8e864e06fe32f9",
+    "rge31d24741941-entropy.log": "d099b992b139b8bc207d5366619b50a5dc7b0d8835cd08e60f71dd9cc7849d70",
+    "rge31d24741941-entropy.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-args.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-args.txt": "d51ba7237a6b448995ec668a5f811eb82ba095f979118f95d0547decf2f9ea69",
+    "rge31d24741941-process-lsp-bytewise.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-lsp-bytewise.txt": "e81db6d93e97185aee13c5f9525cc9417b052f213e09ff3b3c4a426ee8f2f1b8",
+    "rge31d24741941-process-output.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-output.txt": "4f0a52221f64f2cd2009dc56b9a5513a16bcec8c644f6a5a62e59a30a9048db8",
+    "rge31d24741941-process-spawn-error.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-spawn-error.txt": "b43b0d2a9187394a0fd8315e3aae43da176e1bd1ca996cd241de9bd106ad3b87",
+    "rge31d24741941-process-status.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-process-status.txt": "2ebe2ea056e1a854ec8e9458d7ddf1523c74a9f9b13ab60897426a7a4126ed0b",
+    "rge31d24741941-socket.log": "a93fc68f596d4960238e1aa764634e02ca91da11a50fff0d1f97e462cc9ba4f5",
+    "rge31d24741941-socket.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941-start.json": "f86f3c5ea6cf6f0dc5ef54cdb867c889dda7179d69b89fbf8e8e864e06fe32f9",
+    "rge31d24741941l-active-eof.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-active-eof.txt": "6475b839479a1f33b36a940bd79d2dd6cdeec7975aaf0301aa26c8c7ac689974",
+    "rge31d24741941l-active-exit.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-active-exit.txt": "eb5435b5b417858167d1866f7a6301e4925ef78df31fa0af241d53e523bba60e",
+    "rge31d24741941l-cancellation.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-cancellation.txt": "4c8b347a0f246142cf21e3406ef486d21b3f5a4d9014d8f692bec1f1edc5f79f",
+    "rge31d24741941l-complete.json": "4b58a1249fc4362e1e82bfa90566e2f689932461e98d76ab86700dc6abf4cde4",
+    "rge31d24741941l-done.txt": "8221ac66be71558c921fb44cfb66f7997699aea754d917763882d6d9eddc836e",
+    "rge31d24741941l-interactive.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-interactive.txt": "fbfab761d31e2eccf9b68a65b761599ac1095f0cab468dc6a8d23f376ab5f113",
+    "rge31d24741941l-payload.json": "4b58a1249fc4362e1e82bfa90566e2f689932461e98d76ab86700dc6abf4cde4",
+    "rge31d24741941l-permissions.txt": "a08e31784565ec8414ab29e05c205e01026b6fe117b5869b844df2b665e4662a",
+    "rge31d24741941l-rc.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-shutdown.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-shutdown.txt": "bd0f79ac798f9c213607b3e97558e886948d40cd13c20b6804a9725760b6a112",
+    "rge31d24741941l-start.txt": "c89d6966e9327382a8a6cbafabc0c5c74e288f4fbf09baf4cd5362160d442f71",
+    "rge31d24741941l-transcript.txt": "2b4ecb9fcc8807764efadf7132c7948c206075219e92e587502bdb2ce3949580",
+    "rge31d24741941l-unwind.rc": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "rge31d24741941l-unwind.txt": "3818df5473e7b938e8b0c0e5b942ff6db17c975dd251745f316638f141536e47",
+    "rge31d24741941t-entropy.log": "b98f84c202f2e1fc28d12763e8324f2d7521c7f1c5db6806ba3117d722471209",
+    "rge31d24741941t-shell.log": "704d1549ce1b8f1cdeb125bbab173a4b8cbe1907c192292bff73be8507170868",
+    "rge31d24741941t.log": "a475146860e954d79deef8367a0028e1bd41acce6c1618ef12a8c9025add341e"
+  },
+  "fixtures": {
+    "socket.log": "c8ef05d5ef4b0292d09e2c0f0bf4bade8dddafa54f8bea10e1f8fc5821fafe82",
+    "async.log": "89509fffd9e0623dc0833c0b35beea2a47e1b67576769533321184bb72ec67e5",
+    "tls.log": "0fca904da568ef113edfa4cc636379e81742bfb1d5644d17b8cd7f6d168ffc66",
+    "status.json": "2390fb45bc686d0e40711bb96c10fb2df7f0a3553a174bfae1c76ea5dfe2d046"
+  }
+}

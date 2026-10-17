@@ -1,0 +1,6 @@
+START mmap Fontique-path memmap2=0.9.11 read-fonts=0.41.0 run=26767e2d-736d-4a6a-b65e-1cf88426a670
+OBSERVE sysconf selector=54 page=4096 font_bytes=270224 glyphs=1754
+PASS 128 repeated file-map-font-parse-drop cycles; bytes match fs::read
+PASS unaligned view offset and base reconstruction on drop
+PASS 64 live maps; bounded capacity error; release/reuse and closed file lifetime
+PASS mmap font acceptance run=26767e2d-736d-4a6a-b65e-1cf88426a670

@@ -1,11 +1,16 @@
 # Rust AROS renewal: current state
 
-Verified through 2026-10-16. Implementation base: rust-aros `8d35fda`.
+Verified through 2026-10-17. Implementation base: rust-aros `8d35fda`.
 
 Latest accepted: bounded real async TCP and certificate-verified stepped TLS
 on older x86_64 ABIv11, both abort and unwind. Historical slices below record
 the progression; see the latest TLS section and linked evidence for current
-limits. Combined acceptance automation remains open.
+limits. Combined acceptance now passed natively with mmap lifecycle coverage; see
+[evidence](evidence/2026-10-17-combined/REPORT.md) and the
+[Photocraft/platform audit](evidence/2026-10-17-project-audit/REPORT.md).
+The mmap page-size/drop leak is fixed (`92f4528`). Tokio runtime/stdio in
+Photocraft does not imply accepted Tokio networking; full Fontique GUI
+verification against this correction remains next.
 
 ## Platform policy
 

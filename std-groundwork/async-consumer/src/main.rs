@@ -120,11 +120,21 @@ async fn exchange(endpoint: SocketAddr, request: &[u8]) -> io::Result<()> {
 }
 async fn consumer_gate(endpoint: SocketAddr, refused: SocketAddr) -> io::Result<()> {
     let start = Instant::now();
-    let (reply, timer) = future::zip(exchange(endpoint, b"delayed\n"), async {
-        async_io::Timer::after(Duration::from_millis(20)).await; start.elapsed()
+    let timer_done = std::cell::Cell::new(false);
+    let (reply, timer) = future::zip(async {
+        exchange(endpoint,b"timer-race\n").await?;
+        assert!(timer_done.get(),"I/O reply preceded local timer completion");
+        Ok::<(),io::Error>(())
+    },async {
+        async_io::Timer::after(Duration::from_millis(20)).await;
+        let elapsed=start.elapsed();
+        timer_done.set(true);
+        // The peer releases timer-race only after this separate request.
+        exchange(endpoint,b"timer-done\n").await?;
+        Ok::<Duration,io::Error>(elapsed)
     }).await;
-    reply?; assert!(timer >= Duration::from_millis(10) && timer < Duration::from_millis(200));
-    assert!(start.elapsed() >= Duration::from_millis(200));
+    reply?;
+    assert!(timer? >= Duration::from_millis(10));
     let (one, two) = future::zip(exchange(endpoint, b"fast\n"), exchange(endpoint, b"delayed\n")).await;
     one?; two?;
     let mut socket = async_net::TcpStream::connect(endpoint).await?;
