@@ -1,0 +1,8 @@
+[package]
+name = "aros-mmap-acceptance"
+version = "0.1.0"
+edition = "2021"
+[dependencies]
+libc = "=0.2.189"
+memmap2 = "=0.9.11"
+read-fonts = "=0.41.0"

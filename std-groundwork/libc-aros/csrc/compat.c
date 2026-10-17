@@ -261,6 +261,7 @@ int strerror_r(int e, char *b, size_t n) { const char *m = strerror(e); if (!m) 
 #define RS_MAP_SHARED  1
 #define RS_MAP_ANON    0x1000
 #define RS_MAP_FAILED  ((void *)-1)
+#define RS_MAP_GRANULE 4096
 
 long pread(int fd, void *b, size_t n, off_t off);   /* defined below */
 
@@ -277,7 +278,7 @@ void *mmap(void *hint, size_t len, int prot, int flags, int fd, off_t off) {
         return RS_MAP_FAILED;
     }
     void *p = NULL;
-    if (posix_memalign(&p, 4096, len) != 0 || !p) { errno = ENOMEM; return RS_MAP_FAILED; }
+    if (posix_memalign(&p, RS_MAP_GRANULE, len) != 0 || !p) { errno = ENOMEM; return RS_MAP_FAILED; }
     if (anon) {
         memset(p, 0, len);
     } else {
@@ -321,7 +322,14 @@ int mlock(const void *addr, size_t len)       { (void)addr;(void)len; return 0; 
 int munlock(const void *addr, size_t len)     { (void)addr;(void)len; return 0; }
 int msync(void *addr, size_t len, int flags)  { (void)addr;(void)len;(void)flags; return 0; }
 int madvise(void *addr, size_t len, int adv)  { (void)addr;(void)len;(void)adv; return 0; }
-long sysconf_pagesize(void)                   { return 4096; }
+long sysconf_pagesize(void)                   { return RS_MAP_GRANULE; }
+/* memmap2 uses this value to reconstruct the original address at Drop.
+ * The old SDK has no page-size answer. Report the copy-map granule through
+ * Rust's private boundary; preserve SDK semantics for every other selector. */
+long rs_sysconf(int name) {
+    if (name == _SC_PAGESIZE || name == _SC_PAGE_SIZE) return sysconf_pagesize();
+    return sysconf(name);
+}
 
 /* --- not available on AROS ---------------------------------------------- */
 /* fork is provided in Rust as a direct alias of vfork: vfork returns twice into

@@ -512,7 +512,7 @@ pub const SIGWINCH: c_int = 28;
 pub const WNOHANG: c_int = 1;
 pub const EXIT_SUCCESS: c_int = 0;
 pub const EXIT_FAILURE: c_int = 1;
-pub const _SC_PAGESIZE: c_int = 8;
+pub const _SC_PAGESIZE: c_int = 54; // AROS SDK enum, not Linux's selector.
 pub const _SC_GETPW_R_SIZE_MAX: c_int = 70;
 pub const _SC_HOST_NAME_MAX: c_int = 72;
 pub const _SC_NPROCESSORS_ONLN: c_int = 84;
@@ -575,6 +575,7 @@ extern "C" {
     pub fn setsid() -> pid_t;
     #[link_name = "rs_fd_ioctl"]
     pub fn ioctl(fd: c_int, req: c_ulong, ...) -> c_int;
+    #[link_name = "rs_sysconf"]
     pub fn sysconf(name: c_int) -> c_long;
     pub fn strnlen(s: *const c_char, n: size_t) -> size_t;
     pub fn signal(sig: c_int, handler: sighandler_t) -> sighandler_t;
