@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/Users/tumash/Work/AROS-dev/rust-aros/ports/runtime/check.py", line 96, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/Users/tumash/Work/AROS-dev/rust-aros/ports/runtime/check.py", line 92, in main
+    result=check(a.run,a.before_results,a.after_results,a.observations)
+  File "/Users/tumash/Work/AROS-dev/rust-aros/ports/runtime/check.py", line 61, in check
+    after_receipts(new, m['variants']['after']['identity'])
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tumash/Work/AROS-dev/rust-aros/ports/runtime/check.py", line 21, in after_receipts
+    require(observation['status'] == 'passed' and not observation['errors'], 'observation failed')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tumash/Work/AROS-dev/rust-aros/ports/runtime/check.py", line 12, in require
+    raise ValueError(message)
+ValueError: observation failed

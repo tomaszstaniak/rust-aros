@@ -5,9 +5,16 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include "receipt_code.h"
 struct Library *SocketBase;
 int main(int argc, char **argv) {
     if (argc != 5) return 20;
+    char code[32];
+    const char *value = argv[4];
+    if (!strcmp(argv[3], "end")) {
+        if (read_exit_code(argv[4], code)) return 20;
+        value = code;
+    } else if (strcmp(argv[3], "start") || strcmp(argv[4], "0")) return 20;
     SocketBase = OpenLibrary("bsdsocket.library", 4);
     if (!SocketBase) return 20;
     int fd = socket(AF_INET, SOCK_STREAM, 0), rc = 20;
@@ -17,7 +24,7 @@ int main(int argc, char **argv) {
     address.sin_port = htons(18791); address.sin_addr.s_addr = htonl(0x0a000202);
     if (connect(fd, (struct sockaddr *)&address, sizeof address)) goto close;
     char message[256];
-    int size = snprintf(message, sizeof message, "%s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+    int size = snprintf(message, sizeof message, "%s %s %s %s\n", argv[1], argv[2], argv[3], value);
     if (size < 0 || size >= sizeof message) goto close;
     for (int sent = 0; sent < size;) {
         int n = send(fd, message + sent, size - sent, 0);

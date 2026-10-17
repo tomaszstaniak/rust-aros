@@ -32,3 +32,6 @@ docs/evidence/2026-10-16-wat-baseline/build-abort/logs/build-ordinary.log whites
 docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-cancellation.log whitespace=-blank-at-eol
 docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-diagnostic.log whitespace=-blank-at-eol
 docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-ordinary.log whitespace=-blank-at-eol
+# Preserve original Cargo diagnostics and imported unified-diff context verbatim.
+docs/evidence/2026-10-17-runtime/build-logs/*.log whitespace=-blank-at-eol
+ports/runtime/patches/*.patch whitespace=-blank-at-eol,-blank-at-eof

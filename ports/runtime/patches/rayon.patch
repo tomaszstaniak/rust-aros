@@ -1,0 +1,77 @@
+From: PhotoCraft AROS port
+Subject: [PATCH] Add terminate_global_thread_pool() for exits that join threads
+
+Repository: rayon-rs/rayon, crate rayon-core 1.13.0 (crates.io, checksum
+  22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91).
+Date: 2026-10-16
+Problem: AROS's pthread library joins every thread, detached ones included,
+  in its exit handler (compiler/pthread/pthread.c, __pthread_Exit_Func), so
+  that no thread keeps running code that the exit is about to unload. The
+  global pool's idle workers never end by themselves, so a program that used
+  the global pool never exits. Observed with PhotoCraft on x86_64 ABIv11.
+Rationale: expose the release that ThreadPool::drop already performs for
+  private pools. The global registry starts with a terminate count of one
+  that nothing releases; this releases it once, and the workers exit after
+  their current work. Public, target-independent API: a candidate upstream.
+Scope: new function; no behaviour change unless it is called.
+Upstream-status: candidate (not submitted).
+Prerequisites: none.
+Verification: probe and PhotoCraft exit on x86_64 ABIv11; see the port's
+  evidence reports.
+Removal: when rayon-core provides an equivalent.
+---
+diff --git a/src/lib.rs b/src/lib.rs
+index 3745076..5a31a48 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -137,6 +137,21 @@ pub fn current_num_threads() -> usize {
+     crate::registry::Registry::current_num_threads()
+ }
+ 
++/// Lets the global thread pool's worker threads finish and exit once they have
++/// no more work.
++///
++/// Normally the global pool lives until the process ends and the operating
++/// system discards its threads. Some systems instead make the process wait for
++/// every thread before it can end: AROS's pthread library joins all threads,
++/// detached ones included, in its exit handler. There the idle global workers
++/// keep a finished program from ever exiting. Call this once, after the last
++/// use of the global pool, before the process exits. Using the global pool
++/// afterwards is not supported. Calls after the first, and calls when the pool
++/// was never started, do nothing.
++pub fn terminate_global_thread_pool() {
++    crate::registry::terminate_global_registry();
++}
++
+ /// Error when initializing a thread pool.
+ #[derive(Debug)]
+ pub struct ThreadPoolBuildError {
+diff --git a/src/registry.rs b/src/registry.rs
+index 809976a..faaa66e 100644
+--- a/src/registry.rs
++++ b/src/registry.rs
+@@ -206,6 +206,24 @@ where
+     result
+ }
+ 
++/// Ends the global pool's worker threads once they run out of work (see
++/// [`crate::terminate_global_thread_pool`]). Only the first call has an effect.
++pub(super) fn terminate_global_registry() {
++    static TERMINATED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++    if !THE_REGISTRY_SET.is_completed() || TERMINATED.swap(true, Ordering::AcqRel) {
++        return;
++    }
++    // SAFETY: as in `global_registry`: a shared reference, taken only after the
++    // `call_once` that wrote the registry, with no mutable access afterwards.
++    let the_registry = unsafe { &*ptr::addr_of!(THE_REGISTRY) };
++    if let Some(registry) = the_registry.as_ref() {
++        // The global registry starts with a terminate count of one that nothing
++        // ever releases; this is that release, as `ThreadPool::drop` does for
++        // its own registry.
++        registry.terminate();
++    }
++}
++
+ fn default_global_registry() -> Result<Arc<Registry>, ThreadPoolBuildError> {
+     let result = Registry::new(ThreadPoolBuilder::new());
+ 

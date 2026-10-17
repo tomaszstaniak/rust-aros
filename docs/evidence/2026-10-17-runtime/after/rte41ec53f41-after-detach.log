@@ -1,0 +1,4 @@
+RUN e41ec53f-413d-4b91-9818-92f453b0e24c-after detach begin slots=2019
+PASS detach-before cycles=64 slot=1
+PASS detach-after cycles=64 slot=1
+RUN e41ec53f-413d-4b91-9818-92f453b0e24c-after detach pass

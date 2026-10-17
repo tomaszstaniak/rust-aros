@@ -1,0 +1,48 @@
+{
+  "run_id": "e41ec53f-413d-4b91-9818-92f453b0e24c-before",
+  "cases": {
+    "detach": {
+      "status": "timeout",
+      "started": 15.118653249985073
+    },
+    "parking": {
+      "status": "timeout",
+      "started": 15.321367750002537
+    },
+    "rayon": {
+      "status": "timeout",
+      "started": 15.499992707977071
+    }
+  },
+  "errors": [],
+  "events": [
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-before",
+        "detach",
+        "start",
+        "0"
+      ],
+      "host_seconds": 15.118653249985073
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-before",
+        "parking",
+        "start",
+        "0"
+      ],
+      "host_seconds": 15.321367750002537
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-before",
+        "rayon",
+        "start",
+        "0"
+      ],
+      "host_seconds": 15.499992707977071
+    }
+  ],
+  "status": "failed"
+}

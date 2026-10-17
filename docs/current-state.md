@@ -413,3 +413,16 @@ See [runtime evidence](evidence/2026-10-16-stepped-tls/REPORT.md) and
 example transport, not yet a reusable HTTP/TLS SDK or a Zed port. DNS and the
 combined socket/async/TLS/process/LSP acceptance command remain next, alongside
 the explicitly tracked File::try_clone gap. v1/arm64/Macaros remain deferred.
+
+## Isolated runtime regressions, verified 2026-10-17
+
+On older x86_64 v11-2, three before/after comparisons now pass with private
+patches and explicit unwind for Rust: pthread detach-before/after-finish slot
+reuse64 cycles each; parking_lot realtime timeout/eight wakeups; Rayon private
+and global worker shutdown plus actual process exit. Baselines all hang to the
+60s host deadline for the diagnosed causes; after exits all return0. All33
+plain pthread objects match the SDK before patching. Shared SDK and Photocraft
+remain unchanged. Recipe: ports/runtime; evidence:
+[evidence/2026-10-17-runtime/REPORT.md](evidence/2026-10-17-runtime/REPORT.md).
+This acceptance does not extend to all pthread races, concurrent Rayon shutdown,
+Tokio networking or Fontique GUI. Native application rebuild stays separate.

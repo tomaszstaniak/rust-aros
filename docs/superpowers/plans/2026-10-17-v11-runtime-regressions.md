@@ -1,6 +1,6 @@
 # V11 runtime regressions Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Isolate and measure three existing runtime fixes on older x86_64 v11.
 **Architecture:** Three small native probes and a private before/after builder.
@@ -35,11 +35,11 @@ Rayon baseline omits the unavailable shutdown API, explicitly selected by featur
 `tests/test_runtime_observation.py`.
 **Interfaces:** Produces JSON observations keyed by run/variant/case and actual
 Shell return code; native programs consume no application assets.
-- [ ] Write real loopback tests: matching start/end pass, nonzero rc fails,
+- [x] Write real loopback tests: matching start/end pass, nonzero rc fails,
   missing end times out, stale identity/end-before-start fail.
-- [ ] Run unittest test_runtime_observation; observe missing implementation RED.
-- [ ] Implement finite receipt observer and three probes with explicit assertions.
-- [ ] Run focused host tests GREEN and full unittest suite.
+- [x] Run unittest test_runtime_observation; observe missing implementation RED.
+- [x] Implement finite receipt observer and three probes with explicit assertions.
+- [x] Run focused host tests GREEN and full unittest suite.
 
 ### Task 2: Private before/after recipe and native evidence
 
@@ -47,11 +47,11 @@ Shell return code; native programs consume no application assets.
 `docs/evidence/2026-10-17-runtime/REPORT.md`, `docs/current-state.md`.
 **Interfaces:** Consumes probes/observer from Task1; produces new build.json,
 payload and observations; never claims built-not-run as runtime success.
-- [ ] Build baseline before applying fixes; verify33 SDK object matches and
+- [x] Build baseline before applying fixes; verify33 SDK object matches and
   checked crate archive digests. Record build/link failures honestly.
-- [ ] Run baseline cases with60s per-case host deadline on owned older v11.
-- [ ] Apply only named private fixes; build after binaries same unwind profile.
-- [ ] Run after cases with same60s deadline and verify logs/rc/exit receipts
+- [x] Run baseline cases with60s per-case host deadline on owned older v11.
+- [x] Apply only named private fixes; build after binaries same unwind profile.
+- [x] Run after cases with same60s deadline and verify logs/rc/exit receipts
   against collected hashes, no stale report reuse.
-- [ ] Run full host suite, fresh code review, fix material findings with tests.
-- [ ] Retain evidence, update accepted limits, commit ordinary English changes.
+- [x] Run full host suite, fresh code review, fix material findings with tests.
+- [x] Retain evidence, update accepted limits, commit ordinary English changes.

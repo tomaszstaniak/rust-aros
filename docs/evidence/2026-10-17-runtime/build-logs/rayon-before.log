@@ -1,0 +1,75 @@
+warning: patch `parking_lot_core v0.9.12 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/before/parking_lot_core-0.9.12)` was not used in the crate graph
+warning: patch `rayon-core v1.13.0 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/before/rayon-core-1.13.0)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+   Compiling compiler_builtins v0.1.160 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/core)
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[74363]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[74331]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[74358]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <7E2748AE-4679-37E5-A755-895E8E0CB68C> /Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/tumash/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `libc` (build script) generated 1 warning
+warning: `rayon-core` (build script) generated 1 warning
+warning: `parking_lot_core` (build script) generated 1 warning
+   Compiling libc v0.2.189 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/libc-source)
+   Compiling object v0.39.1
+   Compiling std v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/std)
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling crossbeam-deque v0.8.8
+   Compiling parking_lot_core v0.9.12 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/before/parking_lot_core-0.9.12)
+   Compiling rayon-core v1.13.0 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/before/rayon-core-1.13.0)
+   Compiling rustc-std-workspace-core v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-core)
+   Compiling alloc v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/alloc)
+   Compiling memchr v2.8.3
+   Compiling adler2 v2.0.1
+   Compiling cfg-if v1.0.4
+   Compiling rustc-demangle v0.1.28
+   Compiling rustc-literal-escaper v0.0.8
+   Compiling unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/unwind)
+   Compiling rustc-std-workspace-alloc v1.99.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/rustc-std-workspace-alloc)
+   Compiling panic_abort v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/panic_abort)
+   Compiling panic_unwind v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/panic_unwind)
+   Compiling gimli v0.34.0
+   Compiling miniz_oxide v0.9.1
+   Compiling hashbrown v0.17.1
+   Compiling std_detect v0.1.5 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/std_detect)
+   Compiling addr2line v0.27.1
+   Compiling proc_macro v0.0.0 (/Users/tumash/Work/AROS/local/rust-aros-net-sysroot/lib/rustlib/src/rust/library/proc_macro)
+   Compiling smallvec v1.16.2
+   Compiling cfg-if v1.0.5
+   Compiling scopeguard v1.2.0
+   Compiling either v1.18.0
+   Compiling lock_api v0.4.14
+warning: use of deprecated associated function `core::num::<impl i32>::max_value`: replaced by the `MAX` associated constant on this type
+   --> /Users/tumash/Work/AROS/local/rust-runtime-20261017-02/before/parking_lot_core-0.9.12/src/thread_parker/unix.rs:221:42
+    |
+221 |     if timeout.as_secs() > libc::time_t::max_value() as u64 {
+    |                                          ^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+   Compiling parking_lot v0.12.5
+warning: `parking_lot_core` (lib) generated 1 warning
+   Compiling rayon v1.12.0
+   Compiling aros-runtime-regressions v0.1.0 (/Users/tumash/Work/AROS/local/rust-runtime-20261017-02/consumer)
+    Finished `release` profile [optimized] target(s) in 12.38s

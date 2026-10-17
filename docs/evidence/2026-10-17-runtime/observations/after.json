@@ -1,0 +1,81 @@
+{
+  "run_id": "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+  "cases": {
+    "detach": {
+      "status": "passed",
+      "started": 17.066418625006918,
+      "returncode": 0,
+      "elapsed": 8.06830600000103
+    },
+    "parking": {
+      "status": "passed",
+      "started": 17.48349808299099,
+      "returncode": 0,
+      "elapsed": 1.9777194580237847
+    },
+    "rayon": {
+      "status": "passed",
+      "started": 17.857938916014973,
+      "returncode": 0,
+      "elapsed": 0.9897853339789435
+    }
+  },
+  "errors": [],
+  "events": [
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "detach",
+        "start",
+        "0"
+      ],
+      "host_seconds": 17.066418625006918
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "parking",
+        "start",
+        "0"
+      ],
+      "host_seconds": 17.48349808299099
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "rayon",
+        "start",
+        "0"
+      ],
+      "host_seconds": 17.857938916014973
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "rayon",
+        "end",
+        "0"
+      ],
+      "host_seconds": 18.847724249993917
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "parking",
+        "end",
+        "0"
+      ],
+      "host_seconds": 19.461217541014776
+    },
+    {
+      "message": [
+        "e41ec53f-413d-4b91-9818-92f453b0e24c-after",
+        "detach",
+        "end",
+        "0"
+      ],
+      "host_seconds": 25.134724625007948
+    }
+  ],
+  "status": "passed"
+}
