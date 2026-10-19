@@ -350,9 +350,54 @@ int getpwuid_r(uid_t u, void *pw, char *b, size_t n, void **r)        { (void)u;
 
 /* poll over select: enough for std's connect_timeout and friends */
 struct rs_pollfd { int fd; short events; short revents; };
+
+/* One console or file descriptor waiting for input, no sockets: what a
+ * terminal program's event loop asks for. WaitForChar waits inside the
+ * console handler, so an idle wait costs one packet per slice instead of a
+ * wake-up per poll. WaitSelect cannot take DOS handles, so a set mixing them
+ * with sockets stays unsupported. */
+#define RS_WAIT_SLICE_US 1000000L
+static int rs_poll_handle(struct rs_pollfd *p, int timeout) {
+    long handle = 0;
+    p->revents = 0;
+    if (p->events & ~0x5) { errno = ENOTSUP; return -1; }
+    if (__get_default_file(p->fd, &handle) < 0 || !handle) { p->revents = 0x20; return 1; }
+    BPTR file = (BPTR)handle;
+    if (!IsInteractive(file)) {
+        /* Files are always ready, as POSIX defines it for regular files. */
+        p->revents = p->events & 0x5;
+        return p->revents ? 1 : 0;
+    }
+    if (p->events & 0x4) p->revents |= 0x4; /* console writes do not block */
+    if (!(p->events & 0x1)) return p->revents ? 1 : 0;
+    if (p->revents) timeout = 0;
+    for (;;) {
+        long slice = timeout < 0 || timeout >= RS_WAIT_SLICE_US / 1000 ? RS_WAIT_SLICE_US : (long)timeout * 1000;
+        if (WaitForChar(file, slice)) { p->revents |= 0x1; return 1; }
+        if (IoErr()) { p->revents |= 0x8; return 1; }
+        if (timeout >= 0) {
+            timeout -= (int)(slice / 1000);
+            if (timeout <= 0) return p->revents ? 1 : 0;
+        }
+    }
+}
+
 int poll(struct rs_pollfd *fds, unsigned long n, int timeout) {
-    if (rs_socket_ready() < 0) return -1;
     if (n && !fds) { errno = EFAULT; return -1; }
+    {
+        unsigned long handles = 0, sockets = 0, last = 0;
+        for (unsigned long i = 0; i < n; i++) {
+            if (fds[i].fd < 0) continue;
+            if (rs_socket_tagged(fds[i].fd)) sockets++; else { handles++; last = i; }
+        }
+        if (handles && sockets) { errno = ENOTSUP; return -1; }
+        if (handles > 1) { errno = ENOTSUP; return -1; }
+        if (handles == 1) {
+            for (unsigned long i = 0; i < n; i++) fds[i].revents = 0;
+            return rs_poll_handle(&fds[last], timeout);
+        }
+    }
+    if (rs_socket_ready() < 0) return -1;
     fd_set r, w, e; FD_ZERO(&r); FD_ZERO(&w); FD_ZERO(&e);
     int max = -1, invalid = 0;
     for (unsigned long i = 0; i < n; i++) {
