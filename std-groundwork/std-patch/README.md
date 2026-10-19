@@ -69,6 +69,7 @@ stays reviewable:
 | null device | `NIL:` |
 | `read_output` | thread per pipe instead of `poll` on non-blocking pipes |
 | `process_group` | `pid_t` is 64-bit on AROS |
+| `PathBuf::push` | no `/` after a volume or assign (`RAM:` + `x` is `RAM:x`; `RAM:/x` is RAM:'s parent), and a pushed `Work:x` replaces the base |
 | condvar clock | AROS joins the platforms that cannot `pthread_condattr_setclock`, so deadlines use `CLOCK_REALTIME` |
 | supported-OS list in `build.rs` | otherwise everything is `restricted_std` |
 

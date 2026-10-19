@@ -138,3 +138,28 @@ if '"aros"' not in b:
 
 open(marker, "w").write("aros std patch applied\n")
 print("done")
+
+# 11. paths: an AmigaDOS volume or assign ends with ':' (`RAM:`, `Work:`).
+#     Pushing onto one must not add '/', which there means "parent", and a
+#     pushed path that names its own volume (`RAM:x`) replaces the base, as an
+#     absolute path does elsewhere. Path::is_absolute is left as it is.
+def aros_volume_push(s):
+    anchor = """            need_sep = false
+        }
+
+        let need_clear = if cfg!(target_os = "cygwin") {"""
+    assert anchor in s, "PathBuf::_push changed shape"
+    s = s.replace(anchor, """            need_sep = false
+        }
+
+        // AROS: `RAM:` + `x` is `RAM:x`; `RAM:/x` would be RAM:'s parent.
+        if cfg!(target_os = "aros") && buf.last() == Some(&b':') {
+            need_sep = false
+        }
+        // AROS: a path naming its volume (`Work:x`) does not depend on `self`.
+        let aros_volume = cfg!(target_os = "aros")
+            && path.inner.as_encoded_bytes().split(|&b| b == b'/').next().is_some_and(|first| first.contains(&b':'));
+
+        let need_clear = aros_volume || if cfg!(target_os = "cygwin") {""", 1)
+    return s
+edit("path.rs", aros_volume_push)
