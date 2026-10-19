@@ -7,6 +7,7 @@
  *     implemented for AT_FDCWD only and fail with ENOTSUP otherwise.
  *  3. unavailable process/filesystem operations: return -1/ENOSYS so that
  *     std's error paths engage instead of the link failing. */
+#include "terminal_abi.h"
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>

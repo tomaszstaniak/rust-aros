@@ -22,6 +22,9 @@ use core::prelude::v1::*;
 
 pub use core::ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void};
 
+mod terminal;
+pub use terminal::*;
+
 // --- scalar types (sizes verified against the SDK) ---------------------
 pub type off_t = i64;
 pub type blksize_t = i64;
