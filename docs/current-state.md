@@ -442,3 +442,18 @@ remain unchanged. An explicit separate owner context is proposed for stage1;
 production implementation awaits review of the written ownership design.
 [Evidence](evidence/2026-10-18-socket-owner-feasibility/REPORT.md),
 [design](superpowers/specs/2026-10-18-socket-owner-lifecycle-design.md).
+
+## Terminal, console poll and AmigaDOS paths for the Helix port (2026-10-19)
+
+Branch helix-terminal, x86_64 older ABIv11 (AROS One 1.3, pool v11-2),
+toolchain aros-helix-20261019 made from this branch. libc-aros gained
+termios/winsize bindings checked against the SDK headers, poll() on one
+console or file descriptor (DOS WaitForChar) and a TIOCGWINSZ that works
+from threads: the C library's own answers descriptors 0/1 from the calling
+task's Input()/Output() and reported its failure as a positive value.
+patch-std.py makes PathBuf::push respect AmigaDOS volumes: `PROGDIR:` +
+`runtime` gave `PROGDIR:/runtime`, the drawer's parent. tools/libc-dual.py
+lets workspaces with host-side libc users build. Used by aros-helix (Helix
+25.07.1 in Limpet: open, edit, save, resize, quit). Not covered: mainline,
+Macaros, poll on mixed socket and console sets, Path::is_absolute (std still
+counts only a leading `/`; callers decide about `Volume:` paths).
