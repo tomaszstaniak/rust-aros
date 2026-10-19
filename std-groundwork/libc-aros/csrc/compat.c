@@ -31,6 +31,9 @@
 #include <aros/symbolsets.h>
 #include <proto/dos.h>
 #include <proto/exec.h>
+#include <devices/conunit.h>
+#include <dos/dosextens.h>
+#include <exec/memory.h>
 #include <arpa/inet.h>
 
 #define AT_FDCWD_AROS (-100)
@@ -150,6 +153,32 @@ int rs_closesocket(int s) {
 int rs_fd_close(int fd) { return rs_socket_tagged(fd) ? rs_closesocket(fd) : close(fd); }
 long rs_fd_read(int fd, void *b, size_t n) { return rs_socket_tagged(fd) ? rs_recv(fd, b, n, 0) : read(fd, b, n); }
 long rs_fd_write(int fd, const void *b, size_t n) { return rs_socket_tagged(fd) ? rs_send(fd, b, n, 0) : write(fd, b, n); }
+/* TIOCGWINSZ from the descriptor's own handle. The C library's ioctl answers
+ * descriptors 0 and 1 from the calling task's Input()/Output(), which a
+ * pthread does not share with the main process (it gets EBADF there), and
+ * reports failures as positive errno values. The query itself is the one the
+ * C library makes: ACTION_DISK_INFO, whose id_InUse names the console unit. */
+static int rs_console_size(int fd, struct winsize *ws) {
+    long handle = 0;
+    if (!ws) { errno = EFAULT; return -1; }
+    if (__get_default_file(fd, &handle) < 0 || !handle) { errno = EBADF; return -1; }
+    BPTR file = (BPTR)handle;
+    struct FileHandle *fh = BADDR(file);
+    if (!IsInteractive(file) || !fh->fh_Type) { errno = ENOTTY; return -1; }
+    struct InfoData *info = AllocMem(sizeof *info, MEMF_PUBLIC | MEMF_CLEAR);
+    if (!info) { errno = ENOMEM; return -1; }
+    struct ConUnit *unit = NULL;
+    if (DoPkt((struct MsgPort *)fh->fh_Type, ACTION_DISK_INFO, (SIPTR)MKBADDR(info), 0, 0, 0, 0) && info->id_InUse)
+        unit = (struct ConUnit *)((struct IOStdReq *)info->id_InUse)->io_Unit;
+    FreeMem(info, sizeof *info);
+    if (!unit) { errno = ENOTTY; return -1; }
+    ws->ws_row = (unsigned short)(unit->cu_YMax + 1);
+    ws->ws_col = (unsigned short)(unit->cu_XMax + 1);
+    ws->ws_xpixel = unit->cu_Window ? (unsigned short)unit->cu_Window->Width : 0;
+    ws->ws_ypixel = unit->cu_Window ? (unsigned short)unit->cu_Window->Height : 0;
+    return 0;
+}
+
 int rs_fd_ioctl(int fd, unsigned long request, ...) {
     if ((uint32_t)request == (uint32_t)FIOCLEX || (uint32_t)request == (uint32_t)FIONCLEX) {
         int flags = (uint32_t)request == (uint32_t)FIOCLEX ? FD_CLOEXEC : 0;
@@ -160,6 +189,7 @@ int rs_fd_ioctl(int fd, unsigned long request, ...) {
        a nonexistent variadic argument to reject one. */
     if (IOCPARM_LEN(request) == 0) { errno = ENOTTY; return -1; }
     va_list ap; va_start(ap, request); void *arg = va_arg(ap, void *); va_end(ap);
+    if (!rs_socket_tagged(fd) && (uint32_t)request == (uint32_t)TIOCGWINSZ) return rs_console_size(fd, arg);
     if (!rs_socket_tagged(fd)) return ioctl(fd, (int)request, arg);
     SOCKET_FD(fd);
     /* IoctlSocket's AROS library boundary expects a canonical LONG request,
