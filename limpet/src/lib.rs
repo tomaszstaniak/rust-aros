@@ -5,6 +5,13 @@ extern crate std;
 
 use core::ffi::c_char;
 
+// limpet/tty_control.h: XTY_PRESENT_KNOWN_INPUT and the XTY_INPUT_* bits.
+const KNOWN_INPUT: u32 = 32;
+const INPUT_BRACKETED_PASTE: u32 = 1;
+const INPUT_RESIZE_REPORT: u32 = 2;
+const INPUT_WHEEL_REPORT: u32 = 4;
+const INPUT_MODIFIED_ENTER: u32 = 8;
+
 /// Validated SDK 0.3 snapshot. Unknown capabilities remain disabled.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(C)]
@@ -112,6 +119,30 @@ impl Presentation {
     pub fn can_rewrite_line(&self) -> bool {
         unsafe { limpet_can_rewrite_line(self) != 0 }
     }
+    /// Input modes a raw-mode program may enable, valid only when the
+    /// terminal reported its input set (known bit 32). Limpet 0.1.0 and
+    /// CON: report none.
+    fn input(&self, bit: u32) -> bool {
+        self.known & KNOWN_INPUT != 0 && self.input & bit != 0
+    }
+    /// Bracketed paste, `CSI ? 2004 h` (Limpet 0.2.0 and later).
+    pub fn has_bracketed_paste(&self) -> bool {
+        self.input(INPUT_BRACKETED_PASTE)
+    }
+    /// Resize reports, `CSI ? 2048 h`: `CSI 48 ; rows ; columns ; height ; width t`
+    /// on the input stream after every size change (Limpet 0.2.0 and later).
+    pub fn has_resize_reports(&self) -> bool {
+        self.input(INPUT_RESIZE_REPORT)
+    }
+    /// Wheel reports, `CSI ? 2100 h`, a Limpet extension.
+    pub fn has_wheel_reports(&self) -> bool {
+        self.input(INPUT_WHEEL_REPORT)
+    }
+    /// Shift+Enter as `CSI 27 ; 2 ; 13 ~` after `CSI > 4 ; 1 m` (Limpet 0.6.0,
+    /// SDK 0.4.0 bit 8; the binary layout is the same as SDK 0.3.0's).
+    pub fn has_modified_enter(&self) -> bool {
+        self.input(INPUT_MODIFIED_ENTER)
+    }
     #[cfg(test)]
     fn decode(reply: &[u32; 16]) -> Result<Self, ()> {
         let mut p = Self::default();
@@ -145,6 +176,25 @@ mod tests {
         words[10] = interpretation;
         words[12] = features;
         Presentation::decode(&words).unwrap()
+    }
+
+    #[test]
+    fn input_modes_need_the_known_input_bit() {
+        let mut words = [0u32; 16];
+        words[0] = 1;
+        words[1] = 13;
+        words[2] = 0x58545931;
+        words[11] = 1 | 2 | 4 | 8;
+        let unknown = Presentation::decode(&words).unwrap();
+        assert!(!unknown.has_resize_reports() && !unknown.has_bracketed_paste());
+        assert!(!unknown.has_wheel_reports() && !unknown.has_modified_enter());
+        words[4] = 32;
+        let known = Presentation::decode(&words).unwrap();
+        assert!(known.has_resize_reports() && known.has_bracketed_paste());
+        assert!(known.has_wheel_reports() && known.has_modified_enter());
+        words[11] = 2;
+        let resize = Presentation::decode(&words).unwrap();
+        assert!(resize.has_resize_reports() && !resize.has_modified_enter());
     }
 
     #[test]
