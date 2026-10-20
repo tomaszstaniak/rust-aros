@@ -38,6 +38,11 @@ enum { XTY_CAPS=1, XTY_GET_CONFIG, XTY_SET_CONFIG, XTY_GET_GEOMETRY,
    2100 and then receives each wheel step as CSI < 64|65 ; col ; row M
    (modifier bits 8 Alt, 16 Ctrl) while buttons and drags stay with the
    terminal; mouse tracking 1000/1002, when also on, takes precedence.
+   INPUT_MODIFIED_ENTER: in raw mode the client may send CSI > 4 ; 1 m
+   (xterm's modifyOtherKeys, here for Enter only) and then receives
+   Shift+Enter as CSI 27 ; 2 ; 13 ~ (Shift alone: with Ctrl, Alt or an
+   Amiga key it stays CR, as does Enter). CSI > 4 m, CSI > 4 ; 0 m,
+   CSI > 4 n and CSI > m turn it off.
    No report or framed paste ever goes inside a framed paste. A native
    console turns all of these modes (and 1000/1002/1006) off when it
    returns to cooked mode; set them again after each SetMode(raw).
@@ -75,13 +80,27 @@ enum { XTY_CAPS=1, XTY_GET_CONFIG, XTY_SET_CONFIG, XTY_GET_GEOMETRY,
 #define XTY_INPUT_BRACKETED_PASTE 1u
 #define XTY_INPUT_RESIZE_REPORT 2u
 #define XTY_INPUT_WHEEL_REPORT 4u
+#define XTY_INPUT_MODIFIED_ENTER 8u
 #define XTY_FEATURE_TITLE 1u
+/* OSC 8 link attachment, with BEL and ST termination across writes. */
+#define XTY_FEATURE_OSC8 2u
+/* Complete eza 0.23.5 Nerd Font repertoire in src/eza_icon_contract.h.
+   Both bits are required: coverage alone says nothing about cell alignment. */
+#define XTY_FEATURE_NERD_ICONS_EZA 4u
+#define XTY_FEATURE_ICON_WIDTH_ONE 8u
 #define XTY_COLOR_PENS 1u
 #define XTY_COLOR_NONE 0u
 #define XTY_COLOR_ANSI16 1u
 #define XTY_COLOR_INDEXED256 2u
 #define XTY_COLOR_RGB 3u
 #define XTY_STYLE_BOLD_RESET 1u
+#define XTY_STYLE_DIM_RESET 2u
+#define XTY_STYLE_ITALIC_RESET 4u
+#define XTY_STYLE_UNDERLINE_RESET 8u
+#define XTY_STYLE_BLINK_RESET 16u
+#define XTY_STYLE_INVERSE_RESET 32u
+#define XTY_STYLE_HIDDEN_RESET 64u
+#define XTY_STYLE_STRIKE_RESET 128u
 #define XTY_LINE_CR 1u
 #define XTY_LINE_ERASE_EOL 2u
 #define XTY_CAP_OUTPUT_FLOW 4096u

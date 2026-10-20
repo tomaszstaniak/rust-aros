@@ -78,7 +78,33 @@ impl Sequence {
         unsafe { core::str::from_utf8_unchecked(&self.bytes[..self.len]) }
     }
 }
+/// SGR style capability bits. Reset support is included in each capability.
+#[derive(Clone, Copy, Debug)]
+#[repr(u32)]
+pub enum Style {
+    Bold = 1,
+    Dim = 2,
+    Italic = 4,
+    Underline = 8,
+    Blink = 16,
+    Inverse = 32,
+    Hidden = 64,
+    Strike = 128,
+}
 impl Presentation {
+    pub fn has_style(&self, style: Style) -> bool {
+        self.known & 2 != 0 && self.styles & (style as u32) != 0
+    }
+    /// OSC 8 link attachment, including fragmented BEL/ST sequences.
+    pub fn has_hyperlinks(&self) -> bool {
+        self.known & 64 != 0 && self.features & 2 != 0
+    }
+    /// Complete eza 0.23.5 Nerd Font repertoire with one cell per icon.
+    /// The renderer checks its current font chain; never infer this from TERM.
+    pub fn has_eza_icons(&self) -> bool {
+        self.known & 64 != 0 && self.features & 12 == 12
+    }
+
     pub fn ansi(&self, index: u32, background: bool) -> Sequence {
         Sequence::build(|b, n| unsafe { limpet_sgr_ansi(b, n, self, index, background as i32) })
     }
@@ -342,5 +368,25 @@ mod tests {
             out.set_ansi(2, false).unwrap();
             assert!(IO.lock().unwrap().2.is_empty());
         }
+    }
+}
+
+#[cfg(test)]
+mod extended_contract_tests {
+    use super::*;
+    #[test]
+    fn requires_known_bits_for_optional_presentation() {
+        let mut p = Presentation::default();
+        p.styles = 255;
+        p.features = 14;
+        assert!(!p.has_style(Style::Underline));
+        assert!(!p.has_hyperlinks());
+        assert!(!p.has_eza_icons());
+        p.known = 2 | 64;
+        assert!(p.has_style(Style::Underline));
+        assert!(p.has_hyperlinks());
+        assert!(p.has_eza_icons());
+        p.features = 4;
+        assert!(!p.has_eza_icons());
     }
 }

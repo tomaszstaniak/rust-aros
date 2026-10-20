@@ -46,3 +46,10 @@ checks; optional HOST_CC/HOST_AR select host tools. No crates.io dependencies.
 
 Examples: ../examples/limpet (no_std), ../std-groundwork/limpet-std (std).
 Acceptance evidence: ../docs/evidence/2026-10-15-limpet/REPORT.md.
+
+Optional presentation evidence is available through `has_style(Style::...)`,
+`has_hyperlinks()` and `has_eza_icons()`. All require their known bits; icons
+require both the full eza0.23.5 repertoire and one-cell width confirmation.
+These additive constants preserve the SDK0.3.0 binary layout. Unknown flags do
+not authorize formatting, OSC8 or glyph widths. Native renderer validation is
+separate from the host Rust/SDK tests.
