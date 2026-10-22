@@ -19,7 +19,7 @@ error chain.
 ## Setting it up
 
 ```sh
-rustup toolchain install nightly-2026-08-31 --profile minimal --component rust-src
+rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src
 ./make-std-toolchain.sh /absolute/new/sysroot aros-local
 cd ../std-hello
 cargo +aros-local build --release

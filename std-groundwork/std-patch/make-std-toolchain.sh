@@ -27,9 +27,9 @@ if printf '%s\n' "$LIST" | awk '{print $1}' | grep -Fx "$NAME" >/dev/null; then
 fi
 # An explicitly selected installed base is useful offline, but must be the
 # exact compiler the std patch was tested against. Never update nightly here.
-BASE=${AROS_RUST_BASE:-nightly-2026-08-31}
+BASE=${AROS_RUST_BASE:-nightly-2026-09-01}
 VERSION=$(rustup run "$BASE" rustc -V) || {
-    echo "install the pinned base: rustup toolchain install nightly-2026-08-31 --profile minimal --component rust-src" >&2; exit 1;
+    echo "install the pinned base: rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src" >&2; exit 1;
 }
 [ "$VERSION" = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)' ] || {
     echo "unsupported base compiler: $VERSION" >&2; exit 1;

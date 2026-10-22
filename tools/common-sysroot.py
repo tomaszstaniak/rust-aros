@@ -118,7 +118,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('jonx_source', type=Path)
     p.add_argument('new_sysroot', type=Path)
-    p.add_argument('--base', default='nightly-2026-08-31', help='installed compiler, checked against the exact pinned version')
+    p.add_argument('--base', default='nightly-2026-09-01', help='installed compiler, checked against the exact pinned version')
     a = p.parse_args()
     source, dest = a.jonx_source.resolve(), a.new_sysroot.absolute()
     jonx.validate_source(source)

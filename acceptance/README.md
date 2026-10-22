@@ -7,7 +7,8 @@ toolchain, rustup registration or guest is changed by these build tools.
 
 ## Rebuild
 
-Install `nightly-2026-08-31` with `rust-src`. Clone
+Install `nightly-2026-09-01` with `rust-src` (its compiler commit is dated
+2026-08-31; the distribution date is one day later). Clone
 <https://github.com/jonx/rust-aros> and check out
 `2e2845efb6aaa111b5a26c9685e96d08fad340f4`; clone
 <https://github.com/pomaros/pomaros-hosted> and check out
