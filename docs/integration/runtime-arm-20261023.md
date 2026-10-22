@@ -37,3 +37,27 @@ Next: private detach correction after this reproduction; parking_lot baseline
 with its actual generic ARM backend; then unpatched Rayon process exit. Apply
 runtime changes only following a reproduced failure, retaining separate
 baseline/after evidence and explicit x86 controls.
+
+## Private detach correction and x86 control
+
+After the native baseline failed, the existing versioned pthread.patch was
+applied privately to pthread.c and pthread_create.c only. Both 64-cycle phases
+then passed on rpi-1 and the Shell wrote RC=0 plus the completion receipt.
+No shared SDK archive or running installation was replaced.
+
+The runtime compilation source is pinned separately to
+cc39c62f33d90b842540e79d5e47357590c014ac. The newer diagnostic-header checkout
+contains a Macaros per-task errno hook absent from the native SDK: attempting
+to rebuild that runtime correctly failed to link __stdc_errnoptr_hook. No fake
+hook or errno replacement was added. The older source has the required data
+layout and no such dependency. Its recompiled instructions are not claimed to
+match the SDK object-for-object; manifests identify the source, private object
+hashes and actual SDK separately. --fixed is opt-in in build-arm-detach.py.
+
+On separately reserved v11-2, the previously accepted x86 detach/parking/Rayon
+control binaries were checked against their original build manifest before
+staging, then rerun under fresh rtxc23 receipts: all three returned RC=0, with a
+final completion receipt. These are controls of the existing accepted v11
+runtime (including its opt-in fixes), not a claim about an unmodified old SDK.
+The busy v11-1 remained untouched. Evidence: detach-fixed-results and
+x86-control-collected in the private session root.

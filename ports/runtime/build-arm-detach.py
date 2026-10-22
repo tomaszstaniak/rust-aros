@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import tarfile
 
-SOURCE_REV = '7c24ef2ef03cd0ef1cbf2bcbad4227f7d62d2652'
+SOURCE_REV = 'cc39c62f33d90b842540e79d5e47357590c014ac'
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -20,6 +20,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('aros-source', 'cc', 'sdk', 'out'):
         p.add_argument('--' + name, type=Path, required=True)
+    p.add_argument('--fixed', action='store_true', help='private detach fix, only after a baseline reproduction')
     a = p.parse_args()
     for name in ('aros_source', 'cc', 'sdk', 'out'):
         setattr(a, name, getattr(a, name).absolute())
@@ -41,14 +42,26 @@ def main():
     probe = a.out / 'detach.c'
     probe.write_text((ROOT / 'ports/runtime/detach.c').read_text().replace(
         '#include "pthread_intern.h"', '#include "pthread_intern.h"' + contract))
+    objects = []
+    patch = ROOT / 'ports/runtime/patches/pthread.patch'
+    if a.fixed:
+        subprocess.run(['patch', '--batch', '--fuzz=0', '-p1', '-i', patch],
+                       cwd=a.out / 'source', check=True, timeout=60)
+        for name in ('pthread', 'pthread_create'):
+            obj = a.out / (name + '.o')
+            subprocess.run([a.cc, '--sysroot=' + str(a.sdk), '-O2', '-c',
+                            source / (name + '.c'), '-o', obj], check=True, timeout=120)
+            objects.append(obj)
     command = [a.cc, '--sysroot=' + str(a.sdk), '-O2', '-I', source,
-               '-DRUNTIME_RUN_ID="arm-detach-baseline"', probe, '-lpthread',
+               '-DRUNTIME_RUN_ID="arm-detach-' + ('fixed' if a.fixed else 'baseline') + '"', probe, *objects, '-lpthread',
                '-Wl,--no-gc-sections', '-o', a.out / 'detach']
     subprocess.run(list(map(str, command)), check=True, timeout=120)
     data = (a.out / 'detach').read_bytes()
     if data[:9] != bytes.fromhex('7f454c460201010f01') or int.from_bytes(data[18:20], 'little') != 183:
         raise ValueError('require native AROS ELF64 AArch64 ABIv1')
-    metadata = dict(profile='aarch64-v1-raspi', source_revision=SOURCE_REV,
+    metadata = dict(variant='fixed' if a.fixed else 'baseline',
+                    fix_sha256=sha(patch) if a.fixed else None,
+                    objects={p.name: sha(p) for p in objects}, profile='aarch64-v1-raspi', source_revision=SOURCE_REV,
                     source_archive_sha256=hashlib.sha256(archive).hexdigest(),
                     sdk_pthread_sha256=sha(a.sdk / 'lib/libpthread.a'),
                     compiler=subprocess.check_output([a.cc, '--version'], text=True),
