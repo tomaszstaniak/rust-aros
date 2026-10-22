@@ -1,6 +1,14 @@
 # Rust AROS renewal: current state
 
-Verified through 2026-10-17. Implementation base: rust-aros `8d35fda`.
+Latest integration verification: 2026-10-22. The common private Rust 1.100
+sysroot builds x86_64 ABIv11 and native AArch64 ABIv1, importing Jonx's ARM PAL.
+C/no_std and three basic std runs passed on each architecture under QEMU with
+real zero exit receipts. Physical Raspberry Pi acceptance is pending. See
+[the integration ledger](integration/2026-10-22-arm.md) and
+[the reproducible procedure](../acceptance/README.md).
+
+The remaining sections record the earlier renewal work through 2026-10-17,
+whose implementation base was rust-aros `8d35fda`.
 
 Latest accepted: bounded real async TCP and certificate-verified stepped TLS
 on older x86_64 ABIv11, both abort and unwind. Historical slices below record
@@ -14,13 +22,12 @@ verification against this correction remains next.
 
 ## Platform policy
 
-Active implementation and validation scope, confirmed 2026-10-15: x86_64
-ABIv11 only. ABIv1 and arm64/Macaros are deferred to later work.
-
-AROS ABIv11 is primary; ABIv1/mainline is next. Architectures in scope are
-x86_64 and arm64 through hosted Macaros. The local Macaros installation is not
-yet reliable, so arm64 execution acceptance is pending. Native Raspberry Pi is
-outside this project scope. Determine Macaros's actual ABI from its SDK.
+Scope updated by the user on 2026-10-22: preserve accepted x86_64 ABIv11 while
+integrating native AArch64 ABIv1 for Raspberry Pi. Jonx's ARM port is the
+reference; mainline AROS is a distinct implementation and AmigaLabs supplies
+adaptation ideas. CPU, ABI, SDK and hosted/native runtime remain separate
+configuration dimensions. The QEMU raspi3b result does not establish hardware
+compatibility for an unspecified physical Pi model. Hosted Macaros is diagnostic.
 
 Zed is a reference workload for platform quality, not a delivered port. Audit a
 pinned Zed revision before committing to its dependencies: its async stack is

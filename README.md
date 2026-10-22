@@ -1,4 +1,11 @@
-# Rust for AROS x86_64
+# Rust for AROS
+
+The x86_64 ABIv11 / native AArch64 ABIv1 integration builds both profiles from
+one private Rust 1.100 nightly sysroot. ARM imports the pinned
+[Jonx PAL](https://github.com/jonx/rust-aros). C, no_std and the same basic std
+workload have executed on both architectures under QEMU; physical Raspberry Pi
+acceptance is pending. See [the build and acceptance procedure](acceptance/README.md)
+and [the integration ledger](docs/integration/2026-10-22-arm.md).
 
 Write AROS programs in Rust. This package contains everything needed to build
 a Rust program on a PC or Mac and run it on AROS x86_64: a target definition,
@@ -40,7 +47,7 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 
 * An AROS x86_64 SDK and cross toolchain (`x86_64-aros-gcc`).
 * The tested Rust nightly with the sources:
-  `rustup toolchain install nightly-2026-08-31 --profile minimal --component rust-src`
+  `rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src`
   Nightly is required because custom target files and `-Z build-std` are not
   stable features.
 
@@ -49,7 +56,7 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 ```sh
 ./setup.sh                    # finds your toolchain, writes x86_64-aros.json
 cd template
-cargo +nightly-2026-08-31 build --release
+cargo +nightly-2026-09-01 build --release
 ```
 
 `setup.sh` looks for `x86_64-aros-gcc` on your `PATH` and for the SDK beside
@@ -186,9 +193,10 @@ a complete Zed port is not delivered by these building blocks.
 
 James Knipping ported the Zed editor and the ferail file manager to **AROS
 aarch64**, which is what showed that Rust on AROS was possible at all; those
-run under Macaros, AROS hosted on Apple Silicon. That work is not public, and
-this package was built independently for **x86_64**, which is where AROS
-desktop users are.
+run under Macaros, AROS hosted on Apple Silicon. His Rust PAL is public at
+[jonx/rust-aros](https://github.com/jonx/rust-aros). The original x86_64
+package was developed independently; the common sysroot now imports his ARM
+implementation with explicit CPU, ABI and SDK profiles.
 
 ## License
 
