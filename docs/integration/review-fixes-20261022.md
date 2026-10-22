@@ -65,3 +65,33 @@ These results still exercise a C CRT main plus Rust staticlib. A separate Cargo
 binary with Rust `fn main()`, argument initialization and real return-code
 receipts is required before claiming ordinary Rust executable acceptance.
 No physical Pi, sockets, GUI or ARM unwind acceptance is claimed.
+
+## Ordinary Cargo main acceptance
+
+The separate gate subsequently passed on both CPU/runtime combinations above,
+using the new private `rust-review-sysroot-main-20261022`. Its ARM args adaptation
+is versioned in `patches/jonx/0002-native-lang-start-args.patch`: PAL init captures
+argc/argv using atomics before the Rust main runs. It removes dependence on C
+harness globals. x86_64 retains its existing argument backend.
+
+`tools/build-cargo-main.py` builds `acceptance/src/main.rs` with Cargo, using
+Rust's generated main and lang_start, the platform C CRT, and the existing ARM
+C library bridges. No C main object is linked. It verifies the current guarded
+sysroot, compiler, SDK digest, ELF ABI, defined main and absence of undefined
+symbols. The private linker adapter retains AROS CRT sections at final link.
+Without this, ARM ELF section GC discarded main and produced a misleading 14 KiB
+executable; the checked executable is approximately 1.9 MiB with main/lang_start.
+
+Both `rpi-1` and `v11-1` produced fresh shell exit receipts **0, 0, 0, 7** within
+the 45-second host deadlines. The first three executions each repeated the full
+std workload, 16 balanced Thread-name allocations and 32 TLS destructor calls.
+The fourth verifies nonzero `ExitCode` propagation. All four logs contain the
+local-main-destructor marker. Argument count and sentinel values are asserted
+inside the Rust main. Host Cargo also returned 7 with the destructor marker;
+all **95 Python tests** and the host Rust workload passed.
+
+New evidence and executable bundles are in `arm-main-results/`,
+`x86-main-collected/`, `{arm,x86}-main-final/`, and `{arm,x86}-main-bundle/` beneath
+the same private evidence root. Old staticlib evidence is preserved separately.
+This closes the ordinary Rust executable gate on the named QEMU installations;
+it does not establish physical hardware, socket, GUI or ARM-unwind acceptance.

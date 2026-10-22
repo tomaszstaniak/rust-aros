@@ -81,6 +81,8 @@ def merge(std, source):
     # versioned patches against the pinned Jonx source.
     subprocess.run(['patch', '-p1', '-i', ROOT / 'patches/jonx/0001-rust-1.100-native-contracts.patch'],
                    cwd=std, check=True)
+    subprocess.run(['patch', '-p1', '-i', ROOT / 'patches/jonx/0002-native-lang-start-args.patch'],
+                   cwd=std, check=True)
     prepend(std / 'sys/pal/mod.rs', '\n        mod unsupported;\n        pub use unsupported::*;')
     with (std / 'sys/pal/unsupported/mod.rs').open('a') as f:
         f.write('\n#[cfg(' + ARM + ')]\npub mod sync;\n')

@@ -88,3 +88,32 @@ are separate gates. `cargo test --manifest-path acceptance/Cargo.toml` exercises
 the workload on the host only; it does not count as AROS execution.
 
 Physical Pi acceptance remains pending even when native AROS passes under QEMU.
+
+## Separate ordinary Cargo executable gate
+
+The staticlib gate above does not exercise Rust's `lang_start`. After creating
+an acceptance build and a current guarded common sysroot, build the separate
+Rust binary (no C `main` is linked):
+
+```
+python3 tools/build-cargo-main.py BUILD_DIRECTORY COMMON_SYSROOT NEW_MAIN_BUILD
+```
+
+The command checks compiler/source/SDK identity, uses the same private compiler
+for host and target, and retains the target profile in the new output. ARM uses
+the seven C bridge objects retained by the acceptance build. The final link
+keeps AROS CRT symbol-set sections; it explicitly verifies ELF ABI, a defined
+`main`, and no undefined symbols. This gate allows the platform C driver to
+supply its native CRT/default libraries. The private linker adapter appends
+`--no-gc-sections` after Cargo's arguments. Using `-Clink-dead-code` for this
+purpose would also compile unused architecture intrinsics while rebuilding core.
+
+Copy `NEW_MAIN_BUILD/cargo-main` into a private guest drawer while the reserved
+VM is stopped. Run three fresh instances with `runtime-argv workload`, then one
+with `runtime-argv exit7`. Set a 4 MiB stack and a 45-second absolute host
+deadline. Redirect each invocation to its own new log and immediately write
+`Echo $RC` to a new receipt. Require receipts `0, 0, 0, 7`, the local-destructor
+marker in every log, and all workload markers in the first three. A pre-exit
+message alone is insufficient. Keep these receipts separate from staticlib
+acceptance. Runtime acceptance is recorded in external evidence, never inferred
+from the builder's `runtime_acceptance: false` manifest.

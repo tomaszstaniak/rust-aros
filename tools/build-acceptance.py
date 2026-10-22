@@ -81,7 +81,7 @@ def main():
         target['pre-link-args']['gnu-cc'] = ['--sysroot=' + str(a.sdk)]
     spec = a.out / (a.profile + '.json')
     spec.write_text(json.dumps(target, indent=2) + '\n')
-    cargo = [a.sysroot / 'bin/cargo', 'build', '--offline', '--release',
+    cargo = [a.sysroot / 'bin/cargo', 'build', '--lib', '--offline', '--release',
              '-Zjson-target-spec', '-Zbuild-std=std,panic_abort', '--manifest-path', ROOT / 'acceptance/Cargo.toml',
              '--target', spec, '--target-dir', a.out / 'cargo']
     run(cargo, env=env)

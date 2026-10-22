@@ -11,7 +11,7 @@ use std::time::{Duration, Instant, SystemTime};
 #[derive(Clone)]
 struct Aligned([u8; 64]);
 
-fn probe(path: &str) {
+pub fn probe(path: &str) {
     lifecycle::check();
     let mut aligned = Vec::with_capacity(1);
     for n in 0..257 {
