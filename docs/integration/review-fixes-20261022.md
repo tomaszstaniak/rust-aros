@@ -112,3 +112,37 @@ sysroots (approximately 79 MiB each) are retained for reproduction and review;
 they do not replace any installed sysroot. Both reserved VMs were stopped and
 released. Original pre-review evidence and the original checkout's modified
 `.DS_Store` were untouched.
+
+## Focused pre-merge review requested after cdeb3f3
+
+A separate read-only review covered 2f097cc^..cdeb3f3 (including the TLS fix,
+which the exclusive 2f097cc..cdeb3f3 range would omit). No P1/P2 was found.
+The reviewer independently checked DEFER/RUN re-arming, DESTROYED-before-drop,
+ARM argc/argv Release/Acquire publication, both executable hashes and defined
+main/lang_start symbols, absence of undefined/harness-argument symbols, and the
+retained 0,0,0,7 shell receipts. No new guest execution was performed.
+
+A pre-existing limit remains explicit: creating the first global pthread TLS
+key from a TLS destructor is not covered. AROS invokes those callbacks under
+shared tls_sem, while pthread_key_create takes it exclusively. The lifecycle
+probe pre-creates keys; it verifies initialization of another *value* during
+destruction, not first creation of a new key. This does not invalidate the
+reviewed ownership fix or the bounded acceptance.
+
+Next sequence: merge locally into the user-confirmed integration destination,
+then port the existing ports/runtime tests to ARM without importing fixes by
+default. The current ARM target has no unix family and parking_lot_core 0.9.12
+therefore selects thread_parker/generic.rs. Its timeout/wakeup contract still
+applies, but the old Unix-backend test's mandatory pthread timedwait count does
+not. Record backend selection and test native std parking separately as needed.
+For detach, verify the diagnostic pthread internal layout against the ARM SDK
+before using the existing internal-state probe. For Rayon, first retain a
+baseline using the unmodified pinned crates, then consider the existing opt-in
+shutdown patch only if native exit failure is reproduced. Keep all probes
+bounded and require actual shell-return receipts. Socket ownership on both CPUs
+is the following gate, and physical Pi remains separate.
+
+Merge destination was requested explicitly because the local history and docs
+do not designate one unambiguously. No merge or push was performed pending that
+answer; codex/rust-renewal-m0 is an ancestor with 0 divergent and 14 incoming
+commits as of cdeb3f3.
