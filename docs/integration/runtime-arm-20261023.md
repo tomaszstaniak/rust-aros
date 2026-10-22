@@ -88,3 +88,41 @@ C bridge hashes, records consumer/lock/object hashes and selected backend, and
 never patches crates by default. Rayon --shutdown is an explicit private variant
 using the already versioned patch, reserved for after this baseline failure.
 All 98 host Python tests passed; the unpatched host Rayon control returned 0.
+
+## Final bounded ARM acceptance
+
+The existing rayon.patch was enabled only after the baseline above reproduced
+failure. The private build used --shutdown, with the already verified detach
+objects. The test calls shutdown before registry creation, then twice after
+work, and requires two global worker exit handlers before returning.
+
+Final rpi-1 native AROS/QEMU execution, in detach -> parking -> Rayon order,
+produced RC=0 for every case and a fresh final completion receipt:
+
+- detach: 64 cycles before finish, 64 after finish, same slot reused;
+- unpatched parking_lot generic backend: timeout 307151 us, eight wakeups;
+- Rayon with opt-in shutdown: private exits=2, global exits=2, process returned.
+
+Every run had an absolute 60-second host observation deadline; the final owned
+VM stop completed after 60.362 seconds. Checkpoints or before-return output were
+never substituted for actual Shell receipts. No ARM unwind or sockets were
+added. The new verifier also rejects another CPU/SDK, stale patches, missing
+object inventory and changed private pthread objects before starting a build.
+All 105 host Python tests passed. Independent read-only review found no P1/P2.
+
+Reproduction uses a guarded common sysroot and retained normal-Cargo build
+metadata as profile input. Build detach baseline and corrected variants with
+ports/runtime/build-arm-detach.py (only the latter passes --fixed), then:
+
+```
+python3 ports/runtime/build-common.py PROFILE_BUILD COMMON_SYSROOT NEW_PARKING --case parking --pthread-objects FIXED_DETACH_BUILD
+python3 ports/runtime/build-common.py PROFILE_BUILD COMMON_SYSROOT NEW_RAYON_BASELINE --case rayon --pthread-objects FIXED_DETACH_BUILD --progress-prefix SYS:PRIVATE_BASELINE/rayon
+python3 ports/runtime/build-common.py PROFILE_BUILD COMMON_SYSROOT NEW_RAYON_FIXED --case rayon --pthread-objects FIXED_DETACH_BUILD --shutdown --progress-prefix SYS:PRIVATE_FIXED/rayon
+```
+
+Use the pool's reservation and stopped-only staging rules. Set a 4 MiB stack,
+redirect to fresh result files, write Echo $RC immediately after each program,
+and require completion before accepting the run. Progress prefixes name existing
+private guest drawers; each phase writes a distinct closed file. Physical Pi
+remains a separate gate. Native socket owner context on both CPUs is subsequent
+work, not part of this acceptance.
