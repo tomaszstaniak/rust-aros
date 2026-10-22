@@ -44,7 +44,7 @@ not runtime acceptance. The host workload and all 94 Python tests passed.
 
 Evidence: `local/rust-review-fixes-20261022/`:
 `arm-{red,fixed}-build.log`, `arm-{red,fixed}-results/`, `x86-fixed-build.log`,
-`x86-collected/`, deadline JSON files and `red2-assertion.png`.
+`evidence/x86-staticlib/`, deadline JSON files and `red2-assertion.png`.
 
 ## Sysroot and package contracts
 
@@ -91,7 +91,24 @@ inside the Rust main. Host Cargo also returned 7 with the destructor marker;
 all **95 Python tests** and the host Rust workload passed.
 
 New evidence and executable bundles are in `arm-main-results/`,
-`x86-main-collected/`, `{arm,x86}-main-final/`, and `{arm,x86}-main-bundle/` beneath
+`evidence/x86-main/`, `{arm,x86}-main-final/`, and `{arm,x86}-main-bundle/` beneath
 the same private evidence root. Old staticlib evidence is preserved separately.
 This closes the ordinary Rust executable gate on the named QEMU installations;
 it does not establish physical hardware, socket, GUI or ARM-unwind acceptance.
+
+## Final review and retention
+
+A fresh read-only review of 87c03fd..ea1f66c reported no concrete P1/P2
+findings. The five local correction commits are b11a8d4 (package inventory),
+ce51a02 (sysroot contract), fcada80 (existing diagnostic compatibility),
+2f097cc (TLS ownership), and ea1f66c (ordinary Cargo main). Nothing was pushed
+or merged; the integration branch has no configured upstream.
+
+The evidence directory contains `runtime-summary.json`, selected guest receipts
+verified against the pool collector manifests, source contracts and build
+manifests. All session Cargo caches and duplicate full RESULTS collections were
+removed after preservation: 1,395,941,797 bytes reclaimed. Private source
+sysroots (approximately 79 MiB each) are retained for reproduction and review;
+they do not replace any installed sysroot. Both reserved VMs were stopped and
+released. Original pre-review evidence and the original checkout's modified
+`.DS_Store` were untouched.
