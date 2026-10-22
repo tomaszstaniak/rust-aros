@@ -93,8 +93,9 @@ def merge(std, source):
     # version. Keep August's other TLS implementations intact.
     tls = std / 'sys/thread_local/mod.rs'
     text = tls.read_text()
-    text = text.replace('pub(crate) mod guard {\n    cfg_select! {',
-                        'pub(crate) mod guard {\n    cfg_select! {\n        ' + ARM + ' => { pub(crate) fn enable() {} }', 1)
+    # Keep Rust's guard/key.rs: it defers thread_cleanup until a TLS
+    # destructor pass without Rust values. CURRENT is an owning raw Thread
+    # reference; neither a no-op guard nor cleanup before pthread TLS is valid.
     key = text.index('pub(crate) mod key {')
     before, after = text[:key], text[key:]
     after = after.replace('cfg_select! {', 'cfg_select! {\n        ' + ARM + ' => {' +

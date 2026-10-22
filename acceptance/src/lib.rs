@@ -1,4 +1,8 @@
 //! Identical first-std acceptance workload for both AROS CPU profiles.
+mod lifecycle;
+#[global_allocator]
+static ALLOCATOR: lifecycle::TrackingAllocator = lifecycle::TrackingAllocator;
+
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
@@ -8,6 +12,7 @@ use std::time::{Duration, Instant, SystemTime};
 struct Aligned([u8; 64]);
 
 fn probe(path: &str) {
+    lifecycle::check();
     let mut aligned = Vec::with_capacity(1);
     for n in 0..257 {
         aligned.push(Aligned([n as u8; 64]));
