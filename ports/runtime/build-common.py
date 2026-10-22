@@ -19,6 +19,25 @@ common = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(common)
 
 
+def verified_pthread_objects(directory, sdk, profile):
+    info = json.loads((directory / 'build.json').read_text())
+    if info.get('profile') != profile or info.get('variant') != 'fixed':
+        raise ValueError('pthread objects have the wrong profile or variant')
+    if info.get('sdk_pthread_sha256') != hashlib.sha256((sdk / 'lib/libpthread.a').read_bytes()).hexdigest():
+        raise ValueError('pthread correction belongs to another SDK')
+    patch = ROOT / 'ports/runtime/patches/pthread.patch'
+    if info.get('fix_sha256') != hashlib.sha256(patch.read_bytes()).hexdigest():
+        raise ValueError('pthread correction uses a stale patch')
+    names = ('pthread.o', 'pthread_create.o')
+    if not isinstance(info.get('objects'), dict) or set(info['objects']) != set(names):
+        raise ValueError('incomplete pthread object inventory')
+    paths = [directory / name for name in names]
+    for path in paths:
+        if hashlib.sha256(path.read_bytes()).hexdigest() != info['objects'][path.name]:
+            raise ValueError('modified pthread correction object: ' + path.name)
+    return list(map(str, paths))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile_build', type=Path)
@@ -50,7 +69,10 @@ def main():
             p.error('bridge object changed: ' + name)
         objects.append(str(path))
     if a.pthread_objects:
-        objects += [str((a.pthread_objects / name).absolute()) for name in ('pthread.o','pthread_create.o')]
+        try:
+            objects += verified_pthread_objects(a.pthread_objects.absolute(), Path(manifest['sdk']), profile)
+        except (ValueError, OSError) as error:
+            p.error(str(error))
     out.mkdir(parents=True, exist_ok=False)
     source = out / 'consumer'
     shutil.copytree(ROOT / 'std-groundwork/runtime-regressions', source,
