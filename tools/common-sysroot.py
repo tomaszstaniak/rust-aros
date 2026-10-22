@@ -73,21 +73,10 @@ def merge(std, source):
         if name == 'alloc':
             body += '\n        use aros as imp;'
         prepend(std / rel, body)
-    # June -> August std internal API changes, retaining Jonx's allocation
-    # policy (especially the original-layout test before realloc).
-    alloc = std / 'sys/alloc/aros.rs'
-    text = alloc.read_text().replace('use crate::alloc::{GlobalAlloc, Layout, System};', 'use crate::alloc::Layout;')
-    begin = text.index('#[stable(feature = "alloc_system_type"')
-    end = text.index('\n#[inline]\nunsafe fn aligned_malloc', begin)
-    body = text[text.index('unsafe impl GlobalAlloc for System {', begin) + len('unsafe impl GlobalAlloc for System {'):end]
-    body = body.rstrip()[:-1]  # remove the outer impl's closing brace
-    body = body.replace('unsafe fn ', 'pub unsafe fn ').replace('&self, ', '')
-    body = body.replace('self.alloc(layout)', 'alloc(layout)').replace('realloc_fallback(self, ', 'realloc_fallback(')
-    alloc.write_text(text[:begin] + body + text[end:])
-    with (std / 'sys/io/error/aros.rs').open('a') as f:
-        f.write('\npub fn format_error(code: i32, f: &mut crate::fmt::Formatter<\'_>) -> crate::fmt::Result {\n    f.write_str(&error_string(code))\n}\n')
-    with (std / 'sys/fs/aros.rs').open('a') as f:
-        f.write('\npub fn set_perm_nofollow(_p: &Path, _perm: FilePermissions) -> io::Result<()> {\n    Err(io::Error::UNSUPPORTED_PLATFORM)\n}\n')
+    # Internal API adaptations and the native socket gate are reviewable,
+    # versioned patches against the pinned Jonx source.
+    subprocess.run(['patch', '-p1', '-i', ROOT / 'patches/jonx/0001-rust-1.100-native-contracts.patch'],
+                   cwd=std, check=True)
     prepend(std / 'sys/pal/mod.rs', '\n        mod unsupported;\n        pub use unsupported::*;')
     with (std / 'sys/pal/unsupported/mod.rs').open('a') as f:
         f.write('\n#[cfg(' + ARM + ')]\npub mod sync;\n')
@@ -123,17 +112,6 @@ def merge(std, source):
     marker = 'pub fn exit(code: i32) -> ! {\n    cfg_select! {'
     text = text.replace(marker, marker + '\n        ' + ARM + ' => {\n            unsafe extern "C" { fn exit(code: crate::ffi::c_int) -> !; }\n            unsafe { exit(code) }\n        }', 1)
     exitfile.write_text(text)
-    # Native sockets are a later milestone. Jonx's integer socket handles
-    # would otherwise be implicitly Send/Sync across an owner-task SocketBase.
-    net = std / 'sys/net/connection/aros.rs'
-    text = net.read_text()
-    start = text.index('fn ensure_lib() -> io::Result<()> {')
-    end = text.index('\n}\n', start) + 2
-    text = text[:start] + '''fn ensure_lib() -> io::Result<()> {
-    Err(io::const_error!(ErrorKind::Unsupported,
-        "native AROS sockets require an owner-task backend"))
-}''' + text[end:]
-    net.write_text(text)
 
 
 def main():
