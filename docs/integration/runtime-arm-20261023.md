@@ -61,3 +61,30 @@ final completion receipt. These are controls of the existing accepted v11
 runtime (including its opt-in fixes), not a claim about an unmodified old SDK.
 The busy v11-1 remained untouched. Evidence: detach-fixed-results and
 x86-control-collected in the private session root.
+
+## Parking and Rayon unmodified-crate baselines
+
+After correcting the reproduced detach dependency, the shared guarded Rust
+compiler built the existing Cargo probes with panic=abort and no parking/Rayon
+patches. Rust 0dfb098f3 and the native SDK are unchanged. Closed unique Rayon
+checkpoint files are diagnostics, explicitly not exit receipts.
+
+Native ARM parking_lot 0.12.5/core 0.9.12 selected its generic backend (the target
+has no unix family). The 300 ms timeout measured 300841 us; all eight predicate
+wakeups and joins completed; the expected zero pthread timedwait count was
+checked for this backend. Shell RC=0. No parking patch was applied. The test
+retains the previous mandatory timedwait check when no generic backend is
+explicitly declared, preserving the old x86 contract.
+
+Unmodified Rayon 1.12.0/core 1.13.0 completed private pool shutdown (two worker
+exit handlers), global computation and the before-return checkpoint. It did
+not return to the Shell: no Rayon RC or final completion receipt before the
+60-second deadline. This reproduces global-worker/process-exit failure on ARM,
+rather than merely inferring it from x86 or an apparent PASS message. Evidence:
+parking-rayon-baseline-results/RTPR23, including the three closed checkpoints.
+
+The new build-common.py reuses the guarded compiler/profile, verifies SDK and
+C bridge hashes, records consumer/lock/object hashes and selected backend, and
+never patches crates by default. Rayon --shutdown is an explicit private variant
+using the already versioned patch, reserved for after this baseline failure.
+All 98 host Python tests passed; the unpatched host Rayon control returned 0.

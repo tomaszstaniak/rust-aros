@@ -29,6 +29,17 @@ fn main() {
         drop(guard);
         join.join().unwrap();
     }
-    unsafe { assert!(deadline_calls() >= 1); assert_eq!(deadline_bad(), 0); }
+    unsafe {
+        // Native ARM has no unix target family and uses parking_lot's generic
+        // parker. Require the declared backend's actual contract, rather than
+        // treating absence of a pthread timedwait as a clock failure.
+        if option_env!("RUNTIME_PARKER") == Some("generic") {
+            assert_eq!(deadline_calls(), 0);
+        } else {
+            assert!(deadline_calls() >= 1);
+        }
+        assert_eq!(deadline_bad(), 0);
+    }
+    println!("PASS parker-backend={}", option_env!("RUNTIME_PARKER").unwrap_or("unix"));
     println!("RUN {} parking pass wakeups=8", env!("RUNTIME_RUN_ID"));
 }
