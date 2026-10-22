@@ -44,9 +44,9 @@ def main():
     for name in ['sysroot', 'cc', 'ar', 'nm', 'sdk', 'out']:
         setattr(a, name, getattr(a, name).absolute())
     arm = a.profile == 'aarch64-v1-raspi'
-    legacy_jonx = arm and not (a.sysroot / 'aros-common.json').is_file()
-    expected = ('rustc 1.98.0-nightly (ce9954c0c 2026-06-26)' if legacy_jonx else
-                'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)')
+    if arm and not (a.sysroot / 'aros-common.json').is_file():
+        p.error('create the guarded common sysroot with tools/common-sysroot.py')
+    expected = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)'
     rustc = a.sysroot / 'bin/rustc'
     version = subprocess.check_output([rustc, '-V'], text=True).strip()
     if version != expected:
@@ -79,9 +79,6 @@ def main():
     cargo = [a.sysroot / 'bin/cargo', 'build', '--offline', '--release',
              '-Zjson-target-spec', '-Zbuild-std=std,panic_abort', '--manifest-path', ROOT / 'acceptance/Cargo.toml',
              '--target', spec, '--target-dir', a.out / 'cargo']
-    if legacy_jonx:
-        cargo += ['--config', 'source.crates-io.replace-with="vendored-sources"',
-                  '--config', 'source.vendored-sources.directory=' + json.dumps(str(a.sysroot / 'lib/rustlib/src/rust/library/vendor'))]
     run(cargo, env=env)
     sources = [ROOT / 'acceptance/main.c']
     if arm:
@@ -107,7 +104,7 @@ def main():
         sys.exit('unresolved symbols: ' + undefined)
     data = binary.read_bytes()
     validate_elf(data, a.profile)
-    manifest = dict(profile=a.profile, compiler=version, sdk=str(a.sdk), cc=str(a.cc),
+    manifest = dict(profile=a.profile, compiler=version, sdk=str(a.sdk), cc=str(a.cc), ar=str(a.ar), nm=str(a.nm),
                     cc_version=subprocess.check_output([a.cc, '--version'], text=True),
                     target=target, glue_revision=GLUE_REV if arm else None,
                     sha256=hashlib.sha256(data).hexdigest(), runtime_acceptance=False)

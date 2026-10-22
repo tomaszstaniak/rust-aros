@@ -37,6 +37,14 @@ def main():
         lines += [f'{join(a.programs, kind)} >{result}.log', f'Echo $RC >{result}.rc']
     lines += [f'Echo complete >{join(a.results, a.run_id + "-done.txt")}']
     (a.new_bundle / 'run').write_text('\n'.join(lines) + '\n')
+    shutil.copy2(Path(__file__).resolve().parents[1] / 'acceptance/README.md', a.new_bundle / 'README.md')
+    (a.new_bundle / 'RUN.txt').write_text(
+        f'Profile: {manifest["profile"]}\nCompiler: {manifest["compiler"]}\n'
+        f'Copy this bundle into {a.programs}. Ensure {a.results} exists.\n'
+        f'Run Execute {join(a.programs, "run")} with a 45-second host deadline.\n'
+        f'Require fresh {a.run_id}-*.rc receipts containing 0 and the final complete receipt.\n'
+        'Work-complete output without a return-code receipt is not success.\n'
+        'Physical Pi model, image compatibility and runtime acceptance must be verified separately.\n')
     print(a.new_bundle)
 
 
