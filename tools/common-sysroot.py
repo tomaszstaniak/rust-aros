@@ -12,6 +12,10 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sysroot_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 ARM = 'all(target_os = "aros", target_arch = "aarch64")'
@@ -144,8 +148,7 @@ def populate(dest, source):
                      '[patch.crates-io]\nlibc = { path = "libc-aros" }\n', 1))
     subprocess.run(['python3', ROOT / 'std-groundwork/std-patch/patch-std.py', lib / 'std/src'], check=True)
     merge(lib / 'std/src', source)
-    (dest / 'aros-common.json').write_text(json.dumps(dict(compiler=VERSION, jonx=jonx.REVISION,
-         backends=['x86_64-v11', 'aarch64-v1-raspi'], native_sockets='disabled'), indent=2) + '\n')
+    sysroot_contract.record(dest)
 
 
 if __name__ == '__main__':

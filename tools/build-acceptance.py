@@ -8,6 +8,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sysroot_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 GLUE_REV = '3bc9359d439f9fb5655cf48924413ffe670931cc'
 
@@ -44,8 +47,10 @@ def main():
     for name in ['sysroot', 'cc', 'ar', 'nm', 'sdk', 'out']:
         setattr(a, name, getattr(a, name).absolute())
     arm = a.profile == 'aarch64-v1-raspi'
-    if arm and not (a.sysroot / 'aros-common.json').is_file():
-        p.error('create the guarded common sysroot with tools/common-sysroot.py')
+    try:
+        sysroot_contract.validate(a.sysroot, a.profile)
+    except ValueError as error:
+        p.error(f'{error}; rebuild with tools/common-sysroot.py')
     expected = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)'
     rustc = a.sysroot / 'bin/rustc'
     version = subprocess.check_output([rustc, '-V'], text=True).strip()
