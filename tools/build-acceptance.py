@@ -50,7 +50,7 @@ def main():
     try:
         sysroot_contract.validate(a.sysroot, a.profile)
     except ValueError as error:
-        p.error(f'{error}; rebuild with tools/common-sysroot.py')
+        p.error(f'{error}; create the guarded common sysroot with tools/common-sysroot.py')
     expected = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)'
     rustc = a.sysroot / 'bin/rustc'
     version = subprocess.check_output([rustc, '-V'], text=True).strip()
