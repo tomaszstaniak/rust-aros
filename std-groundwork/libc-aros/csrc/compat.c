@@ -31,7 +31,7 @@
 #include <aros/symbolsets.h>
 #include <proto/dos.h>
 #include <proto/exec.h>
-#include <devices/conunit.h>
+#include <limits.h>
 #include <dos/dosextens.h>
 #include <exec/memory.h>
 #include <arpa/inet.h>
@@ -153,29 +153,66 @@ int rs_closesocket(int s) {
 int rs_fd_close(int fd) { return rs_socket_tagged(fd) ? rs_closesocket(fd) : close(fd); }
 long rs_fd_read(int fd, void *b, size_t n) { return rs_socket_tagged(fd) ? rs_recv(fd, b, n, 0) : read(fd, b, n); }
 long rs_fd_write(int fd, const void *b, size_t n) { return rs_socket_tagged(fd) ? rs_send(fd, b, n, 0) : write(fd, b, n); }
-/* TIOCGWINSZ from the descriptor's own handle. The C library's ioctl answers
- * descriptors 0 and 1 from the calling task's Input()/Output(), which a
- * pthread does not share with the main process (it gets EBADF there), and
- * reports failures as positive errno values. The query itself is the one the
- * C library makes: ACTION_DISK_INFO, whose id_InUse names the console unit. */
+/* Descriptor-based geometry, also from worker threads. Public packet layout:
+ * AROS PR #1763, head 4fd9618699101fa6425146d7d0c0eb7767fe23cf,
+ * compiler/include/dos/consoleinfo.h (version 1, still proposed upstream).
+ * Fixed-width local definitions let older SDKs build without that header.
+ * Older Limpet uses the frozen XtyControl v1 presentation query (operation
+ * 13). Neither path exposes handler-owned pointers. In particular, never
+ * interpret ACTION_DISK_INFO.id_InUse: it may be a count, not an IOStdReq.
+ */
 static int rs_console_size(int fd, struct winsize *ws) {
+    struct {
+        uint32_t size, version, columns, rows, width, height;
+    } geometry = {0};
+    struct {
+        uint32_t version, operation, reserved[2], values[12];
+    } presentation = {1, 13, {0, 0}, {0}};
+    _Static_assert(sizeof geometry == 24, "ConsoleGeometry wire size");
+    _Static_assert(sizeof presentation == 64, "XtyControl wire size");
+    struct winsize result;
     long handle = 0;
     if (!ws) { errno = EFAULT; return -1; }
     if (__get_default_file(fd, &handle) < 0 || !handle) { errno = EBADF; return -1; }
     BPTR file = (BPTR)handle;
     struct FileHandle *fh = BADDR(file);
-    if (!IsInteractive(file) || !fh->fh_Type) { errno = ENOTTY; return -1; }
-    struct InfoData *info = AllocMem(sizeof *info, MEMF_PUBLIC | MEMF_CLEAR);
-    if (!info) { errno = ENOMEM; return -1; }
-    struct ConUnit *unit = NULL;
-    if (DoPkt((struct MsgPort *)fh->fh_Type, ACTION_DISK_INFO, (SIPTR)MKBADDR(info), 0, 0, 0, 0) && info->id_InUse)
-        unit = (struct ConUnit *)((struct IOStdReq *)info->id_InUse)->io_Unit;
-    FreeMem(info, sizeof *info);
-    if (!unit) { errno = ENOTTY; return -1; }
-    ws->ws_row = (unsigned short)(unit->cu_YMax + 1);
-    ws->ws_col = (unsigned short)(unit->cu_XMax + 1);
-    ws->ws_xpixel = unit->cu_Window ? (unsigned short)unit->cu_Window->Width : 0;
-    ws->ws_ypixel = unit->cu_Window ? (unsigned short)unit->cu_Window->Height : 0;
+    if (!IsInteractive(file) || !fh || !fh->fh_Type) { errno = ENOTTY; return -1; }
+    /* Arg1 is fh_Arg1, not the BPTR; Arg3 is capacity, Arg4 is version. */
+    SIPTR answer = DoPkt((struct MsgPort *)fh->fh_Type, 0x434f4e47L,
+                        fh->fh_Arg1, (SIPTR)&geometry, sizeof geometry, 1, 0);
+    if (answer == DOSTRUE) {
+        if (geometry.size != sizeof geometry || geometry.version != 1 ||
+            !geometry.columns || !geometry.rows) {
+            errno = ENOTTY; return -1;
+        }
+    } else {
+        /* Only absence of the public operation permits a legacy query.
+         * A malformed success or another DOS failure is not negotiable. */
+        if (answer != DOSFALSE || IoErr() != ERROR_ACTION_NOT_KNOWN) { errno = ENOTTY; return -1; }
+        if (DoPkt((struct MsgPort *)fh->fh_Type, 0x58545901L, fh->fh_Arg1,
+                  (SIPTR)&presentation, sizeof presentation, 0x58545931L, 0) != DOSTRUE ||
+            presentation.version != 1 || presentation.operation != 13 ||
+            presentation.reserved[0] != 0x58545931L || presentation.reserved[1] ||
+            !(presentation.values[0] & 8) || !presentation.values[4] ||
+            !presentation.values[5]) {
+            errno = ENOTTY; return -1;
+        }
+        /* Unknown bits and future values are deliberately ignored.
+         * This protocol reports cells only; pixel dimensions stay zero. */
+        geometry.width = geometry.height = 0;
+        geometry.rows = presentation.values[4];
+        geometry.columns = presentation.values[5];
+    }
+    if (geometry.rows > USHRT_MAX || geometry.columns > USHRT_MAX ||
+        geometry.width > USHRT_MAX || geometry.height > USHRT_MAX) {
+        errno = EOVERFLOW; return -1;
+    }
+    memset(&result, 0, sizeof result);
+    result.ws_row = (unsigned short)geometry.rows;
+    result.ws_col = (unsigned short)geometry.columns;
+    result.ws_xpixel = (unsigned short)geometry.width;
+    result.ws_ypixel = (unsigned short)geometry.height;
+    *ws = result;
     return 0;
 }
 
