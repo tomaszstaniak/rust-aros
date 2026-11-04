@@ -1,0 +1,101 @@
+Subject: Require pinned pthread headers and expand actual C/Rust ABI records
+
+Reproduced old mainline SDK missing pthread_condattr_t.cond_clock. Reject it
+before std compilation; private composition uses the pinned pthread2 headers.
+Compare file metadata, clocks, exact pthread attributes/once, and the capacity
+and alignment (not array stride compatibility) of opaque synchronization storage.
+Native ino_t is the SDK __ino_t, publicly gated by feature macros.
+Base: preceding patches on PR1800 2eb81b4. APL 1.1; original John KNIPPER,
+adaptations copyright AROS contributors. Runtime remains UNTESTED.
+
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -19,6 +19,11 @@
+     config = sdk / "include/aros/config.h"
+     if not config.is_file() or "#define AROS_DOS_PACKETS                1" not in config.read_text():
+         raise ValueError("require native mainline ABIv1 SDK configuration, not ABIv11")
++
++    pthread = sdk / "include/pthread.h"
++    import re
++    if not pthread.is_file() or not re.search(r"\bclockid_t\s+cond_clock\s*;", pthread.read_text(errors='replace')):
++        raise ValueError("require the pinned pthread2 headers with cond_clock; older mainline SDK is not this profile")
+ 
+ 
+ def c_driver(profile, sdk, tools, cc=None, flags=()):
+--- a/tools/crosstools/rust/unmodified/ABI/network-abi.py
++++ b/tools/crosstools/rust/unmodified/ABI/network-abi.py
+@@ -26,6 +26,13 @@
+ 
+ 
+ LAYOUTS = {
++    "stat": "st_dev st_ino st_mode st_nlink st_uid st_gid st_rdev st_size st_atime st_mtime st_ctime st_blksize st_blocks st_flags st_gen",
++    "timespec": "tv_sec tv_nsec",
++    "pthread_attr_t": "stackaddr stacksize detachstate inheritsched contentionscope",
++    "pthread_mutexattr_t": "pshared kind",
++    "pthread_condattr_t": "pshared cond_clock",
++    "pthread_rwlockattr_t": "pshared",
++    "pthread_once_t": "done started lock",
+     "pollfd": "fd events revents",
+     "sockaddr": "sa_len sa_family sa_data",
+     "sockaddr_in": "sin_len sin_family sin_port sin_addr sin_zero",
+@@ -50,7 +57,7 @@
+ POLLIN POLLPRI POLLOUT POLLERR POLLHUP POLLNVAL
+ ENOSYS EINVAL EBADF EAFNOSUPPORT EOPNOTSUPP EWOULDBLOCK ECONNREFUSED
+ """.split()
+-TYPES = "c_int c_short c_long size_t socklen_t sa_family_t pid_t nfds_t".split()
++TYPES = "c_int c_short c_long size_t socklen_t sa_family_t pid_t nfds_t off_t ino_t time_t clockid_t pthread_t pthread_key_t".split()
+ HEADER = "// Copyright (C) 2026 John KNIPPER <code@jkn.me>\n// Licensed under the AROS Public License (APL) Version 1.1\n"
+ 
+ 
+@@ -79,21 +86,24 @@
+     values = []
+     for name, fields in LAYOUTS.items():
+         group = "resolver_bridge" if name == "addrinfo" else "direct"
+-        values.extend([(group, name + ".size", f"sizeof(struct {name})",
++        values.extend([(group, name + ".size", f"sizeof({name if name.startswith('pthread_') else 'struct ' + name})",
+                         f"size_of::<libc::{name}>()"),
+-                       (group, name + ".align", f"_Alignof(struct {name})",
++                       (group, name + ".align", f"_Alignof({name if name.startswith('pthread_') else 'struct ' + name})",
+                         f"align_of::<libc::{name}>()")])
+         for field in fields.split():
+             values.append((group, name + "." + field + ".offset",
+-                           f"__builtin_offsetof(struct {name}, {field})",
++                           f"__builtin_offsetof({name if name.startswith('pthread_') else 'struct ' + name}, {field})",
+                            f"offset_of!(libc::{name}, {field})"))
+             values.append((group, name + "." + field + ".size",
+-                           f"sizeof(((struct {name} *)0)->{field})",
++                           f"sizeof((({name if name.startswith('pthread_') else 'struct ' + name} *)0)->{field})",
+                            f"field_size!(libc::{name}, {field})"))
++    for name in ('pthread_mutex_t', 'pthread_cond_t', 'pthread_rwlock_t', 'sem_t'):
++        for operation, c_op, r_op in [('size', 'sizeof', 'size_of'), ('align', '_Alignof', 'align_of')]:
++            values.append(('opaque_storage', name + '.' + operation, f'{c_op}({name})', f'{r_op}::<libc::{name}>()'))
+     for name in CONSTANTS:
+         values.append(("direct", name, name, f"libc::{name}"))
+     for name in TYPES:
+-        cname = {"c_int": "int", "c_short": "short", "c_long": "long", "nfds_t": "unsigned int"}.get(name, name)
++        cname = {"c_int": "int", "c_short": "short", "c_long": "long", "nfds_t": "unsigned int", "ino_t": "__ino_t"}.get(name, name)
+         values.append(("direct", name + ".size", f"sizeof({cname})",
+                        f"size_of::<libc::{name}>()"))
+     return [(g,n,c.replace("struct pollfd", "struct aros_socket_pollfd"),r) for g,n,c,r in values]
+@@ -132,7 +142,7 @@
+     shutil.copyfile(native_header, private_include / "native.h")
+     entries = records()
+     c = HEADER + "\n".join("#include <" + name + ">" for name in (
+-        "errno.h", "sys/types.h", "sys/socket.h", "sys/uio.h", "sys/time.h", "sys/ioctl.h",
++        "errno.h", "pthread.h", "semaphore.h", "sys/stat.h", "time.h", "sys/types.h", "sys/socket.h", "sys/uio.h", "sys/time.h", "sys/ioctl.h",
+         "netinet/in.h", "netinet/tcp.h", "netdb.h", "bsdsocket/native.h"))
+     for name in ("IN", "PRI", "OUT", "ERR", "HUP", "NVAL"):
+         c += "\n#define POLL" + name + " AROS_POLL_" + name
+@@ -218,10 +228,10 @@
+         rust_absent = entry[1] == "MSG_NOSIGNAL" and r == 2**64 - 1
+         rows.append({"group": entry[0], "name": entry[1],
+                      "native": None if absent else n, "rust": None if rust_absent else r,
+-                     "equal": (absent and rust_absent) or (not absent and not rust_absent and n == r),
++                     "equal": (absent and rust_absent) or (not absent and not rust_absent and (r >= n if entry[0] == 'opaque_storage' else n == r)),
+                      **({"capability": "UNSUPPORTED"} if absent and rust_absent else {}),
+                      **({"reason": "constant absent from native SDK"} if absent else {})})
+-    direct = [r for r in rows if r["group"] == "direct" and not r["equal"]]
++    direct = [r for r in rows if r["group"] in ("direct", "opaque_storage") and not r["equal"]]
+     bridge = [r for r in rows if r["group"] == "resolver_bridge" and not r["equal"]]
+     if any(digest(Path(p)) != sha for p, sha in inputs.items()):
+         raise RuntimeError("qualified std inputs changed during qualification")

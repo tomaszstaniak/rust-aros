@@ -1,0 +1,37 @@
+# Preserve the native diagnostic reports' final blank separator verbatim.
+docs/evidence/2026-10-15-process-exec/cspawn/csp1015-posix-probe.txt whitespace=-blank-at-eof
+docs/evidence/2026-10-15-process-exec/ffi/abi1015-a.txt whitespace=-blank-at-eof
+# Preserve raw panic output and required unified-diff context lines.
+docs/evidence/2026-10-15-wat-lsp/native-01/wl01-transcript.txt whitespace=-blank-at-eof,-blank-at-eol
+ports/wat-server/transport.patch whitespace=-blank-at-eol
+# Cargo test transcripts end with their original blank separator.
+docs/evidence/2026-10-15-wat-concurrency/batch-client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-concurrency/batch-process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-concurrency/batch-transport-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-unwind/unwind-client-tests.log whitespace=-blank-at-eof
+# Preserve original diagnostic separators and unified-diff context.
+docs/evidence/2026-10-15-wat-interactive/interactive-process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/interactive-transport-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/interactive-unit-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-interactive/native-08/wl08-interactive.txt whitespace=-blank-at-eof
+ports/wat-server/request-trace.patch whitespace=-blank-at-eol
+# Preserve original checkpoint test transcripts and diagnostic separators.
+docs/evidence/2026-10-15-wat-checkpoint/client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/gate-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-checkpoint/transport-tests.log whitespace=-blank-at-eof
+ports/wat-server/probe-checkpoint.patch whitespace=-blank-at-eol
+# Preserve original worker lifecycle transcripts and unified-diff context.
+docs/evidence/2026-10-15-wat-teardown/client-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/worker-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/process-tests.log whitespace=-blank-at-eof
+docs/evidence/2026-10-15-wat-teardown/transport-tests.log whitespace=-blank-at-eof
+ports/wat-server/worker-lifecycle.patch whitespace=-blank-at-eol
+# Preserve verbatim Cargo/dyld diagnostic whitespace in baseline build evidence.
+docs/evidence/2026-10-16-wat-baseline/build-abort/logs/build-ordinary.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-cancellation.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-diagnostic.log whitespace=-blank-at-eol
+docs/evidence/2026-10-16-wat-baseline/build-unwind/logs/build-ordinary.log whitespace=-blank-at-eol
+# Preserve original Cargo diagnostics and imported unified-diff context verbatim.
+docs/evidence/2026-10-17-runtime/build-logs/*.log whitespace=-blank-at-eol
+ports/runtime/patches/*.patch whitespace=-blank-at-eol,-blank-at-eof

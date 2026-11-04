@@ -1,0 +1,102 @@
+Subject: Qualify host build scripts and proc macros in the SDK consumer
+
+The normal no-build-std consumer invokes a host proc macro with a build
+script that verifies the pinned compiler commit and host triple. Retain its
+receipt separately from target link/runtime qualification. Use recursive
+receipt discovery for the pinned Cargo build-directory layout.
+Base: preceding patches on PR1800 2eb81b4. APL 1.1, AROS contributors;
+original consumer pipeline copyright John KNIPPER.
+
+--- a/tools/crosstools/rust/unmodified/consumer-check.py
++++ b/tools/crosstools/rust/unmodified/consumer-check.py
+@@ -110,6 +110,7 @@
+               build / driver, HERE / 'consumer-probe.rs', HERE / 'consumer-trace.c']
+     if installation:
+         inputs += [prefix / 'aros-official-rust.json', *(prefix / name for name in installation['installed'])]
++    inputs += [p for p in (HERE / 'consumer-host-probe').rglob('*') if p.is_file()]
+     inputs += imports
+     inputs += [p for p in libc[0].parent.rglob('*') if p.is_file()]
+     before = {str(p): digest(p) for p in inputs}
+@@ -118,12 +119,13 @@
+         parser.error('at least 5 GiB free disk space is required')
+     output.mkdir(parents=True)
+     (output / 'src').mkdir()
++    shutil.copytree(HERE / 'consumer-host-probe', output / 'host-probe')
+     (output / 'Cargo.toml').write_text(
+         '[package]\nname="aros-precompiled-std-consumer"\nversion="0.1.0"\n'
+-        'edition="2021"\n[workspace]\n[dependencies]\nlibc = { path = ' +
++        'edition="2021"\n[workspace]\n[dependencies]\naros-consumer-host-probe = { path = "host-probe" }\nlibc = { path = ' +
+         json.dumps(str(libc[0].parent)) + ' }\n[profile.dev]\npanic="abort"\n' +
+         ('lto=' + json.dumps(args.lto) + '\n' if args.lto else ''))
+-    shutil.copyfile(HERE / 'consumer-probe.rs', output / 'src/main.rs')
++    (output / 'src/main.rs').write_text('const _: u32 = aros_consumer_host_probe::stamp!();\n' + (HERE / 'consumer-probe.rs').read_text())
+     tools = Path(result['crosstools']) / 'bin'
+     trace = output / 'consumer-trace.o'
+     trace_command = [*result['c_driver'],
+@@ -138,7 +140,7 @@
+            ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTC_WRAPPER',
+             'RUSTC_WORKSPACE_WRAPPER', 'RUSTC_BOOTSTRAP')}
+     env.update(RUSTC=str(rustc), CARGO_HOME=str(output / 'cargo-home'),
+-               CARGO_TARGET_DIR=str(output / 'target'), CARGO_INCREMENTAL='0')
++               CARGO_TARGET_DIR=str(output / 'target'), CARGO_INCREMENTAL='0', AROS_EXPECTED_COMPILER=COMMIT)
+     command = [cargo, '--config', str(config), '--config',
+                'source.crates-io.replace-with="aros-std-vendor"', '--config',
+                'target.' + triple + '.rustflags=' + json.dumps([
+@@ -175,7 +177,10 @@
+     if any(not Path(name).is_file() or digest(Path(name)) != expected
+            for name, expected in external_expected.items()):
+         raise RuntimeError('qualified SDK/tool inputs changed during consumer compilation')
+-    report = {'profile': profile, 'compile_link': 'PASS', 'build_std': False, 'native_runtime': 'UNTESTED',
++    host_proofs = list((output / 'target/debug/build').rglob('host-tools.txt'))
++    if len(host_proofs) != 1:
++        raise RuntimeError('missing unique host build-script/compiler proof')
++    report = {'host_tools_proof': host_proofs[0].read_text(), 'profile': profile, 'compile_link': 'PASS', 'build_std': False, 'native_runtime': 'UNTESTED',
+               'lto': args.lto,
+               'installed_toolchain': str(prefix) if installation else None,
+               'external_sdk_inputs_verified': len(external_expected),
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -155,7 +155,7 @@
+     inputs[str(HERE / "profiles.py")] = digest(HERE / "profiles.py")
+     native_header = HERE.parents[3] / 'workbench/network/common/include/bsdsocket/native.h'
+     inputs[str(native_header)] = digest(native_header)
+-    inputs.update({str(x): digest(x) for directory in ('net', 'fs', 'sys') for x in (HERE / directory).rglob('*')
++    inputs.update({str(x): digest(x) for directory in ('net', 'fs', 'sys', 'consumer-host-probe') for x in (HERE / directory).rglob('*')
+                    if x.is_file()})
+     if a.posix_stubs:
+         inputs[str(a.posix_stubs.resolve())] = digest(a.posix_stubs.resolve())
+--- /dev/null
++++ b/tools/crosstools/rust/unmodified/consumer-host-probe/Cargo.toml
+@@ -0,0 +1,6 @@
++[package]
++name = "aros-consumer-host-probe"
++version = "0.1.0"
++edition = "2021"
++[lib]
++proc-macro = true
+--- /dev/null
++++ b/tools/crosstools/rust/unmodified/consumer-host-probe/build.rs
+@@ -0,0 +1,14 @@
++// APL 1.1, copyright 2026 AROS contributors.
++use std::{env, fs, process::Command};
++fn main() {
++    let result = Command::new(env::var_os("RUSTC").unwrap()).arg("-Vv").output().unwrap();
++    assert!(result.status.success());
++    let version = String::from_utf8(result.stdout).unwrap();
++    let commit = env::var("AROS_EXPECTED_COMPILER").unwrap();
++    let host = env::var("HOST").unwrap();
++    assert!(version.contains(&format!("commit-hash: {commit}\n")));
++    assert!(version.contains(&format!("host: {host}\n")));
++    fs::write(std::path::Path::new(&env::var_os("OUT_DIR").unwrap()).join("host-tools.txt"),
++              format!("{version}HOST={host}\nTARGET={}\n", env::var("TARGET").unwrap())).unwrap();
++    println!("cargo:rerun-if-env-changed=AROS_EXPECTED_COMPILER");
++}
+--- /dev/null
++++ b/tools/crosstools/rust/unmodified/consumer-host-probe/src/lib.rs
+@@ -0,0 +1,6 @@
++// APL 1.1, copyright 2026 AROS contributors.
++extern crate proc_macro;
++#[proc_macro]
++pub fn stamp(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
++    "7u32".parse().unwrap()
++}

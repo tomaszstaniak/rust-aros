@@ -1,0 +1,80 @@
+Subject: Bind reusable std output to the SDK and C tool contents
+
+An unchanged path is not an unchanged SDK. Record all SDK headers/libraries
+and actual C/collect/LLVM tool hashes at native build start, check them again
+at completion and require exact equality before reusing compiled std.
+Base: preceding patches on PR1800 2eb81b4. APL 1.1. Original John KNIPPER;
+adaptations copyright AROS contributors.
+
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -79,3 +79,12 @@
+         invalid = {number for number in (311, 312) if counts.get(number, 0)}
+     if invalid:
+         raise ValueError('allocated relocations outside the selected loader contract: ' + str(sorted(invalid)))
++
++
++def native_inputs(sdk, tools, collect, cc=None):
++    paths = [collect.resolve()]
++    for name in ('llvm-ar', 'llvm-nm', 'llvm-objcopy', 'ld.lld'):
++        paths.append(tools.resolve() / 'bin' / name)
++    paths.append(cc.resolve() if cc else tools.resolve() / 'bin/clang')
++    paths.extend(p for directory in ('include', 'lib') for p in (sdk.resolve() / directory).rglob('*') if p.is_file())
++    return {str(p): file_digest(p) for p in paths}
+--- a/tools/crosstools/rust/unmodified/build.py
++++ b/tools/crosstools/rust/unmodified/build.py
+@@ -16,7 +16,7 @@
+ import sys
+ 
+ 
+-from profiles import PROFILES, select, validate_sdk, c_driver as native_c_driver
++from profiles import PROFILES, select, validate_sdk, c_driver as native_c_driver, native_inputs
+ 
+ HERE = Path(__file__).resolve().parent
+ PIN = json.loads((HERE / "channel.json").read_text())
+@@ -92,6 +92,7 @@
+         parser.error("--posix-stubs requires native linking inputs")
+     if bool(args.rustc) != bool(args.cargo):
+         parser.error("--rustc and --cargo must be supplied together")
++    frozen_native = native_inputs(args.sdk, args.crosstools, args.collect_aros, args.cc) if args.sdk else {}
+     source = args.rust_src.resolve()
+     output = args.output.resolve()
+     if output.exists() or output.is_symlink():
+@@ -210,7 +211,7 @@
+         shutil.copy2(library, target_library / library.name)
+     archive = output / "std-probe.a"
+     shutil.copyfile(archives[0], archive)
+-    result = {"profile": profile, "official_compiler": str(compiler), "official_cargo": cargo, "build_jobs": args.jobs, "probe": args.probe, "probe_sha256": digest(probe_source),
++    result = {"native_inputs": frozen_native, "profile": profile, "official_compiler": str(compiler), "official_cargo": cargo, "build_jobs": args.jobs, "probe": args.probe, "probe_sha256": digest(probe_source),
+               "precompiled_std": {p.name: digest(p) for p in std_rlibs},
+               "compiler_commit": COMMIT, "compiler_sha256": compiler_sha256,
+               "target_sha256": digest(target), "std_patch_sha256": digest(HERE / "rust-src-aros.diff"),
+@@ -316,6 +317,8 @@
+                            "socket.c", "socket_native.h", "socket_aros.c")},
+                       elf={"class": 64, "endian": "little", "osabi": "AROS",
+                            "machine": profile["arch"], "abi": profile["abi"], "type": "ET_REL"})
++    if args.sdk and frozen_native != native_inputs(args.sdk, args.crosstools, args.collect_aros, args.cc):
++        raise RuntimeError("native SDK or C tools changed during the build")
+     if digest(compiler) != result["compiler_sha256"]:
+         raise RuntimeError("compiler changed during the build")
+     (output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -17,7 +17,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import HERE, PIN, COMMIT, TOOLCHAIN, MIN_BUILD_FREE, digest, run
+-from profiles import PROFILES, select, validate_sdk, c_driver, generation
++from profiles import PROFILES, select, validate_sdk, c_driver, generation, native_inputs
+ 
+ 
+ def write(path, text, executable=False):
+@@ -173,6 +173,8 @@
+             or result['compiler_commit'] != COMMIT or result['std_patch_sha256'] != digest(HERE / 'rust-src-aros.diff')
+             or result['target_sha256'] != digest(HERE / (triple + '.json'))):
+         raise RuntimeError('native std output does not match the pinned inputs')
++    if result.get('native_inputs') != native_inputs(a.sdk, a.crosstools, a.collect_aros, a.cc):
++        raise RuntimeError('native std output uses changed SDK headers, libraries or C tools')
+     if result.get('c_driver') != c_driver(profile, a.sdk, a.crosstools, a.cc, a.cc_arg):
+         raise RuntimeError('native std output uses a different C driver, flags or SDK')
+     if digest(native_header) != result['native_socket_header_sha256']:

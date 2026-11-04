@@ -1,0 +1,109 @@
+Subject: Fail closed on installed SDK manifests and generation identities
+
+Schema 1 requires the complete managed file set, pinned compiler/profile,
+valid hashes of all inputs, and recomputed generation including C flags.
+Reject missing, changed or incomplete data before the consumer build.
+Base: preceding profile patches on PR1800 2eb81b4. APL 1.1; adaptations
+copyright AROS contributors; original John KNIPPER.
+
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -24,3 +24,47 @@
+ def c_driver(profile, sdk, tools, cc=None, flags=()):
+     command = [str(cc.resolve()), *flags] if cc else [str(tools.resolve() / "bin/clang"), "--target=" + profile["triple"]]
+     return command + ["--sysroot=" + str(sdk.resolve())]
++
++
++def file_digest(path):
++    import hashlib
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++
++def generation(inputs, triple, flags):
++    import hashlib
++    import json
++    return hashlib.sha256(json.dumps(dict(inputs=inputs, target=triple, cc_args=flags), sort_keys=True).encode()).hexdigest()
++
++
++def validate_installation(prefix, compiler_commit):
++    import json
++    import re
++    from pathlib import Path
++    data = json.loads((prefix / "aros-official-rust.json").read_text())
++    try:
++        if data['schema'] != 1 or data['compiler_commit'] != compiler_commit:
++            raise ValueError('unsupported installation schema or compiler')
++        profile = select(data['profile']['triple'])
++        if data['profile'] != profile:
++            raise ValueError('installation profile changed')
++        expected = {'share/' + profile['triple'] + '.json', 'cargo-config.toml'}
++        expected.update('bin/' + name for name in ('rustc', 'cargo', 'rustdoc', profile['driver']))
++        if set(data['installed']) != expected or not data['inputs']:
++            raise ValueError('incomplete installed files or input identity')
++        if not isinstance(data['cc_args'], list) or not all(isinstance(x, str) for x in data['cc_args']):
++            raise ValueError('invalid C flags')
++        if data['generation'] != generation(data['inputs'], profile['triple'], data['cc_args']):
++            raise ValueError('SDK generation differs from its inputs')
++        for mapping, relative in ((data['installed'], True), (data['inputs'], False)):
++            for name, expected_hash in mapping.items():
++                path = prefix / name if relative else Path(name)
++                if not relative and not path.is_absolute():
++                    raise ValueError('input identity must be absolute')
++                if not isinstance(expected_hash, str) or not re.fullmatch('[0-9a-f]{64}', expected_hash):
++                    raise ValueError('invalid input hash')
++                if not path.is_file() or file_digest(path) != expected_hash:
++                    raise ValueError('installation input changed: ' + str(path))
++    except (KeyError, TypeError) as error:
++        raise ValueError('incomplete installation manifest') from error
++    return data
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -17,7 +17,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import HERE, PIN, COMMIT, TOOLCHAIN, MIN_BUILD_FREE, digest, run
+-from profiles import PROFILES, select, validate_sdk, c_driver
++from profiles import PROFILES, select, validate_sdk, c_driver, generation
+ 
+ 
+ def write(path, text, executable=False):
+@@ -158,7 +158,7 @@
+     # must never silently reuse a std/adapter generation from another ABI.
+     for directory in ('include', 'lib'):
+         inputs.update({str(x): digest(x) for x in (a.sdk / directory).rglob('*') if x.is_file()})
+-    key = hashlib.sha256(json.dumps(dict(inputs=inputs, target=triple, cc_args=a.cc_arg), sort_keys=True).encode()).hexdigest()
++    key = generation(inputs, triple, a.cc_arg)
+     native = a.std_build.resolve() if a.std_build else work / ('native-' + key[:20])
+     if not (native / 'result.json').is_file():
+         command = native_build_command(compiler, cargo, stock, native, a)
+@@ -225,7 +225,7 @@
+     installed = {str(x.relative_to(prefix)): digest(x) for x in
+                  [target, prefix / 'cargo-config.toml', *(prefix / 'bin' / n for n in
+                   ('rustc', 'cargo', driver, 'rustdoc'))]}
+-    write(prefix / 'aros-official-rust.json', json.dumps({'profile': profile, 'toolchain': TOOLCHAIN,
++    write(prefix / 'aros-official-rust.json', json.dumps({'schema': 1, 'cc_args': a.cc_arg, 'profile': profile, 'toolchain': TOOLCHAIN,
+           'compiler_commit': COMMIT, 'host_triple': a.host_triple, 'generation': key,
+           'native_build': str(native), 'inputs': inputs, 'installed': installed,
+           'compile_link': 'PASS', 'native_runtime': 'UNTESTED'}, indent=2) + '\n')
+--- a/tools/crosstools/rust/unmodified/consumer-check.py
++++ b/tools/crosstools/rust/unmodified/consumer-check.py
+@@ -13,8 +13,8 @@
+ 
+ sys.dont_write_bytecode = True
+ 
+-from build import TOOLCHAIN, digest, run
+-from profiles import select
++from build import TOOLCHAIN, COMMIT, digest, run
++from profiles import select, validate_installation
+ 
+ HERE = Path(__file__).resolve().parent
+ 
+@@ -30,7 +30,7 @@
+     installation = None
+     if args.install_prefix:
+         prefix = args.install_prefix.resolve()
+-        installation = json.loads((prefix / 'aros-official-rust.json').read_text())
++        installation = validate_installation(prefix, COMMIT)
+         for name, expected in installation['installed'].items():
+             if digest(prefix / name) != expected:
+                 parser.error('installed toolchain changed: ' + name)

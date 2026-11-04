@@ -1,0 +1,362 @@
+Subject: Serialize the C library's path and descriptor-table calls on ARM
+
+What: run every path call (open, stat, lstat, opendir, readdir, closedir,
+     mkdir, rmdir, unlink, rename, chmod, utimes, symlink, readlink,
+     realpath, getcwd, chdir) and every descriptor-table call (close, dup,
+     lseek, fstat, ftruncate, fchmod) under one process-wide mutex, and
+     take errno inside it. Reads and writes are not gated.
+Why: the native Pi system's posixc (2026-08-22) gives pthread workers no
+     library base of their own. All threads share one base, its path
+     conversion buffer (reallocated per call), descriptor table and errno.
+     Four threads doing stat/read on their own files read each other's
+     files and errno; VectorCraft's GUI failed to open files (EINVAL) and
+     corrupted the TLSF heap. Same approach as libc-aros b060307 on x86_64.
+Scope: AArch64 PAL imported from jonx/rust-aros 2e2845efb6aaa111b5a26c9685e96d08fad340f4.
+License: MIT OR Apache-2.0, matching the original Jonx/Rust source files.
+Upstream status: local integration patch; no submission authorized.
+
+diff --color -ru a/os/fd_jonx/owned.rs b/os/fd_jonx/owned.rs
+--- a/os/fd_jonx/owned.rs
++++ b/os/fd_jonx/owned.rs
+@@ -232,6 +232,9 @@
+                 #[cfg(unix)]
+                 crate::sys::fs::debug_assert_fd_is_open(self.fd.as_inner());
+ 
++                #[cfg(target_os = "aros")]
++                let _ = crate::sys::fs::crt(|| libc::close(self.fd.as_inner()));
++                #[cfg(not(target_os = "aros"))]
+                 let _ = libc::close(self.fd.as_inner());
+             }
+             #[cfg(target_os = "hermit")]
+diff --color -ru a/sys/fs/aros.rs b/sys/fs/aros.rs
+--- a/sys/fs/aros.rs
++++ b/sys/fs/aros.rs
+@@ -117,6 +117,25 @@
+     }
+ }
+ 
++/// One process-wide gate for the C library's path and descriptor-table calls.
++///
++/// A static program's pthreads all call posixc through one shared library base
++/// (the native Pi system of 2026-08-22 gives workers no base of their own).
++/// That base converts every -nix path in one buffer that it reallocates per
++/// call (`__upath.c`, `upathbuf`), keeps one descriptor table that `open`
++/// grows, and one errno cell. Two threads doing path calls at once therefore
++/// hand DOS each other's names (EINVAL, ENOENT, wrong files) and free the
++/// buffer under each other, which TLSF reports as a free outside its area.
++/// The call and the errno it leaves are taken under the gate, so the error
++/// belongs to this call. Reads and writes on an open descriptor do not take
++/// it: they may block, and they do not touch the shared buffer.
++pub(crate) fn crt<T>(f: impl FnOnce() -> T) -> (T, i32) {
++    static GATE: crate::sync::Mutex<()> = crate::sync::Mutex::new(());
++    let _gate = GATE.lock().unwrap_or_else(|e| e.into_inner());
++    let r = f();
++    (r, crate::sys::io::errno())
++}
++
+ /// Convert a path for the posixc syscall boundary, translating the
+ /// unix-join artifacts Rust callers produce into AROS device syntax:
+ ///
+@@ -288,9 +307,9 @@
+     fn next(&mut self) -> Option<io::Result<DirEntry>> {
+         let mut buf = [0u8; 1024];
+         let mut dtype: u32 = 0;
+-        let r = unsafe {
++        let (r, e) = crt(|| unsafe {
+             c::aros_readdir(self.dir, buf.as_mut_ptr() as *mut crate::ffi::c_char, buf.len(), &mut dtype)
+-        };
++        });
+         match r {
+             1 => {
+                 let len = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+@@ -298,13 +317,13 @@
+                 Some(Ok(DirEntry { name, dtype, root: self.root.clone() }))
+             }
+             0 => None,
+-            _ => Some(Err(io::Error::last_os_error())),
++            _ => Some(Err(io::Error::from_raw_os_error(e))),
+         }
+     }
+ }
+ impl Drop for ReadDir {
+     fn drop(&mut self) {
+-        unsafe { c::aros_closedir(self.dir) };
++        crt(|| unsafe { c::aros_closedir(self.dir) });
+     }
+ }
+ impl DirEntry {
+@@ -388,8 +407,9 @@
+ impl File {
+     pub fn open(path: &Path, opts: &OpenOptions) -> io::Result<File> {
+         let p = cstr(path)?;
+-        let fd = unsafe { c::aros_open(p.as_ptr(), opts.flags()?, 0o666 as crate::ffi::c_int) };
+-        if fd < 0 { Err(io::Error::last_os_error()) } else { Ok(File { fd }) }
++        let flags = opts.flags()?;
++        let (fd, e) = crt(|| unsafe { c::aros_open(p.as_ptr(), flags, 0o666 as crate::ffi::c_int) });
++        if fd < 0 { Err(io::Error::from_raw_os_error(e)) } else { Ok(File { fd }) }
+     }
+ 
+     pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
+@@ -431,21 +451,22 @@
+             SeekFrom::Current(n) => (c::SEEK_CUR, n),
+             SeekFrom::End(n) => (c::SEEK_END, n),
+         };
+-        let r = unsafe { c::lseek(self.fd, off, whence) };
+-        if r < 0 { Err(io::Error::last_os_error()) } else { Ok(r as u64) }
++        let (r, e) = crt(|| unsafe { c::lseek(self.fd, off, whence) });
++        if r < 0 { Err(io::Error::from_raw_os_error(e)) } else { Ok(r as u64) }
+     }
+     pub fn tell(&self) -> io::Result<u64> {
+-        let r = unsafe { c::lseek(self.fd, 0, c::SEEK_CUR) };
+-        if r < 0 { Err(io::Error::last_os_error()) } else { Ok(r as u64) }
++        let (r, e) = crt(|| unsafe { c::lseek(self.fd, 0, c::SEEK_CUR) });
++        if r < 0 { Err(io::Error::from_raw_os_error(e)) } else { Ok(r as u64) }
+     }
+     pub fn size(&self) -> Option<io::Result<u64>> { None }
+ 
+     pub fn file_attr(&self) -> io::Result<FileAttr> {
+         let mut a: c::Attr = unsafe { crate::mem::zeroed() };
+-        if unsafe { c::aros_fstat(self.fd, &mut a) } == 0 {
++        let (r, e) = crt(|| unsafe { c::aros_fstat(self.fd, &mut a) });
++    if r == 0 {
+             Ok(FileAttr::from_raw(&a))
+         } else {
+-            Err(io::Error::last_os_error())
++            Err(io::Error::from_raw_os_error(e))
+         }
+     }
+     pub fn fsync(&self) -> io::Result<()> { Ok(()) }
+@@ -456,21 +477,23 @@
+     pub fn try_lock_shared(&self) -> Result<(), TryLockError> { Ok(()) }
+     pub fn unlock(&self) -> io::Result<()> { Ok(()) }
+     pub fn truncate(&self, size: u64) -> io::Result<()> {
+-        if unsafe { c::ftruncate(self.fd, size as c::off_t) } == 0 {
++        let (r, e) = crt(|| unsafe { c::ftruncate(self.fd, size as c::off_t) });
++    if r == 0 {
+             Ok(())
+         } else {
+-            Err(io::Error::last_os_error())
++            Err(io::Error::from_raw_os_error(e))
+         }
+     }
+     pub fn duplicate(&self) -> io::Result<File> {
+-        let fd = unsafe { c::dup(self.fd) };
+-        if fd < 0 { Err(io::Error::last_os_error()) } else { Ok(File { fd }) }
++        let (fd, e) = crt(|| unsafe { c::dup(self.fd) });
++        if fd < 0 { Err(io::Error::from_raw_os_error(e)) } else { Ok(File { fd }) }
+     }
+     pub fn set_permissions(&self, perm: FilePermissions) -> io::Result<()> {
+-        if unsafe { c::fchmod(self.fd, (perm.mode & 0o7777) as c::mode_t) } == 0 {
++        let (r, e) = crt(|| unsafe { c::fchmod(self.fd, (perm.mode & 0o7777) as c::mode_t) });
++    if r == 0 {
+             Ok(())
+         } else {
+-            Err(io::Error::last_os_error())
++            Err(io::Error::from_raw_os_error(e))
+         }
+     }
+     // posixc has no futimes(), so times cannot be set through an open fd.
+@@ -484,7 +507,7 @@
+ 
+ impl Drop for File {
+     fn drop(&mut self) {
+-        unsafe { c::close(self.fd) };
++        crt(|| unsafe { c::close(self.fd) });
+     }
+ }
+ 
+@@ -498,10 +521,11 @@
+     pub fn new() -> DirBuilder { DirBuilder {} }
+     pub fn mkdir(&self, p: &Path) -> io::Result<()> {
+         let c = cstr(p)?;
+-        if unsafe { c::aros_mkdir(c.as_ptr(), 0o777) } == 0 {
++        let (r, e) = crt(|| unsafe { c::aros_mkdir(c.as_ptr(), 0o777) });
++        if r == 0 {
+             return Ok(());
+         }
+-        let err = io::Error::last_os_error();
++        let err = io::Error::from_raw_os_error(e);
+         // AROS reports a failed CreateDir through IoErr(), and that does not
+         // reliably reach errno: both "it already exists" and "the parent is
+         // missing" come back as -1 with errno still 0. `create_dir_all` steers
+@@ -525,9 +549,9 @@
+ 
+ pub fn readdir(p: &Path) -> io::Result<ReadDir> {
+     let path = cstr(p)?;
+-    let dir = unsafe { c::aros_opendir(path.as_ptr()) };
++    let (dir, e) = crt(|| unsafe { c::aros_opendir(path.as_ptr()) });
+     if dir.is_null() {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     } else {
+         Ok(ReadDir { dir, root: p.to_path_buf() })
+     }
+@@ -535,21 +559,24 @@
+ 
+ pub fn unlink(p: &Path) -> io::Result<()> {
+     let c = cstr(p)?;
+-    if unsafe { c::aros_unlink(c.as_ptr()) } == 0 { Ok(()) } else { Err(io::Error::last_os_error()) }
++    let (r, e) = crt(|| unsafe { c::aros_unlink(c.as_ptr()) });
++    if r == 0 { Ok(()) } else { Err(io::Error::from_raw_os_error(e)) }
+ }
+ 
+ pub fn rename(old: &Path, new: &Path) -> io::Result<()> {
+     let a = cstr(old)?;
+     let b = cstr(new)?;
+-    if unsafe { c::aros_rename(a.as_ptr(), b.as_ptr()) } == 0 { Ok(()) } else { Err(io::Error::last_os_error()) }
++    let (r, e) = crt(|| unsafe { c::aros_rename(a.as_ptr(), b.as_ptr()) });
++    if r == 0 { Ok(()) } else { Err(io::Error::from_raw_os_error(e)) }
+ }
+ 
+ pub fn set_perm(p: &Path, perm: FilePermissions) -> io::Result<()> {
+     let path = cstr(p)?;
+-    if unsafe { c::chmod(path.as_ptr(), (perm.mode & 0o7777) as c::mode_t) } == 0 {
++    let (r, e) = crt(|| unsafe { c::chmod(path.as_ptr(), (perm.mode & 0o7777) as c::mode_t) });
++    if r == 0 {
+         Ok(())
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ 
+@@ -571,10 +598,11 @@
+     let (as_, an) = at.to_secs_nanos();
+     let (ms, mn) = mt.to_secs_nanos();
+     let path = cstr(p)?;
+-    if unsafe { c::aros_utimes(path.as_ptr(), as_, an, ms, mn) } == 0 {
++    let (r, e) = crt(|| unsafe { c::aros_utimes(path.as_ptr(), as_, an, ms, mn) });
++    if r == 0 {
+         Ok(())
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ 
+@@ -592,7 +620,8 @@
+ 
+ pub fn rmdir(p: &Path) -> io::Result<()> {
+     let c = cstr(p)?;
+-    if unsafe { c::aros_rmdir(c.as_ptr()) } == 0 { Ok(()) } else { Err(io::Error::last_os_error()) }
++    let (r, e) = crt(|| unsafe { c::aros_rmdir(c.as_ptr()) });
++    if r == 0 { Ok(()) } else { Err(io::Error::from_raw_os_error(e)) }
+ }
+ 
+ // Portable recursive implementation over this backend's read_dir/remove.
+@@ -615,11 +644,11 @@
+     let mut cap = 256usize;
+     loop {
+         let mut buf: Vec<u8> = vec![0; cap];
+-        let n = unsafe {
++        let (n, e) = crt(|| unsafe {
+             c::readlink(path.as_ptr(), buf.as_mut_ptr() as *mut crate::ffi::c_char, buf.len())
+-        };
++        });
+         if n < 0 {
+-            return Err(io::Error::last_os_error());
++            return Err(io::Error::from_raw_os_error(e));
+         }
+         let n = n as usize;
+         if n < buf.len() {
+@@ -641,10 +670,11 @@
+     // posixc symlink(oldpath, newpath): oldpath is the link target, newpath the link.
+     let target = cstr(original)?;
+     let linkpath = cstr(link)?;
+-    if unsafe { c::symlink(target.as_ptr(), linkpath.as_ptr()) } == 0 {
++    let (r, e) = crt(|| unsafe { c::symlink(target.as_ptr(), linkpath.as_ptr()) });
++    if r == 0 {
+         Ok(())
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ 
+@@ -652,19 +682,21 @@
+ pub fn stat(p: &Path) -> io::Result<FileAttr> {
+     let path = cstr(p)?;
+     let mut a: c::Attr = unsafe { crate::mem::zeroed() };
+-    if unsafe { c::aros_stat(path.as_ptr(), &mut a) } == 0 {
++    let (r, e) = crt(|| unsafe { c::aros_stat(path.as_ptr(), &mut a) });
++    if r == 0 {
+         Ok(FileAttr::from_raw(&a))
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ pub fn lstat(p: &Path) -> io::Result<FileAttr> {
+     let path = cstr(p)?;
+     let mut a: c::Attr = unsafe { crate::mem::zeroed() };
+-    if unsafe { c::aros_lstat(path.as_ptr(), &mut a) } == 0 {
++    let (r, e) = crt(|| unsafe { c::aros_lstat(path.as_ptr(), &mut a) });
++    if r == 0 {
+         Ok(FileAttr::from_raw(&a))
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ pub fn canonicalize(p: &Path) -> io::Result<PathBuf> {
+@@ -673,11 +705,11 @@
+     // volume-rooted name.
+     let path = cstr(p)?;
+     let mut buf = [0u8; c::PATH_MAX];
+-    let r = unsafe {
++    let (r, e) = crt(|| unsafe {
+         c::aros_realpath(path.as_ptr(), buf.as_mut_ptr() as *mut crate::ffi::c_char, buf.len())
+-    };
++    });
+     if r != 0 {
+-        return Err(io::Error::last_os_error());
++        return Err(io::Error::from_raw_os_error(e));
+     }
+     let len = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+     let os = unsafe { OsString::from_encoded_bytes_unchecked(buf[..len].to_vec()) };
+diff --color -ru a/sys/fs/mod.rs b/sys/fs/mod.rs
+--- a/sys/fs/mod.rs
++++ b/sys/fs/mod.rs
+@@ -9,6 +9,7 @@
+     all(target_os = "aros", target_arch = "aarch64") => {
+         mod aros;
+         use aros as imp;
++        pub(crate) use aros::crt;
+     
+     }
+     any(target_family = "unix", target_os = "wasi") => {
+diff --color -ru a/sys/paths/aros.rs b/sys/paths/aros.rs
+--- a/sys/paths/aros.rs
++++ b/sys/paths/aros.rs
+@@ -18,7 +18,7 @@
+ pub fn getcwd() -> io::Result<PathBuf> {
+     let mut buf = vec![0u8; 512];
+     loop {
+-        let p = unsafe { c_getcwd(buf.as_mut_ptr(), buf.len()) };
++        let (p, e) = crate::sys::fs::crt(|| unsafe { c_getcwd(buf.as_mut_ptr(), buf.len()) });
+         if !p.is_null() {
+             let n = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+             let s = String::from_utf8_lossy(&buf[..n]).into_owned();
+@@ -26,7 +26,7 @@
+         }
+         // Grow and retry on ERANGE; give up if it never fits.
+         if buf.len() >= 16 * 1024 {
+-            return Err(io::Error::last_os_error());
++            return Err(io::Error::from_raw_os_error(e));
+         }
+         buf.resize(buf.len() * 2, 0);
+     }
+@@ -35,10 +35,11 @@
+ pub fn chdir(p: &Path) -> io::Result<()> {
+     let s = CString::new(p.as_os_str().as_encoded_bytes())
+         .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
+-    if unsafe { c_chdir(s.as_ptr() as *const u8) } == 0 {
++    let (r, e) = crate::sys::fs::crt(|| unsafe { c_chdir(s.as_ptr() as *const u8) });
++    if r == 0 {
+         Ok(())
+     } else {
+-        Err(io::Error::last_os_error())
++        Err(io::Error::from_raw_os_error(e))
+     }
+ }
+ 

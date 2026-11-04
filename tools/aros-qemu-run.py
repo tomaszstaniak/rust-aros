@@ -21,6 +21,7 @@ Configuration, all optional, via the environment:
   AROS_CD_DEVICE      QEMU drive id       (default ide1-cd0)
   AROS_VOLUME         AROS volume name    (default AMIDEV)
   AROS_RUN_WAIT       seconds before the screenshot (default 6)
+  AROS_CD_WAIT        seconds to let AROS notice the disc change (default 3)
   AROS_RUN_SHOT       where to write the screenshot (default next to the binary)
 """
 import binascii
@@ -39,6 +40,12 @@ QMP = os.environ.get("AROS_QEMU_QMP", "/tmp/aros-qmp.sock")
 CD = os.environ.get("AROS_CD_DEVICE", "ide1-cd0")
 VOLUME = os.environ.get("AROS_VOLUME", "AMIDEV")
 WAIT = float(os.environ.get("AROS_RUN_WAIT", "6"))
+# How long to let AROS settle after ejecting and after inserting. Too short and
+# the command runs against a half-mounted volume: the Shell answers "device (or
+# volume) is not mounted", or a "Please insert volume AMIDEV" requester appears
+# and blocks everything until someone clicks it. Under TCG emulation the guest
+# needs noticeably longer than on real hardware.
+CD_WAIT = float(os.environ.get("AROS_CD_WAIT", "3"))
 
 # Characters we can name as QEMU key codes. Anything else is refused rather
 # than silently dropped, because a dropped character turns the command into a
@@ -116,17 +123,24 @@ class Qmp:
                 die(f"cannot type {c!r} - rename the binary to plain ASCII")
 
 
-def build_iso(binary, workdir):
+def build_iso(binary, workdir, extra=()):
     """Wrap the binary in an ISO the guest can mount.
 
     Two ISO paths are used in turn: QEMU keeps the inserted medium open, so
     the new image must never be the file currently in the drive.
+
+    `extra` names further files to carry alongside it. The reason this
+    exists: the guest's Shell truncates a typed command at about 255
+    characters, so anything longer than that has to arrive as a file rather
+    than as arguments.
     """
     stage = os.path.join(workdir, "stage")
     if os.path.isdir(stage):
         shutil.rmtree(stage)
     os.makedirs(stage)
     shutil.copy2(binary, stage)
+    for path in extra:
+        shutil.copy2(path, stage)
 
     marker = os.path.join(workdir, "current")
     previous = ""
@@ -191,11 +205,58 @@ def ppm_to_png(ppm_path, png_path):
         fh.write(chunk(b"IEND", b""))
 
 
+def _same_screen(a, b):
+    """Are the two framebuffer dumps identical? `None` if they cannot be read.
+
+    **This does not tell you whether the program ran**, and the wording that
+    uses it must not pretend otherwise. A changed screen means something
+    happened — which could be a requester, the Shell echoing a command it did
+    not understand, or the previous run still drawing. An unchanged one is
+    usually a Shell that has lost focus, but a program that starts and draws
+    nothing looks the same.
+
+    Confirming a launch needs a signal from the program itself. There is none
+    yet, so every caller of this says "unconfirmed".
+
+    A read failure is its own answer rather than a `False` that would read as
+    success — which is what the first version of this did.
+    """
+    try:
+        with open(a, "rb") as fa, open(b, "rb") as fb:
+            return fa.read() == fb.read()
+    except OSError:
+        return None
+
+
 def main():
     if len(sys.argv) < 2:
-        die("usage: aros-qemu-run.py <binary>")
+        die("usage: aros-qemu-run.py <binary> [arguments...]")
     binary = sys.argv[1]
     name = os.path.basename(binary)
+    # Anything after the binary is the program's own command line. AROS hands
+    # it through the C runtime like any other system; a program that reads its
+    # arguments can be told what to do without being rebuilt.
+    program_args = sys.argv[2:]
+
+    # `--carry <path>` puts a further file on the disc beside the binary and
+    # rewrites the argument to name it as the guest will see it. The guest's
+    # Shell truncates a typed command at about 255 characters, so a long
+    # script has to travel as a file; this is how it gets there.
+    carry = []
+    cleaned = []
+    i = 0
+    while i < len(program_args):
+        if program_args[i] == "--carry" and i + 1 < len(program_args):
+            path = program_args[i + 1]
+            if not os.path.exists(path):
+                die(f"--carry: no such file: {path}")
+            carry.append(path)
+            cleaned.append("AMIDEV:" + os.path.basename(path))
+            i += 2
+            continue
+        cleaned.append(program_args[i])
+        i += 1
+    program_args = cleaned
 
     for path, what in ((MONITOR, "monitor"), (QMP, "QMP")):
         if not os.path.exists(path):
@@ -204,21 +265,48 @@ def main():
     # Keep the ISO on disk: QEMU holds the file open while the medium is in.
     workdir = os.path.join(tempfile.gettempdir(), "aros-run")
     os.makedirs(workdir, exist_ok=True)
-    iso = build_iso(binary, workdir)
+    iso = build_iso(binary, workdir, carry)
 
     # AROS keeps serving the old disc unless it sees a real eject first.
     monitor_cmd(f"eject -f {CD}")
-    time.sleep(3)
+    time.sleep(CD_WAIT)
     monitor_cmd(f"change {CD} {iso}")
-    time.sleep(4)
+    time.sleep(CD_WAIT + 1)
+
+    # What the screen looked like before the command was typed. "Typed the
+    # command" and "the program ran" are different claims, and only the
+    # second one is worth reporting — a Shell that has lost focus swallows
+    # every keystroke and looks exactly like success from out here.
+    shot_hint = os.environ.get("AROS_RUN_SHOT", os.path.join(workdir, f"{name}.png"))
+    before = os.path.join(workdir, "before.ppm")
+    monitor_cmd(f"screendump {before}")
+    time.sleep(1)
 
     qmp = Qmp(QMP)
-    qmp.type(f"{VOLUME}:{name}")
+    command = " ".join([f"{VOLUME}:{name}", *program_args])
+    qmp.type(command)
     qmp.key("ret")
-    print(f"aros-run: started {VOLUME}:{name} in the machine")
+    print(f"aros-run: typed {command}")
 
     time.sleep(WAIT)
-    shot = os.environ.get("AROS_RUN_SHOT", os.path.join(workdir, f"{name}.png"))
+
+    # Did anything happen? A screen identical to the one before the command
+    # means the keystrokes went nowhere: nearly always a Shell that is not
+    # the focused window. Say so rather than letting the caller assume.
+    after = os.path.join(workdir, "after.ppm")
+    monitor_cmd(f"screendump {after}")
+    time.sleep(1)
+    match = _same_screen(before, after)
+    if match is None:
+        print("aros-run: could not compare the screendumps; launch unconfirmed")
+    elif match:
+        print("aros-run: the screen did not change; launch unconfirmed")
+        print("aros-run: often a Shell that is not the focused window - but not proof of it")
+    else:
+        print("aros-run: the screen changed; launch unconfirmed")
+        print(f"aros-run: look at {shot_hint} to see what is actually there")
+
+    shot = shot_hint
     ppm = os.path.join(workdir, "screen.ppm")
     for path in (shot, ppm):
         if os.path.exists(path):

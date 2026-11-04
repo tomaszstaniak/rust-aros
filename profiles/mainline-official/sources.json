@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "common_base": "d4eb310f9bc5188f113e8875ec757a8ae2585d29",
+  "compiler": "504869653f510b279c542e65ccd1ea9710c119ba",
+  "channel": "nightly-2026-08-04",
+  "production_order": [
+    1797,
+    1798,
+    1799,
+    1800
+  ],
+  "pull_requests": {
+    "1797": {
+      "html_url": "https://github.com/aros-development-team/AROS/pull/1797",
+      "state": "open",
+      "updated_at": "2026-10-22T16:19:57Z",
+      "head": "5839f00ec7f700d047c214961105c6564ad80b87",
+      "base_observed": "b8f4b11c342b4f0ef2e586121de5ddb71a13387a",
+      "repository": "jonx/AROS",
+      "branch": "codex/native-rust-fd",
+      "comments": 0,
+      "reviews": 0
+    },
+    "1798": {
+      "html_url": "https://github.com/aros-development-team/AROS/pull/1798",
+      "state": "open",
+      "updated_at": "2026-10-22T16:20:00Z",
+      "head": "3ee5c32b3cdc375cd63563c5857dd8f6cb7e2cfc",
+      "base_observed": "b8f4b11c342b4f0ef2e586121de5ddb71a13387a",
+      "repository": "jonx/AROS",
+      "branch": "codex/native-rust-arostcp",
+      "comments": 0,
+      "reviews": 0
+    },
+    "1799": {
+      "html_url": "https://github.com/aros-development-team/AROS/pull/1799",
+      "state": "open",
+      "updated_at": "2026-10-22T16:20:02Z",
+      "head": "0953c6861627e396f7901ce831e8b764cef8c335",
+      "base_observed": "b8f4b11c342b4f0ef2e586121de5ddb71a13387a",
+      "repository": "jonx/AROS",
+      "branch": "codex/native-rust-crt",
+      "comments": 0,
+      "reviews": 0
+    },
+    "1800": {
+      "html_url": "https://github.com/aros-development-team/AROS/pull/1800",
+      "state": "open",
+      "updated_at": "2026-10-22T16:20:03Z",
+      "head": "2eb81b402b0d3de6d0b068ce74fdb6eb653f2d60",
+      "base_observed": "b8f4b11c342b4f0ef2e586121de5ddb71a13387a",
+      "repository": "jonx/AROS",
+      "branch": "codex/native-rust-rust",
+      "comments": 0,
+      "reviews": 0
+    }
+  }
+}

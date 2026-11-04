@@ -1,0 +1,10 @@
+[package]
+name = "aros-async-consumer"
+version = "0.1.0"
+edition = "2021"
+[dependencies]
+async-io = "=2.6.0"
+async-net = "=2.0.0"
+futures-lite = "=2.6.1"
+polling = "=3.11.0"
+libc = "=0.2.189"

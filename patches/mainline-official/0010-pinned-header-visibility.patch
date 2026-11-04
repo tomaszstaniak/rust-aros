@@ -1,0 +1,48 @@
+Subject: Qualify native constants with the pinned POSIX/BSD header visibility
+
+Reproduced application libc0.2.190 MSG_NOSIGNAL mismatch: old SDK cdefs.h
+clamps POSIX visibility to 200112 despite the flag. The pinned AROS cdefs
+already fixes this. Require that SDK header and probe GNU/POSIX/BSD visibility.
+A missing optional Rust binding is a declaration gap, not evidence that the
+native runtime is unsupported. Its value cannot be compared; mark it explicitly.
+Base: preceding patches on PR1800 2eb81b4; original John KNIPPER, APL 1.1;
+adaptations copyright AROS contributors, APL 1.1.
+
+--- a/tools/crosstools/rust/unmodified/ABI/network-abi.py
++++ b/tools/crosstools/rust/unmodified/ABI/network-abi.py
+@@ -197,7 +197,7 @@
+         rust = rust.replace("(libc::MSG_NOSIGNAL) as u64", "u64::MAX")
+         (output / "rust.rs").write_text(rust)
+     cflags = [*qualified["c_driver"], "-std=c11",
+-              "-D_BSD_SOURCE=1", "-I" + str(output / "include"), "-I" + str(sdk / "include/aros/posixc"),
++              "-D_GNU_SOURCE=1", "-I" + str(output / "include"), "-I" + str(sdk / "include/aros/posixc"),
+               "-I" + str(sdk / "include/aros/stdc"), "-I" + str(sdk / "include")]
+     deptext = command(cflags + ["-M", str(output / "native.c")], output, "dependencies")
+     headers = shlex.split(deptext.replace("\\\n", " ").split(":", 1)[1])
+@@ -228,10 +228,11 @@
+         rust_absent = entry[1] == "MSG_NOSIGNAL" and r == 2**64 - 1
+         rows.append({"group": entry[0], "name": entry[1],
+                      "native": None if absent else n, "rust": None if rust_absent else r,
++                     "optional_binding_absent": rust_absent,
+                      "equal": (absent and rust_absent) or (not absent and not rust_absent and (r >= n if entry[0] == 'opaque_storage' else n == r)),
+-                     **({"capability": "UNSUPPORTED"} if absent and rust_absent else {}),
++                     **({"capability": "RUST_BINDING_ABSENT_RUNTIME_UNTESTED"} if rust_absent else {}),
+                      **({"reason": "constant absent from native SDK"} if absent else {})})
+-    direct = [r for r in rows if r["group"] in ("direct", "opaque_storage") and not r["equal"]]
++    direct = [r for r in rows if r["group"] in ("direct", "opaque_storage") and not r["equal"] and not r["optional_binding_absent"]]
+     bridge = [r for r in rows if r["group"] == "resolver_bridge" and not r["equal"]]
+     if any(digest(Path(p)) != sha for p, sha in inputs.items()):
+         raise RuntimeError("qualified std inputs changed during qualification")
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -24,6 +24,10 @@
+     import re
+     if not pthread.is_file() or not re.search(r"\bclockid_t\s+cond_clock\s*;", pthread.read_text(errors='replace')):
+         raise ValueError("require the pinned pthread2 headers with cond_clock; older mainline SDK is not this profile")
++
++    cdefs = sdk / "include/sys/cdefs.h"
++    if not cdefs.is_file() or not re.search(r"#define\s+__POSIX_VISIBLE\s+200809\b", cdefs.read_text(errors='replace')):
++        raise ValueError("require pinned network cdefs POSIX.1-2008 visibility; older SDK is not this profile")
+ 
+ 
+ def c_driver(profile, sdk, tools, cc=None, flags=()):

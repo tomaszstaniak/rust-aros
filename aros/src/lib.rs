@@ -1,7 +1,7 @@
 //! Write AROS x86_64 programs in Rust.
 //!
-//! AROS has no Rust `std`, so this crate supplies the pieces a normal program
-//! expects: a global allocator (so `Vec`, `String` and friends work), `print!`
+//! For programs built without `std`, this crate supplies the runtime pieces:
+//! a global allocator (so `Vec`, `String` and friends work), `print!`
 //! and `println!`, a panic handler, and thin bindings to the parts of the AROS
 //! API you reach for first.
 //!
@@ -25,7 +25,9 @@
 
 extern crate alloc;
 
+pub mod args;
 pub mod exec;
+pub mod fs;
 pub mod print;
 pub mod sys;
 
@@ -77,7 +79,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 macro_rules! aros_main {
     ($f:ident) => {
         #[no_mangle]
-        pub extern "C" fn main(_argc: i32, _argv: *const *const u8) -> i32 {
+        pub extern "C" fn main(argc: i32, argv: *const *const u8) -> i32 {
+            // The Shell's own command line, kept for `aros::args()`. AROS
+            // does pass one; throwing it away here was why programs written
+            // against this crate looked as though it did not.
+            unsafe { $crate::args::remember(argc, argv) };
             $f();
             0
         }

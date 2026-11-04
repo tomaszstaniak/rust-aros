@@ -22,3 +22,23 @@ void aros_glue_FreeMem(void *mem, unsigned long size)
 {
     FreeMem(mem, size);
 }
+
+/* `pr_WindowPtr`, which is why a missing volume is not a hang.
+ *
+ * `Lock` on a path whose volume is not mounted asks the user to insert it:
+ * dos.library puts up "Please insert volume X in any drive" and waits. A
+ * program that only wants to know whether the path is there must set the
+ * process's `pr_WindowPtr` to -1 first, which turns the requester into an
+ * error return. The field lives inside `struct Process`, so it is set here,
+ * where the SDK's own headers decide the offsets, rather than from Rust
+ * against a layout written out by hand. Returns the old value, to put back.
+ */
+#include <dos/dosextens.h>
+
+void *aros_glue_set_window_ptr(void *ptr)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    void *old = me->pr_WindowPtr;
+    me->pr_WindowPtr = ptr;
+    return old;
+}

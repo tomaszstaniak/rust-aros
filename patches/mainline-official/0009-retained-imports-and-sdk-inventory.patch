@@ -1,0 +1,76 @@
+Subject: Bind requested imports and consumer SDK inventory to retained builds
+
+Close review finding: changing --posix-stubs must not stamp a new generation
+on retained older imports. Require exact requested/retained identities including
+presence/absence. Reject added or removed SDK files before consumer compilation
+and recheck the full inventory afterward, not just enumerated old hashes.
+Base: preceding patches on PR1800 2eb81b4. Original John KNIPPER, APL 1.1;
+adaptations copyright AROS contributors, APL 1.1.
+
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -93,3 +93,14 @@
+     paths.append(cc.resolve() if cc else tools.resolve() / 'bin/clang')
+     paths.extend(p for directory in ('include', 'lib') for p in (sdk.resolve() / directory).rglob('*') if p.is_file())
+     return {str(p): file_digest(p) for p in paths}
++
++
++def validate_imports(retained, requested):
++    expected = {'libaros_positional.a': file_digest(requested.resolve())} if requested else {}
++    if retained != expected:
++        raise ValueError('requested positioned imports differ from the retained native build')
++
++
++def sdk_inputs(sdk):
++    return {str(p): file_digest(p) for directory in ('include', 'lib')
++            for p in (sdk.resolve() / directory).rglob('*') if p.is_file()}
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -17,7 +17,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import HERE, PIN, COMMIT, TOOLCHAIN, MIN_BUILD_FREE, digest, run
+-from profiles import PROFILES, select, validate_sdk, c_driver, generation, native_inputs
++from profiles import PROFILES, select, validate_sdk, c_driver, generation, native_inputs, validate_imports
+ 
+ 
+ def write(path, text, executable=False):
+@@ -203,6 +203,7 @@
+         raise RuntimeError('retained std probe archive changed')
+     if digest(native / 'libaros_rs_platform.a') != result['native_adapter_archive_sha256']:
+         raise RuntimeError('native platform archive changed')
++    validate_imports(result.get('positional_import_archives', {}), a.posix_stubs)
+     for name, expected in result.get('positional_import_archives', {}).items():
+         if digest(native / name) != expected:
+             raise RuntimeError('native import archive changed: ' + name)
+--- a/tools/crosstools/rust/unmodified/consumer-check.py
++++ b/tools/crosstools/rust/unmodified/consumer-check.py
+@@ -14,7 +14,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import TOOLCHAIN, COMMIT, digest, run
+-from profiles import select, validate_installation, validate_relocations
++from profiles import select, validate_installation, validate_relocations, sdk_inputs
+ 
+ HERE = Path(__file__).resolve().parent
+ 
+@@ -97,6 +97,10 @@
+         for name, expected in external_expected.items():
+             if not Path(name).is_file() or digest(Path(name)) != expected:
+                 parser.error('qualified SDK/tool input changed: ' + name)
++    sdk_root = Path(result['sdk']).resolve()
++    frozen_sdk = {name: expected for name, expected in result['native_inputs'].items() if sdk_root in Path(name).parents}
++    if sdk_inputs(sdk_root) != frozen_sdk:
++        parser.error('SDK inventory differs from the native build')
+     vendor = build / 'sysroot/lib/rustlib/src/rust/library/vendor'
+     libc = ([args.application_libc.resolve() / 'Cargo.toml'] if args.application_libc else
+             list(vendor.glob('libc-*/Cargo.toml')))
+@@ -172,6 +176,8 @@
+                     log=output / 'undefined.txt')
+     if undefined.strip():
+         raise RuntimeError('consumer has undefined symbols')
++    if sdk_inputs(sdk_root) != frozen_sdk:
++        raise RuntimeError('SDK inventory changed during consumer compilation')
+     if before != {str(p): digest(p) for p in inputs}:
+         raise RuntimeError('qualified inputs changed during consumer compilation')
+     if any(not Path(name).is_file() or digest(Path(name)) != expected

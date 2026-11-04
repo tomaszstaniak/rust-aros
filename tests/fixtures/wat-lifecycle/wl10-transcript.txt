@@ -1,0 +1,8 @@
+PASS inventory constructor before main
+PASS invalid WAT diagnostics
+PASS Unicode document repair clears diagnostics
+PASS real formatting preserves Unicode and instructions
+PASS threaded document-symbol analysis
+PASS 16 outstanding mixed requests matched by ID
+SERVER_STATUS exit status: 0; STDERR_BYTES 0
+PASS shutdown, EOF, child wait and stderr join

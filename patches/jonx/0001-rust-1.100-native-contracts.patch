@@ -1,0 +1,109 @@
+Subject: Adapt Jonx PAL to Rust 1.100 and gate native sockets
+
+What: update allocator/error/fs internal interfaces for the shared compiler.
+Why: preserve the existing ARM implementation and its aligned-realloc fix;
+     prevent native socket handles escaping their SocketBase owner task.
+Scope: AArch64 PAL imported from jonx/rust-aros 2e2845efb6aaa111b5a26c9685e96d08fad340f4.
+License: MIT OR Apache-2.0, matching the original Jonx/Rust source files.
+Upstream status: local integration patch; no submission authorized.
+
+--- a/sys/alloc/aros.rs
++++ b/sys/alloc/aros.rs
+@@ -5,7 +5,7 @@
+ //! support yet. Mirrors `sys/alloc/unix.rs` (the MIN_ALIGN fast path + a
+ //! `posix_memalign` slow path for over-aligned requests).
+ use super::{MIN_ALIGN, realloc_fallback};
+-use crate::alloc::{GlobalAlloc, Layout, System};
++use crate::alloc::Layout;
+ use crate::ptr;
+ 
+ mod c {
+@@ -18,10 +18,9 @@
+     }
+ }
+ 
+-#[stable(feature = "alloc_system_type", since = "1.28.0")]
+-unsafe impl GlobalAlloc for System {
++
+     #[inline]
+-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
++    pub unsafe fn alloc(layout: Layout) -> *mut u8 {
+         if layout.align() <= MIN_ALIGN && layout.align() <= layout.size() {
+             unsafe { c::malloc(layout.size()) }
+         } else {
+@@ -30,11 +29,11 @@
+     }
+ 
+     #[inline]
+-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
++    pub unsafe fn alloc_zeroed(layout: Layout) -> *mut u8 {
+         if layout.align() <= MIN_ALIGN && layout.align() <= layout.size() {
+             unsafe { c::calloc(layout.size(), 1) }
+         } else {
+-            let ptr = unsafe { self.alloc(layout) };
++            let ptr = unsafe { alloc(layout) };
+             if !ptr.is_null() {
+                 unsafe { ptr::write_bytes(ptr, 0, layout.size()) };
+             }
+@@ -43,12 +42,12 @@
+     }
+ 
+     #[inline]
+-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
++    pub unsafe fn dealloc(ptr: *mut u8, _layout: Layout) {
+         unsafe { c::free(ptr) }
+     }
+ 
+     #[inline]
+-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
++    pub unsafe fn realloc(ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+         // Only a block that actually came from `malloc` may be handed to
+         // `realloc`. AROS's `aligned_alloc` (behind `posix_memalign`) returns a
+         // pointer *into* a larger malloc block, with the real pointer and a
+@@ -63,10 +62,9 @@
+         if layout.align() <= MIN_ALIGN && layout.align() <= layout.size() {
+             unsafe { c::realloc(ptr, new_size) }
+         } else {
+-            unsafe { realloc_fallback(self, ptr, layout, new_size) }
++            unsafe { realloc_fallback(ptr, layout, new_size) }
+         }
+     }
+-}
+ 
+ #[inline]
+ unsafe fn aligned_malloc(layout: &Layout) -> *mut u8 {
+--- a/sys/io/error/aros.rs
++++ b/sys/io/error/aros.rs
+@@ -73,3 +73,7 @@
+         _ => Uncategorized,
+     }
+ }
++
++pub fn format_error(code: i32, f: &mut crate::fmt::Formatter<'_>) -> crate::fmt::Result {
++    f.write_str(&error_string(code))
++}
+--- a/sys/fs/aros.rs
++++ b/sys/fs/aros.rs
+@@ -685,3 +685,7 @@
+ }
+ // Portable open/read/write implementation over this backend's File.
+ pub use crate::sys::fs::common::copy;
++
++pub fn set_perm_nofollow(_p: &Path, _perm: FilePermissions) -> io::Result<()> {
++    Err(io::Error::UNSUPPORTED_PLATFORM)
++}
+--- a/sys/net/connection/aros.rs
++++ b/sys/net/connection/aros.rs
+@@ -111,10 +111,8 @@
+ 
+ /// Open `bsdsocket.library` once for the process (idempotent in the glue).
+ fn ensure_lib() -> io::Result<()> {
+-    if unsafe { aros_net_open() } != 0 {
+-        return Err(io::const_error!(ErrorKind::Uncategorized, "cannot open bsdsocket.library"));
+-    }
+-    Ok(())
++    Err(io::const_error!(ErrorKind::Unsupported,
++        "native AROS sockets require an owner-task backend"))
+ }
+ 
+ /// `SocketAddrV4` -> the (network-order u32, network-order u16) the glue takes.

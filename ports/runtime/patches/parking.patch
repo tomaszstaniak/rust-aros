@@ -1,0 +1,50 @@
+From: PhotoCraft AROS port
+Subject: [PATCH] AROS: realtime clock for condvar deadlines
+
+Repository: Amanieu/parking_lot, crate parking_lot_core 0.9.12 (crates.io,
+  checksum 2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1).
+Date: 2026-10-16
+Problem: on AROS pthread_condattr_setclock is not supported (rust-aros
+  libc-aros reports ENOTSUP rather than pretending), so the condvar measures
+  timeouts on CLOCK_REALTIME while parking_lot computed deadlines from
+  CLOCK_MONOTONIC: timed waits returned at once or far too late.
+Rationale: treat AROS as Android already is: no setclock, realtime deadlines.
+  Same choice as the rust-aros std patch for std's own condvar.
+Scope: cfg(target_os = "aros") only.
+Upstream-status: candidate (not submitted; AROS is not an upstream target yet).
+Prerequisites: none.
+Verification: builds for x86_64 ABIv11; no timed-wait runtime probe yet.
+Removal: when AROS supports pthread_condattr_setclock(CLOCK_MONOTONIC).
+---
+diff --git a/src/thread_parker/unix.rs b/src/thread_parker/unix.rs
+index 5953cf3..07f99ca 100644
+--- a/src/thread_parker/unix.rs
++++ b/src/thread_parker/unix.rs
+@@ -127,12 +127,14 @@ impl super::ThreadParkerT for ThreadParker {
+ 
+ impl ThreadParker {
+     /// Initializes the condvar to use CLOCK_MONOTONIC instead of CLOCK_REALTIME.
+-    #[cfg(any(target_vendor = "apple", target_os = "android", target_os = "espidf"))]
++    // AROS: pthread_condattr_setclock is unsupported (it reports ENOTSUP), so the
++    // condvar keeps CLOCK_REALTIME and deadlines are taken from that clock below.
++    #[cfg(any(target_vendor = "apple", target_os = "android", target_os = "espidf", target_os = "aros"))]
+     #[inline]
+     unsafe fn init(&self) {}
+ 
+     /// Initializes the condvar to use CLOCK_MONOTONIC instead of CLOCK_REALTIME.
+-    #[cfg(not(any(target_vendor = "apple", target_os = "android", target_os = "espidf")))]
++    #[cfg(not(any(target_vendor = "apple", target_os = "android", target_os = "espidf", target_os = "aros")))]
+     #[inline]
+     unsafe fn init(&self) {
+         let mut attr = MaybeUninit::<libc::pthread_condattr_t>::uninit();
+@@ -200,8 +202,8 @@ fn timespec_now() -> libc::timespec {
+ #[inline]
+ fn timespec_now() -> libc::timespec {
+     let mut now = MaybeUninit::<libc::timespec>::uninit();
+-    let clock = if cfg!(target_os = "android") {
+-        // Android doesn't support pthread_condattr_setclock, so we need to
++    let clock = if cfg!(any(target_os = "android", target_os = "aros")) {
++        // Android and AROS don't support pthread_condattr_setclock, so we need to
+         // specify the timeout in CLOCK_REALTIME.
+         libc::CLOCK_REALTIME
+     } else {

@@ -1,0 +1,70 @@
+Subject: Initialize native ARM arguments through Rust lang_start
+
+What: capture CRT argc/argv in the Jonx args PAL and call it from PAL init.
+Why: a normal Rust executable has no C harness defining aros_argc/aros_argv.
+Scope: pinned Jonx ARM args plus Rust 0dfb098f3 unsupported PAL init; other
+platforms retain their previous init. Foreign staticlibs have no captured argv.
+License: MIT OR Apache-2.0, matching the source files. Candidate for upstream.
+
+--- a/sys/args/aros.rs
++++ b/sys/args/aros.rs
+@@ -1,16 +1,20 @@
+ //! Command-line args for AROS.
+ //!
+-//! A `C:` command reaches Rust through a C `main(argc, argv)` (the harness), not
+-//! Rust's `lang_start`, so there's no automatic capture. The harness stashes them
+-//! in two C globals and this reads them. OsStr on AROS is raw bytes, so argv round-
+-//! trips exactly.
+-use crate::ffi::{CStr, OsString, c_char, c_int};
++//! Rust's lang_start captures argc/argv through PAL init. Foreign callers of a
++//! Rust staticlib do not run lang_start and therefore have no captured arguments.
++use crate::ffi::{CStr, OsString, c_char};
+ use crate::fmt;
+ use crate::vec;
+ 
+-unsafe extern "C" {
+-    static aros_argc: c_int;
+-    static aros_argv: *const *const c_char;
++use crate::sync::atomic::{AtomicIsize, AtomicPtr, Ordering};
++
++static ARGC: AtomicIsize = AtomicIsize::new(0);
++static ARGV: AtomicPtr<*const c_char> = AtomicPtr::new(crate::ptr::null_mut());
++
++// SAFETY: called once by lang_start, with CRT argv valid for the process lifetime.
++pub unsafe fn init(argc: isize, argv: *const *const u8) {
++    ARGC.store(argc, Ordering::Relaxed);
++    ARGV.store(argv.cast_mut().cast(), Ordering::Release);
+ }
+ 
+ pub struct Args {
+@@ -19,11 +23,13 @@
+ 
+ pub fn args() -> Args {
+     let mut v: Vec<OsString> = Vec::new();
++    let argv = ARGV.load(Ordering::Acquire);
++    let argc = ARGC.load(Ordering::Relaxed);
+     unsafe {
+-        if !aros_argv.is_null() {
++        if !argv.is_null() {
+             let mut i = 0isize;
+-            while i < aros_argc as isize {
+-                let p = *aros_argv.offset(i);
++            while i < argc {
++                let p = *argv.offset(i);
+                 if p.is_null() {
+                     break;
+                 }
+--- a/sys/pal/unsupported/common.rs
++++ b/sys/pal/unsupported/common.rs
+@@ -2,7 +2,10 @@
+ 
+ // SAFETY: must be called only once during runtime initialization.
+ // NOTE: this is not guaranteed to run, for example when Rust code is called externally.
+-pub unsafe fn init(_argc: isize, _argv: *const *const u8, _sigpipe: u8) {}
++pub unsafe fn init(_argc: isize, _argv: *const *const u8, _sigpipe: u8) {
++    #[cfg(all(target_os = "aros", target_arch = "aarch64"))]
++    unsafe { crate::sys::args::init(_argc, _argv) };
++}
+ 
+ // SAFETY: must be called only once during runtime cleanup.
+ // NOTE: this is not guaranteed to run, for example when the program aborts.

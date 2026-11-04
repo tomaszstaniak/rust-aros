@@ -1,0 +1,20 @@
+Subject: Normalize relative CLI inputs before recording SDK identity
+
+Reproduced with --sdk x86-contract-sdk: installation succeeded but strict
+consumer validation rejected relative input keys. Resolve optional/native
+input paths before hashing so a later consumer uses the same absolute identity.
+Base: preceding patches on PR1800 2eb81b4; APL 1.1, AROS contributors;
+original John KNIPPER.
+
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -88,6 +88,9 @@
+     p.add_argument('--jobs', type=int, default=1, help='positive Cargo worker bound (default: 1)')
+     p.add_argument("--target", choices=sorted(PROFILES), default="aarch64-unknown-aros")
+     a = p.parse_args()
++    for name in ('sdk', 'crosstools', 'collect_aros', 'cc', 'host_root', 'rust_src', 'std_build', 'posix_stubs'):
++        if getattr(a, name):
++            setattr(a, name, getattr(a, name).resolve())
+     profile = select(a.target)
+     triple, driver = profile["triple"], profile["driver"]
+     validate_sdk(a.sdk.resolve(), profile)

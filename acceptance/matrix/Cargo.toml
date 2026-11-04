@@ -1,0 +1,14 @@
+[package]
+name = "aros-matrix"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Runtime matrix for a new AROS profile: one subcommand per case, so that
+# every case has its own Shell exit receipt.
+[dependencies]
+rayon = "=1.12.0"
+rayon-core = "=1.13.0"
+
+[profile.release]
+panic = "abort"

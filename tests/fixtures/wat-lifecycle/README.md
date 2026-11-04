@@ -1,0 +1,1 @@
+Protocol/result-only excerpts for validator unit tests, reduced from the historical native-10 fixture. Not a new native acceptance record; raw session logs and private paths are deliberately excluded.

@@ -19,18 +19,29 @@ error chain.
 ## Setting it up
 
 ```sh
-rustup toolchain install nightly --profile minimal --component rust-src
-./make-std-toolchain.sh          # creates the "aros-nightly" toolchain
+rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src
+./make-std-toolchain.sh /absolute/new/sysroot aros-local
 cd ../std-hello
-cargo +aros-nightly run --release
+cargo +aros-local build --release
 ```
 
-`make-std-toolchain.sh` builds a sysroot that borrows everything from nightly
+The destination must not exist and the toolchain name must be new. The installer
+refuses the shared `aros-nightly` name, checks the exact compiler version before
+creating output, and registers the new toolchain only after patching succeeds.
+It does not update Rust or replace a previous sysroot. To use an already
+installed base offline, set `AROS_RUST_BASE=nightly`; the same exact-version
+check still applies. Existing users of `aros-nightly` can keep using it.
+
+`make-std-toolchain.sh` builds a sysroot that borrows everything from the pinned nightly
 except `lib/rustlib/src/rust`, which is a copy with `patch-std.py` applied and
 the AROS `libc` crate dropped in. rustc finds std's sources under its own
 sysroot, which is why a plain `-Z build-std` cannot be pointed elsewhere and a
 linked toolchain is used instead. Nothing in `~/.rustup/toolchains/nightly` is
-modified.
+modified. Keep the base installation available: the generated toolchain refers
+to its binaries and host libraries. Switching Cargo's `+toolchain` selects a
+different sysroot without changing other projects. To remove only this new
+registration, use `rustup toolchain uninstall aros-local`; archive or remove the
+explicit sysroot directory separately after checking that no consumer uses it.
 
 A project then needs, in `.cargo/config.toml`:
 
@@ -50,7 +61,7 @@ stays reviewable:
 |---|---|
 | `os::aros` | `raw` types and `MetadataExt`, from `os::haiku` minus creation time |
 | args | stored from `main`'s argc/argv, as on haiku |
-| random | `getentropy` (from `libc-aros/csrc/compat.c`, **not cryptographic**) |
+| random | `getentropy` (from `libc-aros/csrc/entropy.c`, over the pinned jitterentropy source) |
 | `current_exe` | `argv[0]`; there is no `/proc` |
 | thread names | no-op |
 | errno | `___geterrnoptr()` |
@@ -58,7 +69,9 @@ stays reviewable:
 | null device | `NIL:` |
 | `read_output` | thread per pipe instead of `poll` on non-blocking pipes |
 | `process_group` | `pid_t` is 64-bit on AROS |
+| `PathBuf::push` | no `/` after a volume or assign (`RAM:` + `x` is `RAM:x`; `RAM:/x` is RAM:'s parent), and a pushed `Work:x` replaces the base |
 | condvar clock | AROS joins the platforms that cannot `pthread_condattr_setclock`, so deadlines use `CLOCK_REALTIME` |
+| `env::home_dir` | `HOME` only; no `getpwuid_r` fallback. A deliberate limit of this port: posixc's user database lookup from a pthread worker leads to a use-after-free in mainline's C runtime at program exit (nightly 20261031) |
 | supported-OS list in `build.rs` | otherwise everything is `restricted_std` |
 
 ## What `libc-aros` supplies underneath
@@ -69,6 +82,23 @@ library base, so C has to do it), `getaddrinfo` over `gethostbyname` (this
 bsdsocket has no `getaddrinfo`), the `*at()` family for `AT_FDCWD`, `poll` over
 `WaitSelect` (sockets only), `pread`/`pwrite`/`readv`, `strerror_r`, and
 ENOSYS stubs for `chroot`, `mkfifo`, `setpgid`, `setgroups`, `socketpair`.
+
+`bsdsocket.library` is optional. `compat.c` defines `SocketBase` itself and
+opens the library at startup without insisting: referencing the SDK's
+`SocketBase` pulls `net.lib`'s autoinit, which shows "Unable to open
+bsdsocket.library version 4 or later" and exits, so every std program needed
+a running TCP/IP stack just to start. Without a stack, socket calls now fail
+with `ENETDOWN`. A stack started after the program is not picked up.
+
+`libc-aros` links `crt` before `net` for the same reason: `net.lib` has its
+own `strerror`, which asks `bsdsocket.library` through `SocketBase` and
+crashes when it is NULL. With `crt` first, formatting an `io::Error` works
+without a stack.
+
+`std-net-std` tests this path (`std::net::TcpStream` only, so sockets go
+through `compat.c`; `net-test` links its own glue and does not). On ABIv11,
+2026-09-24: without a stack it reports `Network is down (os error 50)` and
+exits normally; with AROSTCP running it fetches a page over HTTP.
 
 `fork` is `vfork`, bound **directly** to `__vfork_CrtBase_wrapper`. It cannot
 go through a C wrapper: vfork returns twice into the same stack frame, and a
@@ -81,8 +111,11 @@ was verified by hand before trusting it.
 
 * `Command::new("echo")` with a bare name fails: `execvp` does not search the
   AmigaDOS path. Give a full name such as `C:echo`.
-* `getentropy` is not a real entropy source. `HashMap` seeding is fine; do not
-  use `std`'s randomness for keys.
+* The x86_64/v11 entropy adapter now uses arospkg's jitterentropy port, with
+  source failures propagated. Rebuild an isolated sysroot to pick it up: older
+  installed sysroots still contain the clock/random implementation. Runtime
+  scope and getrandom 0.3's explicit custom backend are described in
+  `../entropy-std/README.md`. Other getrandom versions are not implicitly supported.
 * `poll` only works on sockets. `std::net` timeouts use it; nothing else does.
 * `mmap` is emulated: anonymous maps are allocations, read-only file maps are
   reads, and writable shared file maps are refused. `mprotect` enforces

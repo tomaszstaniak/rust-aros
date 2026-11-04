@@ -1,0 +1,143 @@
+Subject: Close review gaps in loader admission and GNU tool selection
+
+Reject allocated x86 relocations outside the explicit static/no-GOT subset,
+including large-model GOT64/GOTPC64; require ET_REL SDK startup headers.
+Keep the GNU compiler-version default unchanged. GNU official builds are an
+explicit pin plus RUST_OFFICIAL_TOOLS selection, with private import support.
+Hash the actual LLVM utilities, not an unused Clang when --cc is explicit.
+Base: preceding patches on PR1800 2eb81b4. Original John KNIPPER, APL 1.1;
+adaptations copyright AROS contributors, APL 1.1.
+
+--- a/tools/crosstools/rust/unmodified/profiles.py
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -14,7 +14,7 @@
+ 
+ def validate_sdk(sdk, profile):
+     data = (sdk / "lib/startup.o").read_bytes()
+-    if len(data) < 64 or data[:6] != bytes.fromhex("7f454c460201") or int.from_bytes(data[18:20], "little") != profile["machine"]:
++    if len(data) < 64 or data[:6] != bytes.fromhex("7f454c460201") or int.from_bytes(data[18:20], "little") != profile["machine"] or int.from_bytes(data[16:18], "little") != 1 or data[7] not in (0, 15) or data[8] not in (0, profile["abi"]):
+         raise ValueError("SDK startup CPU/class/endian differs from explicit profile")
+     config = sdk / "include/aros/config.h"
+     if not config.is_file() or "#define AROS_DOS_PACKETS                1" not in config.read_text():
+@@ -68,3 +68,14 @@
+     except (KeyError, TypeError) as error:
+         raise ValueError('incomplete installation manifest') from error
+     return data
++
++
++def validate_relocations(profile, counts):
++    if profile['arch'] == 'x86_64':
++        # Large static model without a GOT; unknown/new encodings fail closed.
++        allowed = {0, 1, 2, 4, 10, 11, 24}
++        invalid = {number for number, count in counts.items() if count and number not in allowed}
++    else:
++        invalid = {number for number in (311, 312) if counts.get(number, 0)}
++    if invalid:
++        raise ValueError('allocated relocations outside the selected loader contract: ' + str(sorted(invalid)))
+--- a/tools/crosstools/rust/unmodified/consumer-check.py
++++ b/tools/crosstools/rust/unmodified/consumer-check.py
+@@ -14,7 +14,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import TOOLCHAIN, COMMIT, digest, run
+-from profiles import select, validate_installation
++from profiles import select, validate_installation, validate_relocations
+ 
+ HERE = Path(__file__).resolve().parent
+ 
+@@ -162,8 +162,7 @@
+         if section[1] == 4 and sections[section[7]][2] & 2:
+             for off in range(section[4], section[4] + section[5], section[9]):
+                 relocations[struct.unpack_from('<Q', data, off + 8)[0] & 0xffffffff] += 1
+-    if any(relocations[n] for n in ((311, 312) if profile["arch"] == "aarch64" else (3, 9, 19, 20, 22, 41, 42))):
+-        raise RuntimeError('consumer contains GOT relocations rejected by LoadSeg')
++    validate_relocations(profile, relocations)
+     tools = Path(result['crosstools']) / 'bin'
+     if not (tools / 'llvm-nm').is_file():
+         parser.error('std-build metadata must identify its C tools')
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -144,7 +144,12 @@
+         stock = package / 'rust-src/lib/rustlib/src/rust'
+     inputs = {str(x): digest(x) for x in (compiler, cargo, host / 'bin/rustdoc', HERE / 'channel.json',
+               HERE / 'source-files.json', HERE / 'build.py', HERE / 'integrate.py',
+-              a.crosstools.resolve() / 'bin/clang', a.collect_aros.resolve(), HERE / 'rust-src-aros.diff', HERE / (triple + '.json'))}
++              a.collect_aros.resolve(), HERE / 'rust-src-aros.diff', HERE / (triple + '.json'))}
++    for name in ('llvm-ar', 'llvm-nm', 'llvm-objcopy', 'ld.lld') + (() if a.cc else ('clang',)):
++        tool = a.crosstools.resolve() / 'bin' / name
++        if not tool.is_file():
++            raise ValueError('--crosstools requires an explicit LLVM utility tree: missing ' + str(tool))
++        inputs[str(tool)] = digest(tool)
+     if a.cc:
+         inputs[str(a.cc.resolve())] = digest(a.cc.resolve())
+     inputs[str(HERE / "profiles.py")] = digest(HERE / "profiles.py")
+--- a/configure
++++ b/configure
+@@ -1822,7 +1822,7 @@
+   --with-llvm-version=VERSION
+                           Compile llvm-VERSION for AROS
+   --with-rust-version=VERSION
+-                          Rust version (AArch64 LLVM or x86_64 LLVM/GNU: nightly-2026-08-04; other targets: 1.98.1)
++                          Rust version (AArch64/x86_64 LLVM: nightly-2026-08-04; other targets: 1.98.1)
+   --with-cpu=<spec>       Specify minumum CPU (default=$gcc_default_cpu).
+   --with-fpu=<spec>       Specify minumum FPU (default=$gcc_float_fpu).
+   --with-float=<spec>     Specify floating point ABI
+@@ -12585,7 +12585,7 @@
+ printf '%s\n' "$aros_enable_rust" >&6; }
+ 
+ default_rust_version="1.98.1"
+-if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:gnu"; then
++if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm"; then
+     default_rust_version="nightly-2026-08-04"
+ fi
+ 
+--- a/configure.in
++++ b/configure.in
+@@ -2846,10 +2846,10 @@
+ AC_MSG_RESULT($aros_enable_rust)
+ 
+ default_rust_version="1.98.1"
+-if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:gnu"; then
++if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm"; then
+     default_rust_version="nightly-2026-08-04"
+ fi
+-AC_ARG_WITH(rust-version,AS_HELP_STRING([--with-rust-version=VERSION],[Rust version (AArch64 LLVM or x86_64 LLVM/GNU: nightly-2026-08-04; other targets: 1.98.1)]),use_rust_version="$withval",use_rust_version="")
++AC_ARG_WITH(rust-version,AS_HELP_STRING([--with-rust-version=VERSION],[Rust version (AArch64/x86_64 LLVM: nightly-2026-08-04; other targets: 1.98.1)]),use_rust_version="$withval",use_rust_version="")
+ if test "$use_rust_version" = ""; then
+     target_rust_version="$default_rust_version"
+ else
+--- a/tools/crosstools/rust/mmakefile.src
++++ b/tools/crosstools/rust/mmakefile.src
+@@ -4,7 +4,7 @@
+ #
+ # Rust cross compiler for AROS
+ #
+-# The official AArch64/LLVM pin uses the private std and native adapter
++# The official AArch64/x86_64 pin uses the private std and native adapter
+ # installation in unmodified/integrate.py. Other profiles bootstrap the
+ # patched source compiler with x.py. Both reach the native target C driver.
+ #
+@@ -194,16 +194,21 @@
+ 
+ ## Build and install ###
+ 
++# GNU C drivers may reuse an explicitly supplied LLVM utility tree. The GNU
++# default remains source bootstrap; selecting the official pin is opt-in.
++RUST_OFFICIAL_TOOLS ?= $(CROSSTOOLSDIR)
++RUST_OFFICIAL_POSIX_STUBS ?=
+ ifeq ($(RUST_OFFICIAL),yes)
+ #MM
+ tools-crosstools-rust :
+ 	+$(PYTHON) $(SRCDIR)/tools/crosstools/rust/unmodified/integrate.py \
+ 	    --prefix $(RUST_INSTALL_PREFIX) \
+ 	    --work $(HOSTGENDIR)/$(CURDIR)/official-$(RUST_VERSION)-$(AROS_TARGET_CPU) \
+-	    --sdk $(AROS_DEVELOPER) --crosstools $(CROSSTOOLSDIR) \
++	    --sdk $(AROS_DEVELOPER) --crosstools $(RUST_OFFICIAL_TOOLS) \
+ 	    --collect-aros $(TOOLDIR)/collect-aros --host-triple $(RUST_HOST_TRIPLE) \
+ 	    --target $(RUST_TARGET_TRIPLE) --cc $(RUST_TARGET_CC) \
+-	    $(foreach flag,$(RUST_TARGET_CCFLAGS),--cc-arg=$(flag))
++	    $(foreach flag,$(RUST_TARGET_CCFLAGS),--cc-arg=$(flag)) \
++	    $(if $(RUST_OFFICIAL_POSIX_STUBS),--posix-stubs $(RUST_OFFICIAL_POSIX_STUBS))
+ else
+ #MM
+ tools-crosstools-rust : $(RUST_BOOTSTRAP_TOML) $(TARGET_RUST_LINKER)

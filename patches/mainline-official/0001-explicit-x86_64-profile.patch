@@ -1,0 +1,605 @@
+Subject: Extend the pinned official Rust profile to explicit x86_64 ABIv1
+
+What: explicit CPU/SDK/C-driver admission using the existing build, install,
+consumer and ABI mechanisms; configure/MetaMake admits x86_64 LLVM/GNU.
+Why: qualify mainline x86 without duplicating Jonx's official SDK pipeline.
+Base: PR1800 2eb81b402b0d3de6d0b068ce74fdb6eb653f2d60 plus the three
+companion PRs pinned in profiles/mainline-official/sources.json.
+Runtime: UNTESTED; no historical v11/ARM acceptance is transferred.
+Provenance: original John KNIPPER, APL 1.1; adaptations AROS contributors,
+APL 1.1. Candidate for upstream, not submitted.
+
+--- a/configure
++++ b/configure
+@@ -1822,7 +1822,7 @@
+   --with-llvm-version=VERSION
+                           Compile llvm-VERSION for AROS
+   --with-rust-version=VERSION
+-                          Rust version (AArch64 LLVM: nightly-2026-08-04; other targets: 1.98.1)
++                          Rust version (AArch64 LLVM or x86_64 LLVM/GNU: nightly-2026-08-04; other targets: 1.98.1)
+   --with-cpu=<spec>       Specify minumum CPU (default=$gcc_default_cpu).
+   --with-fpu=<spec>       Specify minumum FPU (default=$gcc_float_fpu).
+   --with-float=<spec>     Specify floating point ABI
+@@ -12585,7 +12585,7 @@
+ printf '%s\n' "$aros_enable_rust" >&6; }
+ 
+ default_rust_version="1.98.1"
+-if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm"; then
++if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:gnu"; then
+     default_rust_version="nightly-2026-08-04"
+ fi
+ 
+--- a/configure.in
++++ b/configure.in
+@@ -2846,10 +2846,10 @@
+ AC_MSG_RESULT($aros_enable_rust)
+ 
+ default_rust_version="1.98.1"
+-if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm"; then
++if test "$aros_target_cpu:$aros_toolchain" = "aarch64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:llvm" || test "$aros_target_cpu:$aros_toolchain" = "x86_64:gnu"; then
+     default_rust_version="nightly-2026-08-04"
+ fi
+-AC_ARG_WITH(rust-version,AS_HELP_STRING([--with-rust-version=VERSION],[Rust version (AArch64 LLVM: nightly-2026-08-04; other targets: 1.98.1)]),use_rust_version="$withval",use_rust_version="")
++AC_ARG_WITH(rust-version,AS_HELP_STRING([--with-rust-version=VERSION],[Rust version (AArch64 LLVM or x86_64 LLVM/GNU: nightly-2026-08-04; other targets: 1.98.1)]),use_rust_version="$withval",use_rust_version="")
+ if test "$use_rust_version" = ""; then
+     target_rust_version="$default_rust_version"
+ else
+--- a/tools/crosstools/rust.cfg
++++ b/tools/crosstools/rust.cfg
+@@ -17,8 +17,8 @@
+ # Other targets retain their existing source-bootstrap recipe until qualified.
+ RUST_OFFICIAL := $(if $(filter nightly-2026-08-04,$(RUST_VERSION)),yes,no)
+ ifeq ($(RUST_OFFICIAL),yes)
+-ifneq ($(AROS_TARGET_CPU):$(AROS_TOOLCHAIN),aarch64:llvm)
+-$(error The official Rust profile is qualified only for AArch64 with LLVM)
++ifeq ($(filter $(AROS_TARGET_CPU):$(AROS_TOOLCHAIN),aarch64:llvm x86_64:llvm x86_64:gnu),)
++$(error The official Rust build profile requires explicit AArch64 LLVM or x86_64 LLVM/GNU admission; runtime qualification is separate)
+ endif
+ RUST_INSTALL_PREFIX := $(CROSSTOOLSDIR)/rust-$(RUST_VERSION)-$(AROS_TARGET_CPU)
+ else
+--- a/tools/crosstools/rust/mmakefile.src
++++ b/tools/crosstools/rust/mmakefile.src
+@@ -201,7 +201,9 @@
+ 	    --prefix $(RUST_INSTALL_PREFIX) \
+ 	    --work $(HOSTGENDIR)/$(CURDIR)/official-$(RUST_VERSION)-$(AROS_TARGET_CPU) \
+ 	    --sdk $(AROS_DEVELOPER) --crosstools $(CROSSTOOLSDIR) \
+-	    --collect-aros $(TOOLDIR)/collect-aros --host-triple $(RUST_HOST_TRIPLE)
++	    --collect-aros $(TOOLDIR)/collect-aros --host-triple $(RUST_HOST_TRIPLE) \
++	    --target $(RUST_TARGET_TRIPLE) --cc $(RUST_TARGET_CC) \
++	    $(foreach flag,$(RUST_TARGET_CCFLAGS),--cc-arg=$(flag))
+ else
+ #MM
+ tools-crosstools-rust : $(RUST_BOOTSTRAP_TOML) $(TARGET_RUST_LINKER)
+--- a/tools/crosstools/rust/unmodified/ABI/libc-exports.py
++++ b/tools/crosstools/rust/unmodified/ABI/libc-exports.py
+@@ -19,7 +19,8 @@
+                          ('std_build', 'application_libc_rlib', 'crosstools', 'output'))
+ if out.exists() or a.output.is_symlink() or any(out == root or root in out.parents for root in (build, app.parent, tools, HERE.parents[4])):
+     p.error('output must be new and outside the input trees')
+-stdlib = list((build / 'sysroot/lib/rustlib/aarch64-unknown-aros/lib').glob('liblibc-*.rlib'))
++profile = json.loads((build / "result.json").read_text()).get("profile", {"triple": "aarch64-unknown-aros"})
++stdlib = list((build / "sysroot/lib/rustlib" / profile["triple"] / "lib").glob('liblibc-*.rlib'))
+ if len(stdlib) != 1:
+     p.error('std-build must contain exactly one target libc')
+ inputs = [stdlib[0], app, HERE.parent / 'sys/unavailable.c']
+--- a/tools/crosstools/rust/unmodified/ABI/network-abi.py
++++ b/tools/crosstools/rust/unmodified/ABI/network-abi.py
+@@ -20,6 +20,9 @@
+ import struct
+ import subprocess
+ import sys
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++from profiles import select
+ 
+ 
+ LAYOUTS = {
+@@ -114,10 +117,12 @@
+     qualified = json.loads((build / "result.json").read_text())
+     if qualified.get("std_compile") != "PASS":
+         parser.error("std-build result.json must record std_compile PASS")
+-    deps = build / "sysroot/lib/rustlib/aarch64-unknown-aros/lib"
++    profile = select(qualified.get("profile", {}).get("triple", "aarch64-unknown-aros"))
++    triple = profile["triple"]
++    deps = build / "sysroot/lib/rustlib" / triple / "lib"
+     core = one_rlib(deps, "core")
+     libc = args.application_libc_rlib.resolve() if args.application_libc_rlib else one_rlib(deps, "libc")
+-    wrapper, target = build / "rustc", build / "aarch64-unknown-aros.json"
++    wrapper, target = build / "rustc", build / (triple + ".json")
+     output.mkdir(parents=True)
+     inputs = {str(p): digest(p) for p in (core, libc, wrapper, target, build / "result.json")}
+     native_header = args.native_header.resolve()
+@@ -181,7 +186,7 @@
+             raise
+         rust = rust.replace("(libc::MSG_NOSIGNAL) as u64", "u64::MAX")
+         (output / "rust.rs").write_text(rust)
+-    cflags = [str(tools / "bin/clang"), "--target=aarch64-unknown-aros", "-std=c11",
++    cflags = [*qualified["c_driver"], "-std=c11",
+               "-D_BSD_SOURCE=1", "-I" + str(output / "include"), "-I" + str(sdk / "include/aros/posixc"),
+               "-I" + str(sdk / "include/aros/stdc"), "-I" + str(sdk / "include")]
+     deptext = command(cflags + ["-M", str(output / "native.c")], output, "dependencies")
+@@ -198,8 +203,8 @@
+         obj = output / (language + ".o")
+         header = obj.read_bytes()[:64]
+         if (header[:6] != b"\x7fELF\x02\x01" or
+-                struct.unpack_from("<HH", header, 16) != (1, 183)):
+-            raise RuntimeError(f"{language} object is not ELF64 LE AArch64 ET_REL")
++                struct.unpack_from("<HH", header, 16) != (1, profile["machine"])):
++            raise RuntimeError(f"{language} object differs from the selected native ELF64 profile")
+         raw = output / (language + ".bin")
+         command([str(tools / "bin/llvm-objcopy"), "--dump-section",
+                  ".aros_abi=" + str(raw), str(obj)], output, language + "-extract")
+--- a/tools/crosstools/rust/unmodified/build.py
++++ b/tools/crosstools/rust/unmodified/build.py
+@@ -15,6 +15,8 @@
+ import subprocess
+ import sys
+ 
++
++from profiles import PROFILES, select, validate_sdk, c_driver as native_c_driver
+ 
+ HERE = Path(__file__).resolve().parent
+ PIN = json.loads((HERE / "channel.json").read_text())
+@@ -66,13 +68,20 @@
+     parser.add_argument("--crosstools", type=Path,
+                         help="C tools directory containing bin/clang and bin/ld.lld")
+     parser.add_argument("--collect-aros", type=Path)
++    parser.add_argument("--cc", type=Path, help="explicit configured native C driver")
++    parser.add_argument("--cc-arg", action="append", default=[], help="one configured target C flag")
+     parser.add_argument("--posix-stubs", type=Path,
+                         help="private import archive generated from the matching POSIX library")
+     parser.add_argument("--probe", choices=("link", "network"), default="link",
+                         help="compile/link coverage or executable IPv4 loopback diagnostic")
+     parser.add_argument("--jobs", type=int, default=1,
+                         help="positive Cargo worker bound (default: 1)")
++    parser.add_argument("--target", choices=sorted(PROFILES), default="aarch64-unknown-aros")
+     args = parser.parse_args()
++    profile = select(args.target)
++    triple, driver = profile["triple"], profile["driver"]
++    if args.sdk:
++        validate_sdk(args.sdk.resolve(), profile)
+     if args.jobs < 1:
+         parser.error("--jobs must be positive")
+     if any((args.sdk, args.crosstools, args.collect_aros)) and not all(
+@@ -127,14 +136,14 @@
+     run(["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i",
+          str(HERE / "rust-src-aros.diff")], cwd=sources, log=output / "patch.log")
+     for entry in (official_sysroot / "lib/rustlib").iterdir():
+-        if entry.name not in ("src", "aarch64-unknown-aros"):
++        if entry.name not in ("src", triple):
+             (overlay / "lib/rustlib" / entry.name).symlink_to(entry)
+ 
+     wrapper = output / "rustc"
+     wrapper.write_text("#!/bin/sh\nexec " + shlex.quote(str(compiler)) +
+                        " --sysroot " + shlex.quote(str(overlay)) + ' "$@"\n')
+     wrapper.chmod(0o755)
+-    target = output / "aarch64-unknown-aros.json"
++    target = output / (triple + ".json")
+     shutil.copyfile(HERE / target.name, target)
+     environment = os.environ.copy()
+     for name in list(environment):
+@@ -151,7 +160,7 @@
+     cfg = run([str(wrapper), "-Zunstable-options", "--print", "cfg", "--target",
+                str(target)], env=environment)
+     (output / "target-cfg.txt").write_text(cfg)
+-    if not {'target_os="aros"', 'target_family="unix"', 'target_arch="aarch64"'} <= set(cfg.splitlines()):
++    if not {'target_os="aros"', 'target_family="unix"', 'target_arch="' + profile['arch'] + '"'} <= set(cfg.splitlines()):
+         raise RuntimeError("target cfg does not select the integrated Unix std port")
+ 
+     probe = output / "probe"
+@@ -169,7 +178,7 @@
+     # target artifacts rather than assuming a release/deps directory.
+     std_artifacts = {}
+     archives = []
+-    target_output = output / "target/aarch64-unknown-aros"
++    target_output = output / "target" / triple
+     for line in build_messages.splitlines():
+         try:
+             message = json.loads(line)
+@@ -194,20 +203,21 @@
+         raise RuntimeError("expected exactly one target probe static archive")
+     # Applications consume the same compiled std without rebuilding its sources.
+     # Never write through a target-directory alias into the official sysroot.
+-    target_library = overlay / "lib/rustlib/aarch64-unknown-aros/lib"
++    target_library = overlay / "lib/rustlib" / triple / "lib"
+     target_library.mkdir(parents=True)
+     std_rlibs = sorted(std_artifacts.values())
+     for library in std_rlibs:
+         shutil.copy2(library, target_library / library.name)
+     archive = output / "std-probe.a"
+     shutil.copyfile(archives[0], archive)
+-    result = {"build_jobs": args.jobs, "probe": args.probe, "probe_sha256": digest(probe_source),
++    result = {"profile": profile, "official_compiler": str(compiler), "official_cargo": cargo, "build_jobs": args.jobs, "probe": args.probe, "probe_sha256": digest(probe_source),
+               "precompiled_std": {p.name: digest(p) for p in std_rlibs},
+               "compiler_commit": COMMIT, "compiler_sha256": compiler_sha256,
+               "target_sha256": digest(target), "std_patch_sha256": digest(HERE / "rust-src-aros.diff"),
+               "archive_sha256": digest(archive), "std_compile": "PASS", "native_runtime": "UNTESTED"}
+     if args.sdk:
+         sdk, tools = args.sdk.resolve(), args.crosstools.resolve() / "bin"
++        c_driver = native_c_driver(profile, sdk, args.crosstools, args.cc, args.cc_arg)
+         harness = output / "main.c"
+         harness.write_text('#include <aros/debug.h>\n'
+                            'extern unsigned long rust_std_probe(void);\n'
+@@ -217,7 +227,7 @@
+                            '  unsigned long count = rust_std_probe();\n'
+                            '  bug("[RUSTPROBE] main-return count=%lu\\n", count);\n'
+                            '  return count > 0 ? 0 : 20;\n}\n')
+-        run([str(tools / "clang"), "--target=aarch64-unknown-aros", "-fno-pic",
++        run([*c_driver, "-fno-pic",
+              "-mcmodel=large", "-O2", "-I" + str(sdk / "include"),
+              "-c", str(harness), "-o", str(output / "main.o")],
+             log=output / "compile-harness.log")
+@@ -226,6 +236,18 @@
+         private_include = output / "include"
+         (private_include / "bsdsocket").mkdir(parents=True)
+         shutil.copyfile(native_header, private_include / "bsdsocket/native.h")
++        contract = output / "cpu-contract.c"
++        contract.write_text("#include <stddef.h>\n#include <aros/cpu.h>\n#include <exec/libraries.h>\n#include <bsdsocket/native.h>\n"
++            "_Static_assert(sizeof(void*) == 8, \"pointer\");\n"
++            "_Static_assert(sizeof(LONG) == 4, \"LONG\");\n"
++            "_Static_assert(LIB_VECTSIZE == 8, \"vector geometry\");\n"
++            "_Static_assert(sizeof(struct aros_socket_request) == 64, \"request size\");\n"
++            "_Static_assert(_Alignof(struct aros_socket_request) == 8, \"request alignment\");\n"
++            "_Static_assert(offsetof(struct aros_socket_request, result) == 24, \"result offset\");\n"
++            "_Static_assert(offsetof(struct aros_socket_request, address_length) == 56, \"length pointer offset\");\n")
++        run([*c_driver, "-fno-pic", "-mcmodel=large",
++             "-I" + str(private_include), "-I" + str(sdk / "include"), "-c", str(contract),
++             "-o", str(output / "cpu-contract.o")], log=output / "cpu-contract.log")
+         positional_archives = []
+         if args.posix_stubs:
+             imported = output / "libaros_positional.a"
+@@ -234,7 +256,7 @@
+         adapters = []
+         for name in ("resolver", "resolver_aros", "socket", "socket_aros", "positioned", "unavailable"):
+             obj = output / (name + ".o")
+-            command = [str(tools / "clang"), "--target=aarch64-unknown-aros", "-fno-pic",
++            command = [*c_driver, "-fno-pic",
+                        "-mcmodel=large", "-fno-builtin", "-O2", "-Wall", "-Wextra", "-Werror",
+                        "-Wconversion", "-Wsign-conversion",
+                        "-I" + str(private_include), "-I" + str(HERE / "net"),
+@@ -247,14 +269,14 @@
+         native_archive = output / "libaros_rs_platform.a"
+         run([str(tools / "llvm-ar"), "rcs", str(native_archive), *adapters],
+             log=output / "archive-platform.log")
+-        native_driver = output / "aarch64-aros-cc"
++        native_driver = output / driver
+         native_driver.write_text("#!/bin/sh\nexec " + shlex.join([
+-            str(tools / "clang"), "--target=aarch64-unknown-aros", "--sysroot=" + str(sdk),
++            *c_driver,
+             "-B" + str(args.collect_aros.resolve().parent), "-B" + str(tools)]) +
+             ' "$@" ' + shlex.join(["-L" + str(output), "-laros_rs_platform", *positional_archives]) + "\n")
+         native_driver.chmod(0o755)
+         (output / "cargo-config.toml").write_text(
+-            "[target.aarch64-unknown-aros]\nlinker = " + json.dumps(str(native_driver)) +
++            "[target." + triple + "]\nlinker = " + json.dumps(str(native_driver)) +
+             "\nrustflags = [" + json.dumps("-Lnative=" + str(sdk / "lib")) + "]\n")
+         shim = output / "linkshim"
+         shim.mkdir()
+@@ -271,14 +293,14 @@
+         with binary.open("rb") as stream:
+             header = stream.read(64)
+         if (len(header) != 64 or header[:4] != b"\x7fELF" or
+-                header[4:6] != b"\x02\x01" or header[7] != 15 or
+-                struct.unpack_from("<HH", header, 16) != (1, 183)):
+-            raise RuntimeError("linked command is not an AROS ELF64 little-endian AArch64 ET_REL")
++                header[4:6] != b"\x02\x01" or header[7] != 15 or header[8] != profile["abi"] or
++                struct.unpack_from("<HH", header, 16) != (1, profile["machine"])):
++            raise RuntimeError("linked command is not an AROS ELF64 for the selected CPU/ABI")
+         undefined = run([str(tools / "llvm-nm"), "--undefined-only", str(binary)],
+                         log=output / "undefined.txt")
+         if undefined.strip():
+             raise RuntimeError("final command has undefined symbols")
+-        result.update(native_link="PASS", binary_sha256=digest(binary),
++        result.update(native_link="PASS", c_driver=c_driver, binary_sha256=digest(binary),
+                       sdk=str(sdk), crosstools=str(args.crosstools.resolve()),
+                       collect_aros=str(args.collect_aros.resolve()),
+                       resolver_provider="AROS bsdsocket.library vector 136",
+@@ -293,7 +315,7 @@
+                           ("resolver.c", "resolver.h", "resolver_native.h", "resolver_aros.c",
+                            "socket.c", "socket_native.h", "socket_aros.c")},
+                       elf={"class": 64, "endian": "little", "osabi": "AROS",
+-                           "machine": "AArch64", "type": "ET_REL"})
++                           "machine": profile["arch"], "abi": profile["abi"], "type": "ET_REL"})
+     if digest(compiler) != result["compiler_sha256"]:
+         raise RuntimeError("compiler changed during the build")
+     (output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+--- a/tools/crosstools/rust/unmodified/consumer-check.py
++++ b/tools/crosstools/rust/unmodified/consumer-check.py
+@@ -14,6 +14,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import TOOLCHAIN, digest, run
++from profiles import select
+ 
+ HERE = Path(__file__).resolve().parent
+ 
+@@ -45,6 +46,8 @@
+     if output.exists() or args.output.is_symlink():
+         parser.error('output must not exist')
+     result = json.loads((build / 'result.json').read_text())
++    profile = select(result.get("profile", {}).get("triple", "aarch64-unknown-aros"))
++    triple, driver = profile["triple"], profile["driver"]
+     if (result.get('native_link') != 'PASS' or not result.get('precompiled_std')
+             or not result.get('sdk') or not result.get('crosstools')):
+         parser.error('std-build must contain a linked build with installed std and SDK/tool identities')
+@@ -55,7 +58,7 @@
+             parser.error('installed toolchain lacks a unique official compiler identity')
+         compiler = candidates[0]
+     else:
+-        compiler = Path(run(['rustup', 'which', '--toolchain', TOOLCHAIN, 'rustc']).strip())
++        compiler = Path(result['official_compiler'])
+     official_root = Path(run([str(compiler), '--print', 'sysroot']).strip()).resolve()
+     protected = [build, official_root, HERE.parents[3]]
+     if installation:
+@@ -70,7 +73,7 @@
+             parser.error('ambient Cargo configuration; select an isolated output')
+     if digest(compiler) != result['compiler_sha256']:
+         parser.error('the official compiler does not match the produced std')
+-    target_lib = build / 'sysroot/lib/rustlib/aarch64-unknown-aros/lib'
++    target_lib = build / 'sysroot/lib/rustlib' / triple / 'lib'
+     for name, expected in result['precompiled_std'].items():
+         if digest(target_lib / name) != expected:
+             parser.error('installed std rlib changed: ' + name)
+@@ -99,13 +102,12 @@
+             list(vendor.glob('libc-*/Cargo.toml')))
+     if len(libc) != 1:
+         parser.error('expected one libc source version in the qualified overlay')
+-    cargo = str(prefix / 'bin/cargo') if installation else run(
+-        ['rustup', 'which', '--toolchain', TOOLCHAIN, 'cargo']).strip()
++    cargo = str(prefix / 'bin/cargo') if installation else result['official_cargo']
+     config = prefix / 'cargo-config.toml' if installation else build / 'cargo-config.toml'
+     rustc = prefix / 'bin/rustc' if installation else build / 'rustc'
+     inputs = [compiler, archive, build / 'cargo-config.toml', build / 'result.json',
+-              build / 'aarch64-unknown-aros.json', build / 'rustc',
+-              build / 'aarch64-aros-cc', HERE / 'consumer-probe.rs', HERE / 'consumer-trace.c']
++              build / (triple + '.json'), build / 'rustc',
++              build / driver, HERE / 'consumer-probe.rs', HERE / 'consumer-trace.c']
+     if installation:
+         inputs += [prefix / 'aros-official-rust.json', *(prefix / name for name in installation['installed'])]
+     inputs += imports
+@@ -124,7 +126,7 @@
+     shutil.copyfile(HERE / 'consumer-probe.rs', output / 'src/main.rs')
+     tools = Path(result['crosstools']) / 'bin'
+     trace = output / 'consumer-trace.o'
+-    trace_command = [str(tools / 'clang'), '--target=aarch64-unknown-aros',
++    trace_command = [*result['c_driver'],
+                      '-fno-pic', '-mcmodel=large', '-O2',
+                      '-fno-builtin', '-I' + str(Path(result['sdk']) / 'include/aros/posixc'),
+                      '-I' + str(Path(result['sdk']) / 'include/aros/stdc'),
+@@ -139,18 +141,19 @@
+                CARGO_TARGET_DIR=str(output / 'target'), CARGO_INCREMENTAL='0')
+     command = [cargo, '--config', str(config), '--config',
+                'source.crates-io.replace-with="aros-std-vendor"', '--config',
+-               'target.aarch64-unknown-aros.rustflags=' + json.dumps([
+-                   '-Lnative=' + str(Path(result['sdk']) / 'lib'), '-Clink-arg=' + str(trace)]), '--config',
++               'target.' + triple + '.rustflags=' + json.dumps([
++                   '-Lnative=' + str(Path(result['sdk']) / 'lib'), '-Clink-arg=' + str(trace)] +
++                   (['--cfg=aros_sdk_generation="' + installation['generation'] + '"'] if installation else [])), '--config',
+                'source.aros-std-vendor.directory=' + json.dumps(str(vendor)),
+                'build', '--offline', '--manifest-path', str(output / 'Cargo.toml'),
+-               *([] if installation else ['--target', str(build / 'aarch64-unknown-aros.json'), '-Zjson-target-spec'])]
++               *([] if installation else ['--target', str(build / (triple + '.json')), '-Zjson-target-spec'])]
+     (output / 'build-command.json').write_text(json.dumps(command, indent=2) + '\n')
+     run(command, cwd=output, env=env, log=output / 'build.log')
+-    binary = output / 'target/aarch64-unknown-aros/debug/aros-precompiled-std-consumer'
++    binary = output / 'target' / triple / 'debug/aros-precompiled-std-consumer'
+     data = binary.read_bytes()
+-    if (data[:6] != b'\x7fELF\x02\x01' or data[7] != 15 or
+-            struct.unpack_from('<HH', data, 16) != (1, 183)):
+-        raise RuntimeError('consumer is not native AROS AArch64 ELF ET_REL')
++    if (data[:6] != b'\x7fELF\x02\x01' or data[7] != 15 or data[8] != profile["abi"] or
++            struct.unpack_from('<HH', data, 16) != (1, profile["machine"])):
++        raise RuntimeError('consumer is not native AROS ELF for the selected CPU/ABI')
+     header = struct.unpack_from('<HHIQQQIHHHHHH', data, 16)
+     sections = [struct.unpack_from('<IIQQQQIIQQ', data, header[5] + i * header[10])
+                 for i in range(header[11])]
+@@ -159,7 +162,7 @@
+         if section[1] == 4 and sections[section[7]][2] & 2:
+             for off in range(section[4], section[4] + section[5], section[9]):
+                 relocations[struct.unpack_from('<Q', data, off + 8)[0] & 0xffffffff] += 1
+-    if relocations[311] or relocations[312]:
++    if any(relocations[n] for n in ((311, 312) if profile["arch"] == "aarch64" else (3, 9, 19, 20, 22, 41, 42))):
+         raise RuntimeError('consumer contains GOT relocations rejected by LoadSeg')
+     tools = Path(result['crosstools']) / 'bin'
+     if not (tools / 'llvm-nm').is_file():
+@@ -173,7 +176,7 @@
+     if any(not Path(name).is_file() or digest(Path(name)) != expected
+            for name, expected in external_expected.items()):
+         raise RuntimeError('qualified SDK/tool inputs changed during consumer compilation')
+-    report = {'compile_link': 'PASS', 'build_std': False, 'native_runtime': 'UNTESTED',
++    report = {'profile': profile, 'compile_link': 'PASS', 'build_std': False, 'native_runtime': 'UNTESTED',
+               'lto': args.lto,
+               'installed_toolchain': str(prefix) if installation else None,
+               'external_sdk_inputs_verified': len(external_expected),
+--- a/tools/crosstools/rust/unmodified/integrate.py
++++ b/tools/crosstools/rust/unmodified/integrate.py
+@@ -17,6 +17,7 @@
+ sys.dont_write_bytecode = True
+ 
+ from build import HERE, PIN, COMMIT, TOOLCHAIN, MIN_BUILD_FREE, digest, run
++from profiles import PROFILES, select, validate_sdk, c_driver
+ 
+ 
+ def write(path, text, executable=False):
+@@ -63,6 +64,10 @@
+                '--rust-src', str(stock), '--output', str(native), '--sdk', str(args.sdk.resolve()),
+                '--crosstools', str(args.crosstools.resolve()),
+                '--collect-aros', str(args.collect_aros.resolve()), '--jobs', str(args.jobs)]
++    command += ["--target", getattr(args, "target", "aarch64-unknown-aros")]
++    if getattr(args, "cc", None):
++        command += ["--cc", str(args.cc.resolve())]
++    command += ["--cc-arg=" + flag for flag in getattr(args, "cc_arg", [])]
+     if args.posix_stubs:
+         command += ['--posix-stubs', str(args.posix_stubs.resolve())]
+     return command
+@@ -72,6 +77,8 @@
+     p = argparse.ArgumentParser(description=__doc__)
+     for name in ('prefix', 'work', 'sdk', 'crosstools', 'collect-aros'):
+         p.add_argument('--' + name, type=Path, required=True)
++    p.add_argument('--cc', type=Path)
++    p.add_argument('--cc-arg', action='append', default=[])
+     p.add_argument('--host-triple', required=True, choices=sorted(PIN['hosts']))
+     p.add_argument('--host-root', type=Path, help='reuse matching official host tools read-only')
+     p.add_argument('--rust-src', type=Path, help='reuse stock source read-only')
+@@ -79,7 +86,11 @@
+     p.add_argument('--posix-stubs', type=Path, help='private matching import archive for an older read-only SDK')
+     p.add_argument('--offline', action='store_true')
+     p.add_argument('--jobs', type=int, default=1, help='positive Cargo worker bound (default: 1)')
++    p.add_argument("--target", choices=sorted(PROFILES), default="aarch64-unknown-aros")
+     a = p.parse_args()
++    profile = select(a.target)
++    triple, driver = profile["triple"], profile["driver"]
++    validate_sdk(a.sdk.resolve(), profile)
+     if a.jobs < 1:
+         p.error('--jobs must be positive')
+     if sys.version_info < (3, 12):
+@@ -133,7 +144,10 @@
+         stock = package / 'rust-src/lib/rustlib/src/rust'
+     inputs = {str(x): digest(x) for x in (compiler, cargo, host / 'bin/rustdoc', HERE / 'channel.json',
+               HERE / 'source-files.json', HERE / 'build.py', HERE / 'integrate.py',
+-              a.crosstools.resolve() / 'bin/clang', a.collect_aros.resolve(), HERE / 'rust-src-aros.diff', HERE / 'aarch64-unknown-aros.json')}
++              a.crosstools.resolve() / 'bin/clang', a.collect_aros.resolve(), HERE / 'rust-src-aros.diff', HERE / (triple + '.json'))}
++    if a.cc:
++        inputs[str(a.cc.resolve())] = digest(a.cc.resolve())
++    inputs[str(HERE / "profiles.py")] = digest(HERE / "profiles.py")
+     native_header = HERE.parents[3] / 'workbench/network/common/include/bsdsocket/native.h'
+     inputs[str(native_header)] = digest(native_header)
+     inputs.update({str(x): digest(x) for directory in ('net', 'fs', 'sys') for x in (HERE / directory).rglob('*')
+@@ -144,7 +158,7 @@
+     # must never silently reuse a std/adapter generation from another ABI.
+     for directory in ('include', 'lib'):
+         inputs.update({str(x): digest(x) for x in (a.sdk / directory).rglob('*') if x.is_file()})
+-    key = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
++    key = hashlib.sha256(json.dumps(dict(inputs=inputs, target=triple, cc_args=a.cc_arg), sort_keys=True).encode()).hexdigest()
+     native = a.std_build.resolve() if a.std_build else work / ('native-' + key[:20])
+     if not (native / 'result.json').is_file():
+         command = native_build_command(compiler, cargo, stock, native, a)
+@@ -152,8 +166,10 @@
+     result = json.loads((native / 'result.json').read_text())
+     if (result.get('native_link') != 'PASS' or result['compiler_sha256'] != digest(compiler)
+             or result['compiler_commit'] != COMMIT or result['std_patch_sha256'] != digest(HERE / 'rust-src-aros.diff')
+-            or result['target_sha256'] != digest(HERE / 'aarch64-unknown-aros.json')):
++            or result['target_sha256'] != digest(HERE / (triple + '.json'))):
+         raise RuntimeError('native std output does not match the pinned inputs')
++    if result.get('c_driver') != c_driver(profile, a.sdk, a.crosstools, a.cc, a.cc_arg):
++        raise RuntimeError('native std output uses a different C driver, flags or SDK')
+     if digest(native_header) != result['native_socket_header_sha256']:
+         raise RuntimeError('native std output uses a different socket ABI header')
+     if digest(HERE / 'sys/unavailable.c') != result['unavailable_adapter_sha256']:
+@@ -166,7 +182,7 @@
+     for name in ('sdk', 'crosstools', 'collect_aros'):
+         if Path(result[name]).resolve() != getattr(a, name).resolve():
+             raise RuntimeError('native std output uses a different ' + name)
+-    target_lib = native / 'sysroot/lib/rustlib/aarch64-unknown-aros/lib'
++    target_lib = native / 'sysroot/lib/rustlib' / triple / 'lib'
+     for name, expected in result['precompiled_std'].items():
+         if digest(target_lib / name) != expected:
+             raise RuntimeError('precompiled std changed: ' + name)
+@@ -189,17 +205,17 @@
+     # The prefix is dedicated to this toolchain. C tools and the source SDK
+     # remain read-only; only managed wrappers/configuration are replaced.
+     prefix.mkdir(parents=True, exist_ok=True)
+-    target = prefix / 'share/aarch64-unknown-aros.json'
+-    write(target, (native / 'aarch64-unknown-aros.json').read_text())
++    target = prefix / 'share' / (triple + '.json')
++    write(target, (native / (triple + '.json')).read_text())
+     for name, executable in (('rustc', native / 'rustc'), ('cargo', cargo),
+-                             ('aarch64-aros-cc', native / 'aarch64-aros-cc'),
++                             (driver, native / driver),
+                              ('rustdoc', host / 'bin/rustdoc')):
+         arguments = [str(executable)]
+         if name == 'rustdoc':
+             arguments += ['--sysroot', str(native / 'sysroot')]
+         write(prefix / 'bin' / name, '#!/bin/sh\nexec ' + shlex.join(arguments) + ' "$@"\n', True)
+-    write(prefix / 'cargo-config.toml', '[target.aarch64-unknown-aros]\nlinker = ' +
+-          json.dumps(str(prefix / 'bin/aarch64-aros-cc')) + '\nrustflags = [' +
++    write(prefix / 'cargo-config.toml', '[target.' + triple + ']\nlinker = ' +
++          json.dumps(str(prefix / 'bin' / driver)) + '\nrustflags = [' +
+           json.dumps('-Lnative=' + str(a.sdk.resolve() / 'lib')) + ', ' +
+           # Cargo cannot infer a rebuilt custom sysroot from rustc -Vv.
+           # Carry the SDK identity in target flags so it invalidates cached
+@@ -208,8 +224,8 @@
+           json.dumps(str(target)) + '\n[unstable]\njson-target-spec = true\n')
+     installed = {str(x.relative_to(prefix)): digest(x) for x in
+                  [target, prefix / 'cargo-config.toml', *(prefix / 'bin' / n for n in
+-                  ('rustc', 'cargo', 'aarch64-aros-cc', 'rustdoc'))]}
+-    write(prefix / 'aros-official-rust.json', json.dumps({'toolchain': TOOLCHAIN,
++                  ('rustc', 'cargo', driver, 'rustdoc'))]}
++    write(prefix / 'aros-official-rust.json', json.dumps({'profile': profile, 'toolchain': TOOLCHAIN,
+           'compiler_commit': COMMIT, 'host_triple': a.host_triple, 'generation': key,
+           'native_build': str(native), 'inputs': inputs, 'installed': installed,
+           'compile_link': 'PASS', 'native_runtime': 'UNTESTED'}, indent=2) + '\n')
+--- /dev/null
++++ b/tools/crosstools/rust/unmodified/profiles.py
+@@ -0,0 +1,26 @@
++# Copyright (C) 2026 AROS contributors. Licensed under APL 1.1.
++"""Explicit CPU admission; compilation never establishes runtime qualification."""
++PROFILES = {
++    "aarch64-unknown-aros": dict(arch="aarch64", machine=183, abi=1, driver="aarch64-aros-cc", runtime="UNTESTED"),
++    "x86_64-unknown-aros": dict(arch="x86_64", machine=62, abi=1, driver="x86_64-aros-cc", runtime="UNTESTED"),
++}
++
++
++def select(triple):
++    if triple not in PROFILES:
++        raise ValueError("unsupported official native profile: " + triple)
++    return dict(PROFILES[triple], triple=triple)
++
++
++def validate_sdk(sdk, profile):
++    data = (sdk / "lib/startup.o").read_bytes()
++    if len(data) < 64 or data[:6] != bytes.fromhex("7f454c460201") or int.from_bytes(data[18:20], "little") != profile["machine"]:
++        raise ValueError("SDK startup CPU/class/endian differs from explicit profile")
++    config = sdk / "include/aros/config.h"
++    if not config.is_file() or "#define AROS_DOS_PACKETS                1" not in config.read_text():
++        raise ValueError("require native mainline ABIv1 SDK configuration, not ABIv11")
++
++
++def c_driver(profile, sdk, tools, cc=None, flags=()):
++    command = [str(cc.resolve()), *flags] if cc else [str(tools.resolve() / "bin/clang"), "--target=" + profile["triple"]]
++    return command + ["--sysroot=" + str(sdk.resolve())]
+--- /dev/null
++++ b/tools/crosstools/rust/unmodified/x86_64-unknown-aros.json
+@@ -0,0 +1,42 @@
++{
++  "arch": "x86_64",
++  "llvm-target": "x86_64-unknown-none",
++  "data-layout": "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128",
++  "target-pointer-width": 64,
++  "os": "aros",
++  "target-family": [
++    "unix"
++  ],
++  "vendor": "unknown",
++  "features": "",
++  "max-atomic-width": 64,
++  "stack-probes": {
++    "kind": "inline"
++  },
++  "panic-strategy": "abort",
++  "relocation-model": "static",
++  "code-model": "large",
++  "has-thread-local": false,
++  "dynamic-linking": false,
++  "executables": true,
++  "position-independent-executables": false,
++  "static-position-independent-executables": false,
++  "plt-by-default": false,
++  "crt-static-default": false,
++  "crt-static-respected": false,
++  "crt-static-allows-dylibs": false,
++  "eh-frame-header": false,
++  "default-uwtable": false,
++  "no-default-libraries": false,
++  "linker-flavor": "gnu-cc",
++  "linker": "x86_64-aros-cc",
++  "post-link-args": {
++    "gnu-cc": [
++      "-Wl,--no-gc-sections"
++    ]
++  },
++  "crt-objects-fallback": "false",
++  "emit-debug-gdb-scripts": false,
++  "cpu": "x86-64",
++  "disable-redzone": true
++}

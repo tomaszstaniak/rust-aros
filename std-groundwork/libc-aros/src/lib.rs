@@ -1,5 +1,12 @@
 //! Minimal `libc` bindings for AROS x86_64.
 //!
+//! Two SDK families share this file. Items marked `target_abi = "abiv1"`
+//! describe mainline AROS (ABIv1, posixc/stdc libraries, profile
+//! `x86_64-v1-pc`); the unmarked or `not(...)` items describe ABIv11. The
+//! v1 layouts and constants were measured with the mainline cross compiler
+//! against the SDK of AROS 9802c8c0 (2026-10-28); see
+//! docs/evidence/2026-10-28-x86_64-v1. They are not interchangeable.
+//!
 //! Every type layout here was read out of DWARF produced by the AROS cross
 //! compiler, and every constant was expanded from the SDK headers, rather
 //! than copied from another platform. That matters more than it sounds:
@@ -22,6 +29,9 @@ use core::prelude::v1::*;
 
 pub use core::ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void};
 
+mod terminal;
+pub use terminal::*;
+
 // --- scalar types (sizes verified against the SDK) ---------------------
 pub type off_t = i64;
 pub type blksize_t = i64;
@@ -29,7 +39,10 @@ pub type blkcnt_t = i64;
 pub type clockid_t = i32;
 pub type dev_t = u64;
 pub type gid_t = u32;
+#[cfg(not(target_abi = "abiv1"))]
 pub type ino_t = u64;
+#[cfg(target_abi = "abiv1")]
+pub type ino_t = i32;
 pub type mode_t = u16;
 pub type nlink_t = u16;
 pub type pid_t = i64;
@@ -74,6 +87,7 @@ pub struct tm {
 }
 
 /// 128 bytes; `st_flags` and `st_gen` are left opaque because nothing reads them.
+#[cfg(not(target_abi = "abiv1"))]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct stat {
@@ -103,7 +117,35 @@ pub struct stat {
     __unused: [u8; 16],
 }
 
-/// 280 bytes, with the name starting at offset 19.
+/// 120 bytes on mainline: a 4-byte `st_ino` moves every later field.
+#[cfg(target_abi = "abiv1")]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct stat {
+    pub st_dev: dev_t,
+    pub st_ino: ino_t,
+    pub st_mode: mode_t,
+    pub st_nlink: nlink_t,
+    pub st_uid: uid_t,
+    pub st_gid: gid_t,
+    pub st_rdev: dev_t,
+    pub st_size: off_t,
+    pub st_atime: time_t,
+    __pad_a: u32,
+    pub st_atime_nsec: c_long,
+    pub st_mtime: time_t,
+    __pad_m: u32,
+    pub st_mtime_nsec: c_long,
+    pub st_ctime: time_t,
+    __pad_c: u32,
+    pub st_ctime_nsec: c_long,
+    pub st_blksize: blksize_t,
+    pub st_blocks: blkcnt_t,
+    pub st_flags: c_ulong,
+    pub st_gen: c_ulong,
+}
+
+/// 280 bytes (ABIv11) or 1048 bytes (mainline), the name at offset 19.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct dirent {
@@ -111,7 +153,10 @@ pub struct dirent {
     pub d_off: off_t,
     pub d_reclen: c_ushort,
     pub d_type: c_uchar,
+    #[cfg(not(target_abi = "abiv1"))]
     pub d_name: [c_char; 261],
+    #[cfg(target_abi = "abiv1")]
+    pub d_name: [c_char; 1025],
 }
 
 #[repr(C)]
@@ -119,16 +164,29 @@ pub struct DIR {
     _opaque: [u8; 0],
 }
 
+// Mainline grew struct pthread_attr from 32 to 168 bytes on 2026-10-30
+// (aros-development-team/AROS ddd41377d3, CPU affinity: int affinityset and
+// a 1024-bit cpu_set_t). pthread_attr_init() clears the whole structure, so a
+// 32-byte buffer let the static libpthread.a of SDKs from that commit on
+// overwrite the caller's frame: the program's task ended at PC 0 once a
+// thread was created. 168 bytes is the measured size (nightly 20261031 SDK);
+// older v1 libraries use only the first 32, so the larger buffer suits both.
+#[cfg(not(target_abi = "abiv1"))]
+const PTHREAD_ATTR_SIZE: usize = 32;
+#[cfg(target_abi = "abiv1")]
+const PTHREAD_ATTR_SIZE: usize = 168;
+
 #[repr(C, align(8))]
 #[derive(Copy, Clone)]
 pub struct pthread_attr_t {
-    __opaque: [u8; 32],
+    __opaque: [u8; PTHREAD_ATTR_SIZE],
 }
 impl pthread_attr_t {
-    pub const fn zeroed() -> Self { Self { __opaque: [0; 32] } }
+    pub const fn zeroed() -> Self { Self { __opaque: [0; PTHREAD_ATTR_SIZE] } }
 }
 
-#[repr(C, align(8))]
+// The two attribute structures hold only ints in C: 4-byte alignment on both SDKs.
+#[repr(C, align(4))]
 #[derive(Copy, Clone)]
 pub struct pthread_mutexattr_t {
     __opaque: [u8; 8],
@@ -140,38 +198,54 @@ impl pthread_mutexattr_t {
 #[repr(C, align(8))]
 #[derive(Copy, Clone)]
 pub struct pthread_mutex_t {
-    __opaque: [u8; 120],
+    __opaque: [u8; PTHREAD_MUTEX_T_SIZE],
 }
 impl pthread_mutex_t {
-    pub const fn zeroed() -> Self { Self { __opaque: [0; 120] } }
+    pub const fn zeroed() -> Self { Self { __opaque: [0; PTHREAD_MUTEX_T_SIZE] } }
 }
+#[cfg(not(target_abi = "abiv1"))]
+const PTHREAD_MUTEX_T_SIZE: usize = 120;
+#[cfg(target_abi = "abiv1")]
+const PTHREAD_MUTEX_T_SIZE: usize = 248;
 
-#[repr(C, align(8))]
+#[repr(C, align(4))]
 #[derive(Copy, Clone)]
 pub struct pthread_condattr_t {
-    __opaque: [u8; 4],
+    __opaque: [u8; PTHREAD_CONDATTR_T_SIZE],
 }
 impl pthread_condattr_t {
-    pub const fn zeroed() -> Self { Self { __opaque: [0; 4] } }
+    pub const fn zeroed() -> Self { Self { __opaque: [0; PTHREAD_CONDATTR_T_SIZE] } }
 }
+#[cfg(not(target_abi = "abiv1"))]
+const PTHREAD_CONDATTR_T_SIZE: usize = 4;
+#[cfg(target_abi = "abiv1")]
+const PTHREAD_CONDATTR_T_SIZE: usize = 8;
 
 #[repr(C, align(8))]
 #[derive(Copy, Clone)]
 pub struct pthread_cond_t {
-    __opaque: [u8; 136],
+    __opaque: [u8; PTHREAD_COND_T_SIZE],
 }
 impl pthread_cond_t {
-    pub const fn zeroed() -> Self { Self { __opaque: [0; 136] } }
+    pub const fn zeroed() -> Self { Self { __opaque: [0; PTHREAD_COND_T_SIZE] } }
 }
+#[cfg(not(target_abi = "abiv1"))]
+const PTHREAD_COND_T_SIZE: usize = 136;
+#[cfg(target_abi = "abiv1")]
+const PTHREAD_COND_T_SIZE: usize = 264;
 
 #[repr(C, align(8))]
 #[derive(Copy, Clone)]
 pub struct pthread_rwlock_t {
-    __opaque: [u8; 104],
+    __opaque: [u8; PTHREAD_RWLOCK_T_SIZE],
 }
 impl pthread_rwlock_t {
-    pub const fn zeroed() -> Self { Self { __opaque: [0; 104] } }
+    pub const fn zeroed() -> Self { Self { __opaque: [0; PTHREAD_RWLOCK_T_SIZE] } }
 }
+#[cfg(not(target_abi = "abiv1"))]
+const PTHREAD_RWLOCK_T_SIZE: usize = 104;
+#[cfg(target_abi = "abiv1")]
+const PTHREAD_RWLOCK_T_SIZE: usize = 232;
 
 // --- constants (expanded from the SDK headers) ------------------------
 pub const O_RDONLY: c_int = 1;
@@ -282,40 +356,61 @@ pub const ENETUNREACH: c_int = 51;
 pub const ECANCELED: c_int = 87;
 pub const EMSGSIZE: c_int = 40;
 
-// Not defined by AROS, listed so the gap is explicit:
+// Not defined by the ABIv11 SDK, listed so the gap is explicit:
 //   O_CLOEXEC, O_DIRECTORY, O_NOFOLLOW, AT_FDCWD, _SC_PAGESIZE, _SC_NPROCESSORS_ONLN
+// Mainline defines all of them; see the abiv1 values below.
 
 // --- functions (each verified to exist in the SDK link libraries) ------
 extern "C" {
     /// AROS' C library exports this only under an internal name: the plain
     /// `open` symbol belongs to exec.library and is a different function.
-    #[link_name = "__open_CrtBase_wrapper"]
+    #[link_name = "rs_fs_open"]
     pub fn open(path: *const c_char, oflag: c_int, ...) -> c_int;
+    #[link_name = "rs_fd_close"]
     pub fn close(fd: c_int) -> c_int;
+    #[link_name = "rs_fd_read"]
     pub fn read(fd: c_int, buf: *mut c_void, count: size_t) -> ssize_t;
+    #[link_name = "rs_fd_write"]
     pub fn write(fd: c_int, buf: *const c_void, count: size_t) -> ssize_t;
     pub fn lseek(fd: c_int, offset: off_t, whence: c_int) -> off_t;
+    #[link_name = "rs_fd_fcntl"]
     pub fn fcntl(fd: c_int, cmd: c_int, ...) -> c_int;
+    #[link_name = "rs_fd_dup2"]
     pub fn dup2(old: c_int, new: c_int) -> c_int;
+    #[link_name = "rs_fs_pipe"]
     pub fn pipe(fds: *mut c_int) -> c_int;
     pub fn isatty(fd: c_int) -> c_int;
     pub fn ftruncate(fd: c_int, length: off_t) -> c_int;
     pub fn fsync(fd: c_int) -> c_int;
+    #[link_name = "rs_fs_stat"]
     pub fn stat(path: *const c_char, buf: *mut stat) -> c_int;
     pub fn fstat(fd: c_int, buf: *mut stat) -> c_int;
+    #[link_name = "rs_fs_lstat"]
     pub fn lstat(path: *const c_char, buf: *mut stat) -> c_int;
+    #[link_name = "rs_fs_mkdir"]
     pub fn mkdir(path: *const c_char, mode: mode_t) -> c_int;
+    #[link_name = "rs_fs_rmdir"]
     pub fn rmdir(path: *const c_char) -> c_int;
+    #[link_name = "rs_fs_unlink"]
     pub fn unlink(path: *const c_char) -> c_int;
+    #[link_name = "rs_fs_rename"]
     pub fn rename(old: *const c_char, new: *const c_char) -> c_int;
+    #[link_name = "rs_fs_link"]
     pub fn link(old: *const c_char, new: *const c_char) -> c_int;
+    #[link_name = "rs_fs_symlink"]
     pub fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int;
+    #[link_name = "rs_fs_readlink"]
     pub fn readlink(path: *const c_char, buf: *mut c_char, bufsiz: size_t) -> ssize_t;
+    #[link_name = "rs_fs_realpath"]
     pub fn realpath(path: *const c_char, resolved: *mut c_char) -> *mut c_char;
+    #[link_name = "rs_fs_chdir"]
     pub fn chdir(path: *const c_char) -> c_int;
+    #[link_name = "rs_fs_getcwd"]
     pub fn getcwd(buf: *mut c_char, size: size_t) -> *mut c_char;
+    #[link_name = "rs_fs_opendir"]
     pub fn opendir(name: *const c_char) -> *mut DIR;
     pub fn readdir(dirp: *mut DIR) -> *mut dirent;
+    #[link_name = "rs_fs_closedir"]
     pub fn closedir(dirp: *mut DIR) -> c_int;
     pub fn getenv(name: *const c_char) -> *mut c_char;
     pub fn setenv(name: *const c_char, value: *const c_char, overwrite: c_int) -> c_int;
@@ -323,6 +418,7 @@ extern "C" {
     pub fn strerror(errnum: c_int) -> *mut c_char;
     pub fn strlen(s: *const c_char) -> size_t;
     pub fn memcpy(dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+    pub fn memchr(cx: *const c_void, c: c_int, n: size_t) -> *mut c_void;
     pub fn malloc(size: size_t) -> *mut c_void;
     pub fn calloc(n: size_t, size: size_t) -> *mut c_void;
     pub fn realloc(p: *mut c_void, size: size_t) -> *mut c_void;
@@ -339,6 +435,7 @@ extern "C" {
     pub fn gmtime_r(t: *const time_t, tm: *mut tm) -> *mut tm;
     pub fn waitpid(pid: pid_t, status: *mut c_int, options: c_int) -> pid_t;
     pub fn execv(path: *const c_char, argv: *const *const c_char) -> c_int;
+    #[link_name = "rs_execvp"]
     pub fn execvp(file: *const c_char, argv: *const *const c_char) -> c_int;
     pub fn kill(pid: pid_t, sig: c_int) -> c_int;
 }
@@ -389,7 +486,8 @@ pub type c_float = f32;
 // --- socket structures (BSD layout with a leading length byte) ----------
 #[repr(C)] #[derive(Copy, Clone)] pub struct sockaddr { pub sa_len: u8, pub sa_family: sa_family_t, pub sa_data: [c_char; 14] }
 #[repr(C)] #[derive(Copy, Clone)] pub struct in_addr { pub s_addr: in_addr_t }
-#[repr(C)] #[derive(Copy, Clone)] pub struct in6_addr { pub s6_addr: [u8; 16] }
+/// A union with 32-bit members in C, hence 4-byte alignment.
+#[repr(C, align(4))] #[derive(Copy, Clone)] pub struct in6_addr { pub s6_addr: [u8; 16] }
 #[repr(C)] #[derive(Copy, Clone)] pub struct sockaddr_in { pub sin_len: u8, pub sin_family: sa_family_t, pub sin_port: in_port_t, pub sin_addr: in_addr, pub sin_zero: [u8; 8] }
 #[repr(C)] #[derive(Copy, Clone)] pub struct sockaddr_in6 { pub sin6_len: u8, pub sin6_family: sa_family_t, pub sin6_port: in_port_t, pub sin6_flowinfo: u32, pub sin6_addr: in6_addr, pub sin6_scope_id: u32 }
 #[repr(C)] #[derive(Copy, Clone)] pub struct sockaddr_un { pub sun_len: u8, pub sun_family: sa_family_t, pub sun_path: [c_char; 104] }
@@ -397,13 +495,19 @@ pub type c_float = f32;
 /// Both fields are 8-byte `long` in the C header; std expects `c_int`, so
 /// each is declared as the int followed by explicit padding (little-endian:
 /// the low half is the value).
-#[repr(C)] #[derive(Copy, Clone)] pub struct linger { pub l_onoff: c_int, pub __pad0: c_int, pub l_linger: c_int, pub __pad1: c_int }
+#[cfg(not(target_abi = "abiv1"))]
+#[repr(C, align(8))] #[derive(Copy, Clone)] pub struct linger { pub l_onoff: c_int, pub __pad0: c_int, pub l_linger: c_int, pub __pad1: c_int }
+/// Mainline declares both fields as `int`.
+#[cfg(target_abi = "abiv1")]
+#[repr(C)] #[derive(Copy, Clone)] pub struct linger { pub l_onoff: c_int, pub l_linger: c_int }
 /// Same treatment: `long` fields in C, `c_int` + padding here.
 #[repr(C)] pub struct addrinfo { pub ai_flags: c_int, __p0: c_int, pub ai_family: c_int, __p1: c_int, pub ai_socktype: c_int, __p2: c_int, pub ai_protocol: c_int, __p3: c_int, pub ai_addrlen: socklen_t, __p4: u32, pub ai_canonname: *mut c_char, pub ai_addr: *mut sockaddr, pub ai_next: *mut addrinfo }
 #[repr(C)] #[derive(Copy, Clone)] pub struct pollfd { pub fd: c_int, pub events: c_short, pub revents: c_short }
 #[repr(C)] #[derive(Copy, Clone)] pub struct iovec { pub iov_base: *mut c_void, pub iov_len: size_t }
 #[repr(C)] #[derive(Copy, Clone)] pub struct sigset_t { __bits: [u32; 4] }
-#[repr(C)] pub struct passwd { pub pw_name: *mut c_char, pub pw_passwd: *mut c_char, pub pw_uid: uid_t, pub pw_gid: gid_t, pub pw_gecos: *mut c_char, pub pw_dir: *mut c_char, pub pw_shell: *mut c_char }
+/// Field order measured on both SDKs (pw_uid at 8, pw_passwd at 32). The
+/// earlier declaration followed BSD order; only a stub ever filled it on v11.
+#[repr(C)] pub struct passwd { pub pw_name: *mut c_char, pub pw_uid: uid_t, pub pw_gid: gid_t, pub pw_dir: *mut c_char, pub pw_shell: *mut c_char, pub pw_passwd: *mut c_char, pub pw_gecos: *mut c_char }
 #[repr(C)] pub struct sigaction { pub sa_handler: sighandler_t, pub sa_mask: sigset_t, pub sa_flags: c_int }
 pub const AF_INET: c_int = 2;
 pub const AF_INET6: c_int = 24;
@@ -486,12 +590,34 @@ pub const TCP_NODELAY: c_int = 1;
 // --- not provided by AROS; values chosen by this crate ------------------
 /// Not a real flag on AROS: file descriptors are not inherited by children
 /// created through SystemTagList anyway, so this can be accepted and ignored.
-pub const O_CLOEXEC: c_int = 0;
-pub const O_DIRECTORY: c_int = 0;
-pub const O_NOFOLLOW: c_int = 0;
-pub const AT_FDCWD: c_int = -100;
-pub const AT_REMOVEDIR: c_int = 0x200;
-pub const AT_SYMLINK_NOFOLLOW: c_int = 0x100;
+#[cfg(not(target_abi = "abiv1"))]
+mod chosen_at {
+    use super::c_int;
+    pub const O_CLOEXEC: c_int = 0;
+    pub const O_DIRECTORY: c_int = 0;
+    pub const O_NOFOLLOW: c_int = 0;
+    pub const AT_FDCWD: c_int = -100;
+    pub const AT_REMOVEDIR: c_int = 0x200;
+    pub const AT_SYMLINK_NOFOLLOW: c_int = 0x100;
+    pub const _SC_GETPW_R_SIZE_MAX: c_int = 70;
+    pub const _SC_HOST_NAME_MAX: c_int = 72;
+    pub const _SC_NPROCESSORS_ONLN: c_int = 84;
+}
+/// Mainline's posixc defines these and implements the *at() calls itself.
+#[cfg(target_abi = "abiv1")]
+mod chosen_at {
+    use super::c_int;
+    pub const O_CLOEXEC: c_int = 0x10000;
+    pub const O_DIRECTORY: c_int = 0x20000;
+    pub const O_NOFOLLOW: c_int = 0x40000;
+    pub const AT_FDCWD: c_int = -100;
+    pub const AT_REMOVEDIR: c_int = 8;
+    pub const AT_SYMLINK_NOFOLLOW: c_int = 2;
+    pub const _SC_GETPW_R_SIZE_MAX: c_int = 36;
+    pub const _SC_HOST_NAME_MAX: c_int = 37;
+    pub const _SC_NPROCESSORS_ONLN: c_int = 127;
+}
+pub use chosen_at::*;
 pub const UTIME_OMIT: c_long = -2;
 pub const SHUT_RD: c_int = 0;
 pub const SHUT_WR: c_int = 1;
@@ -506,10 +632,7 @@ pub const SIGWINCH: c_int = 28;
 pub const WNOHANG: c_int = 1;
 pub const EXIT_SUCCESS: c_int = 0;
 pub const EXIT_FAILURE: c_int = 1;
-pub const _SC_PAGESIZE: c_int = 8;
-pub const _SC_GETPW_R_SIZE_MAX: c_int = 70;
-pub const _SC_HOST_NAME_MAX: c_int = 72;
-pub const _SC_NPROCESSORS_ONLN: c_int = 84;
+pub const _SC_PAGESIZE: c_int = 54; // AROS SDK enum, not Linux's selector.
 pub const PATH_MAX: c_int = 1024;
 
 // Memory mapping is emulated in compat.c: anonymous maps are allocations and
@@ -538,22 +661,26 @@ pub const SIG_ERR: sighandler_t = !0;
 pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t::zeroed();
 pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = pthread_cond_t::zeroed();
 
-// waitpid status decoding, BSD convention (status = exit << 8 | signal)
-pub const fn WIFEXITED(s: c_int) -> bool { (s & 0x7f) == 0 }
-pub const fn WEXITSTATUS(s: c_int) -> c_int { (s >> 8) & 0xff }
-pub const fn WIFSIGNALED(s: c_int) -> bool { ((s & 0x7f) + 1) as i8 >> 1 > 0 }
-pub const fn WTERMSIG(s: c_int) -> c_int { s & 0x7f }
-pub const fn WIFSTOPPED(s: c_int) -> bool { (s & 0xff) == 0x7f }
-pub const fn WSTOPSIG(s: c_int) -> c_int { (s >> 8) & 0xff }
-pub const fn WIFCONTINUED(s: c_int) -> bool { s == 0xffff }
-pub const fn WCOREDUMP(s: c_int) -> bool { (s & 0x80) != 0 }
+// AROS posixc sys/wait.h returns the raw exit code in the low byte.
+// POSIX signal/stopped/continued states are not implemented by this API.
+pub const fn WIFEXITED(_s: c_int) -> bool { true }
+pub const fn WEXITSTATUS(s: c_int) -> c_int { s & 0xff }
+pub const fn WIFSIGNALED(_s: c_int) -> bool { false }
+pub const fn WTERMSIG(_s: c_int) -> c_int { 0 }
+pub const fn WIFSTOPPED(_s: c_int) -> bool { false }
+pub const fn WSTOPSIG(_s: c_int) -> c_int { 0 }
+pub const fn WIFCONTINUED(_s: c_int) -> bool { false }
+pub const fn WCOREDUMP(_s: c_int) -> bool { false }
 
 // --- functions present in the SDK (second batch) ------------------------
 extern "C" {
+    #[link_name = "rs_fs_chmod"]
     pub fn chmod(path: *const c_char, mode: mode_t) -> c_int;
     pub fn fchmod(fd: c_int, mode: mode_t) -> c_int;
+    #[link_name = "rs_fs_chown"]
     pub fn chown(path: *const c_char, uid: uid_t, gid: gid_t) -> c_int;
     pub fn fchown(fd: c_int, uid: uid_t, gid: gid_t) -> c_int;
+    #[link_name = "rs_fd_dup"]
     pub fn dup(fd: c_int) -> c_int;
     pub fn dirfd(dirp: *mut DIR) -> c_int;
     pub fn getpid() -> pid_t;
@@ -565,15 +692,20 @@ extern "C" {
     pub fn setuid(uid: uid_t) -> c_int;
     pub fn setgid(gid: gid_t) -> c_int;
     pub fn setsid() -> pid_t;
+    #[link_name = "rs_fd_ioctl"]
     pub fn ioctl(fd: c_int, req: c_ulong, ...) -> c_int;
+    #[link_name = "rs_sysconf"]
     pub fn sysconf(name: c_int) -> c_long;
     pub fn strnlen(s: *const c_char, n: size_t) -> size_t;
     pub fn signal(sig: c_int, handler: sighandler_t) -> sighandler_t;
     pub fn sigemptyset(set: *mut sigset_t) -> c_int;
     pub fn sigaddset(set: *mut sigset_t, sig: c_int) -> c_int;
     pub fn sigaction(sig: c_int, act: *const sigaction, old: *mut sigaction) -> c_int;
+    #[link_name = "rs_fd_writev"]
     pub fn writev(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
     pub fn fdatasync(fd: c_int) -> c_int;
+    #[cfg_attr(not(target_abi = "abiv1"), link_name = "___geterrnoptr")]
+    #[cfg_attr(target_abi = "abiv1", link_name = "__stdc_geterrnoptr")]
     pub fn __errno() -> *mut c_int;
     pub fn strerror_r(errnum: c_int, buf: *mut c_char, len: size_t) -> c_int;
     pub fn getentropy(buf: *mut c_void, len: size_t) -> c_int;
@@ -599,6 +731,19 @@ extern "C" {
     pub fn pthread_setname_np(t: pthread_t, name: *const c_char) -> c_int;
 }
 
+// flock(): posixc's, through csrc/compat.c, which keeps POSIX per-descriptor
+// semantics within one program and releases locks at close and exit. The
+// values are identical in the ABIv11, mainline and Pi SDK <sys/file.h>.
+pub const LOCK_SH: c_int = 1;
+pub const LOCK_EX: c_int = 2;
+pub const LOCK_NB: c_int = 4;
+pub const LOCK_UN: c_int = 8;
+pub const ENOLCK: c_int = 77;
+extern "C" {
+    #[link_name = "rs_flock"]
+    pub fn flock(fd: c_int, operation: c_int) -> c_int;
+}
+
 // --- provided by csrc/compat.c ------------------------------------------
 // Sockets go through bsdsocket.library's base register; the C side wraps them.
 extern "C" {
@@ -622,29 +767,38 @@ extern "C" {
     #[link_name = "rs_gethostname"] pub fn gethostname(name: *mut c_char, len: size_t) -> c_int;
     pub fn gai_strerror(err: c_int) -> *const c_char;
     pub fn socketpair(d: c_int, t: c_int, p: c_int, sv: *mut c_int) -> c_int;
+    #[link_name = "rs_fs_openat"]
     pub fn openat(fd: c_int, path: *const c_char, flags: c_int, ...) -> c_int;
+    #[link_name = "rs_fs_mkdirat"]
     pub fn mkdirat(fd: c_int, path: *const c_char, mode: mode_t) -> c_int;
+    #[link_name = "rs_fs_unlinkat"]
     pub fn unlinkat(fd: c_int, path: *const c_char, flags: c_int) -> c_int;
+    #[link_name = "rs_fs_linkat"]
     pub fn linkat(f1: c_int, a: *const c_char, f2: c_int, b: *const c_char, fl: c_int) -> c_int;
+    #[link_name = "rs_fs_renameat"]
     pub fn renameat(f1: c_int, a: *const c_char, f2: c_int, b: *const c_char) -> c_int;
+    #[link_name = "rs_fs_fstatat"]
     pub fn fstatat(fd: c_int, path: *const c_char, st: *mut stat, fl: c_int) -> c_int;
     pub fn utimensat(fd: c_int, path: *const c_char, ts: *const timespec, fl: c_int) -> c_int;
     pub fn futimens(fd: c_int, ts: *const timespec) -> c_int;
     pub fn fdopendir(fd: c_int) -> *mut DIR;
     /// vfork: AROS has no fork. Bound directly (see compat.c for why no
     /// wrapper is possible); std only dup2s/closes/chdirs before exec.
-    #[link_name = "__vfork_CrtBase_wrapper"]
+    #[cfg_attr(not(target_abi = "abiv1"), link_name = "__vfork_CrtBase_wrapper")]
+    #[cfg_attr(target_abi = "abiv1", link_name = "vfork")]
     pub fn fork() -> pid_t;
     pub fn chroot(path: *const c_char) -> c_int;
     pub fn mkfifo(path: *const c_char, mode: mode_t) -> c_int;
     pub fn killpg(pg: pid_t, sig: c_int) -> c_int;
     pub fn setpgid(a: pid_t, b: pid_t) -> c_int;
     pub fn setgroups(n: c_int, g: *const gid_t) -> c_int;
+    #[link_name = "rs_fs_lchown"]
     pub fn lchown(path: *const c_char, uid: uid_t, gid: gid_t) -> c_int;
     pub fn getpwuid_r(uid: uid_t, pw: *mut passwd, buf: *mut c_char, n: size_t, res: *mut *mut passwd) -> c_int;
     pub fn poll(fds: *mut pollfd, n: nfds_t, timeout: c_int) -> c_int;
     pub fn pread(fd: c_int, b: *mut c_void, n: size_t, off: off_t) -> ssize_t;
     pub fn pwrite(fd: c_int, b: *const c_void, n: size_t, off: off_t) -> ssize_t;
+    #[link_name = "rs_fd_readv"]
     pub fn readv(fd: c_int, iov: *const iovec, n: c_int) -> ssize_t;
     pub fn mmap(addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int, off: off_t) -> *mut c_void;
     pub fn munmap(addr: *mut c_void, len: size_t) -> c_int;

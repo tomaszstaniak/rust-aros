@@ -1,0 +1,86 @@
+From: PhotoCraft AROS port
+Subject: [PATCH] pthread: free the slot of a thread detached after it finished
+
+Repository: deadwood2/AROS (ABIv11) 5376f09bc1ed0c36a12fbb096406013f8a046e89,
+  compiler/pthread. The unmodified tree, built with -O2 -mcmodel=large
+  -fno-omit-frame-pointer, reproduces all 33 objects of the older ABIv11
+  SDK's lib/libpthread.a instruction for instruction, relocations included.
+Date: 2026-10-16
+Problem: pthread_detach() on a thread that has already returned only set
+  `detached`. The thread had taken the joinable path (finished = TRUE, signal
+  the waiter) and nothing frees the slot afterwards; its task pointer stays
+  set although the task is gone. __pthread_Exit_Func then loops on
+  `while (inf->task) Delay(1)` for that detached slot forever: the program
+  cannot exit. Rust's std detaches every thread whose JoinHandle is dropped,
+  so a short-lived worker that ends before its handle is dropped (common)
+  wedges the exit. Seen with PhotoCraft on pool v11-2 (older AROS One 1.3):
+  the main task sat in __pthread_Exit_Func waiting on SIGF_SINGLE (Delay),
+  with no pthread task left alive.
+Rationale: pthread_detach frees a finished thread's slot as pthread_join
+  would; the thread's own end decides detached/finished under Forbid() so the
+  two sides cannot both skip the cleanup.
+Scope: two functions; behaviour changes only for detach-after-finish.
+Upstream-status: mainline already has an equivalent fix:
+  aros-development-team/AROS c31d3294fb1165642f6ff85028396ad4c3f80f12
+  (2026-10-07, "pthread: end remaining threads at exit, fix detach/join
+  races"; it also cancels threads still running at exit). deadwood2/AROS's
+  default branch still had the old pthread_detach on 2026-10-16. Candidate
+  for deadwood2/AROS as a backport of that commit (not submitted).
+Prerequisites: none.
+Verification: see the port's v11 run evidence (exit after the interactive
+  session with the patched library linked privately).
+Removal: when the system pthread link library has the fix.
+---
+diff --git a/compiler/pthread/pthread.c b/compiler/pthread/pthread.c
+index 11f4e00..e29c468 100644
+--- a/compiler/pthread/pthread.c
++++ b/compiler/pthread/pthread.c
+@@ -914,7 +914,21 @@ int pthread_detach(pthread_t thread)
+     if (inf->detached)
+         return EINVAL;
+ 
++    Forbid();
++    if (inf->finished)
++    {
++        // The thread has already ended and nobody will join it: free the slot
++        // now, as pthread_join() would. Marking it detached instead left a slot
++        // whose task pointer never cleared, and the exit handler waited for
++        // that task forever.
++        Permit();
++        ObtainSemaphore(&thread_sem);
++        memset(inf, 0, sizeof(ThreadInfo));
++        ReleaseSemaphore(&thread_sem);
++        return 0;
++    }
+     inf->detached = TRUE;
++    Permit();
+ 
+     return 0;
+ }
+diff --git a/compiler/pthread/pthread_create.c b/compiler/pthread/pthread_create.c
+index 5528138..92e2f1d 100644
+--- a/compiler/pthread/pthread_create.c
++++ b/compiler/pthread/pthread_create.c
+@@ -130,15 +130,20 @@ static void StarterFunc(void)
+     }
+     ReleaseSemaphore(&tls_sem);
+ 
++    // Decide under Forbid(): pthread_detach() looks at `finished` under Forbid()
++    // too, so exactly one side frees a slot that is detached after its thread
++    // has finished.
++    Forbid();
+     if (!inf->detached)
+     {
+-        // tell the parent thread that we are done
+-        Forbid();
++        // tell the parent thread that we are done; Forbid() lasts until this
++        // task has left the program's code
+         inf->finished = TRUE;
+         Signal(inf->waiter, SIGF_PARENT);
+     }
+     else
+     {
++        Permit();
+         // no one is waiting for us, do the clean up
+         ObtainSemaphore(&thread_sem);
+         memset(inf, 0, sizeof(ThreadInfo));

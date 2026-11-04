@@ -1,0 +1,19 @@
+Subject: Declare all positioned imports for an older read-only native SDK
+
+Reproduced with x86 mainline SDK 74a2d80: pread/pread64 are neither declared
+nor exported by its import archive. Match PR1799 public unistd.h signatures;
+retain the existing posixc revision guard and generate private import stubs.
+Base: PR1800 2eb81b4. Original John KNIPPER, APL 1.1; adaptation AROS
+contributors, APL 1.1. Runtime still UNTESTED; no seek fallback.
+
+--- a/tools/crosstools/rust/unmodified/fs/positioned.c
++++ b/tools/crosstools/rust/unmodified/fs/positioned.c
+@@ -13,6 +13,8 @@
+ 
+ /* These declarations also allow a read-only 0.40 SDK plus privately generated
+    0.41 import stubs. Signatures match the native public unistd.h. */
++extern ssize_t pread(int, void *, size_t, off_t);
++extern ssize_t pread64(int, void *, size_t, __off64_t);
+ extern ssize_t pwrite(int, const void *, size_t, off_t);
+ extern ssize_t pwrite64(int, const void *, size_t, __off64_t);
+ 

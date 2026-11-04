@@ -1,4 +1,16 @@
-# Rust for AROS x86_64
+# Rust for AROS
+
+Updated 2026-11-04: shared Rust/std work for x86_64 ABIv1, x86_64 ABIv11
+and AArch64 ABIv1 is now consolidated on main, including the libc ABI fixes
+and HOME-only home_dir used by [Helix aros3](https://github.com/tomaszstaniak/aros-helix/releases/tag/aros3).
+See [current status and limitations](docs/current-state.md) and the
+[build and acceptance procedure](acceptance/README.md).
+
+QEMU results exist for both CPU families; physical Raspberry Pi acceptance
+remains open. The separate stock-compiler/mainline integration is included
+as an explicitly runtime-UNTESTED profile, not a replacement for the
+application toolchain. Source availability is not native qualification of
+every profile or reproducibility of the older installed v11 sysroot.
 
 Write AROS programs in Rust. This package contains everything needed to build
 a Rust program on a PC or Mac and run it on AROS x86_64: a target definition,
@@ -18,7 +30,7 @@ crates such as `serde`, `serde_json` and `anyhow` straight from crates.io
 build and run on AROS. **ripgrep 14.1.1 builds and searches AROS directories with it**, and tokio's
 runtime, tasks, channels and timers work (async networking does not: `mio`
 has no AROS selector). See `std-groundwork/realworld/`. Known gaps — bare
-program names in `Command`, non-cryptographic randomness, `poll` on sockets
+program names in `Command`, version-specific randomness backends, `poll` on sockets
 only, emulated `mmap` — are listed in `std-groundwork/std-patch/README.md`. See *Limitations* below before you
 plan a project around either path.
 
@@ -39,8 +51,8 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 ## Requirements
 
 * An AROS x86_64 SDK and cross toolchain (`x86_64-aros-gcc`).
-* Rust nightly with the sources:
-  `rustup toolchain install nightly --profile minimal --component rust-src`
+* The tested Rust nightly with the sources:
+  `rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src`
   Nightly is required because custom target files and `-Z build-std` are not
   stable features.
 
@@ -49,7 +61,7 @@ Verified on AROS One 1.3 (x86_64) under QEMU:
 ```sh
 ./setup.sh                    # finds your toolchain, writes x86_64-aros.json
 cd template
-cargo +nightly build --release
+cargo +nightly-2026-09-01 build --release
 ```
 
 `setup.sh` looks for `x86_64-aros-gcc` on your `PATH` and for the SDK beside
@@ -58,6 +70,11 @@ it. If it guesses wrong, tell it:
 ```sh
 AROS_GCC=/path/to/x86_64-aros-gcc AROS_SDK=/path/to/sdk ./setup.sh
 ```
+
+For a compiler wrapper or a non-GCC driver, also set `AROS_AR` to the matching
+archiver. `setup.sh` records all three paths for the C glue build scripts. For a
+GCC driver, the default archiver is the same path with only its final `gcc`
+suffix replaced by `ar`.
 
 The result, `target/x86_64-aros/release/hello-aros`, is an ordinary AROS
 executable: copy it to your AROS machine and run it from a Shell.
@@ -103,6 +120,7 @@ never reaches QEMU's serial file, so neither is a usable channel.
 |---|---|
 | `setup.sh` | Detects your toolchain and writes the target definition. |
 | `x86_64-aros.json.in` | Target definition template; see `TARGET-NOTES.md`. |
+| `limpet/` | Presentation capabilities, colours, titles and output for std/no_std. |
 | `aros/` | The runtime crate: allocator, `println!`, panic handler, bindings. |
 | `template/` | A minimal project to copy for your own program. |
 | `examples/plasma/` | A graphical SDL2 example. |
@@ -139,9 +157,9 @@ buf[0] = 42;
 
 ## Limitations
 
-* **`std` is experimental.** It passes its own tests and runs `serde`, but it
-  has not yet carried a large real program; `ripgrep` and `tokio` are the
-  next things to try. The `no_std` path is the one to rely on today.
+* **`std` is experimental.** Existing evidence covers the examples, ripgrep
+  and Tokio's runtime/timers, not every API or crate. Async networking remains
+  open. See `docs/current-state.md` for platform scope and fresh checks.
 * **Nightly only**, and nightly moves; a future release may need the target
   file adjusted.
 * **Safety stops at the API boundary.** Calls into AROS are `unsafe` FFI like
@@ -152,7 +170,8 @@ buf[0] = 42;
   relocations the loader silently skips, and it crashes before `main`. Use
   `--strip-unneeded --remove-section .comment` if you must; the saving is
   small because the relocations need the symbols.
-* **The console is not UTF-8** — keep printed text to ASCII.
+* **Console encoding depends on the handler.** Stock CON: and UTF-8-capable
+  Limpet differ. See `limpet/` for capability-aware output.
 * Binaries are larger than the C equivalent, and they cannot be fully
   stripped, so expect a few hundred kilobytes for a small program.
 
@@ -168,21 +187,21 @@ remains the simpler, more robust option for now.
 
 ## What is next
 
-ripgrep and tokio are done (see `std-groundwork/realworld/`). Next: wire the
-SDL3 that AROS contrib already carries (3.4.12, with SDL3_image and SDL3_ttf)
-to the `sdl3` crate, and consider a `mio` selector over `WaitSelect` to
-unlock async networking.
-Separately, the runtime tests in `std-groundwork/` are worth turning into a C
-conformance suite for the AROS maintainers: they show exactly where the SDK's
-POSIX surface diverges from what portable code expects.
+Current renewal work prioritizes x86_64 ABIv11, with ABIv1 next and hosted
+arm64 Macaros in scope. See `docs/current-state.md` for completed entropy and
+Limpet presentation checks and their platform limits. Next application-facing
+work includes terminal input, process/pipe behaviour for language servers and
+async networking driven by pinned real consumers. Zed is the reference workload;
+a complete Zed port is not delivered by these building blocks.
 
 ## Prior art and credit
 
 James Knipping ported the Zed editor and the ferail file manager to **AROS
 aarch64**, which is what showed that Rust on AROS was possible at all; those
-run under Macaros, AROS hosted on Apple Silicon. That work is not public, and
-this package was built independently for **x86_64**, which is where AROS
-desktop users are.
+run under Macaros, AROS hosted on Apple Silicon. His Rust PAL is public at
+[jonx/rust-aros](https://github.com/jonx/rust-aros). The original x86_64
+package was developed independently; the common sysroot now imports his ARM
+implementation with explicit CPU, ABI and SDK profiles.
 
 ## License
 

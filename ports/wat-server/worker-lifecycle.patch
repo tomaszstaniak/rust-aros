@@ -1,0 +1,56 @@
+# Retain, reap and join request workers on loop exit/EOF/error in pinned WAT.
+# Cancel outstanding tokens before joining; no forced kill or write deadline is supplied.
+# Port-owned lifecycle fix; candidate for upstream review, not sent upstream.
+--- a/crates/server/src/server.rs
++++ b/crates/server/src/server.rs
+@@ -57,7 +57,8 @@
+         let mut stdin = stdio::input();
+         self.initialize(&mut stdin)?;
+ 
+-        loop {
++        let mut workers = crate::workers::Workers::default();
++        let result: anyhow::Result<()> = (|| { loop {
+             let message = match stdio::read(&mut stdin) {
+                 Ok(Some(message)) => message,
+                 Ok(None) => return Ok(()),
+@@ -70,10 +71,10 @@
+                         .write()
+                         .insert(id.clone(), service.cancellation_token());
+                     let cancellation_tokens = Arc::clone(&self.cancellation_tokens);
+-                    std::thread::spawn(move || {
++                    workers.spawn(move || {
+                         let _ = stdio::write(Self::handle_request(service, id.clone(), method, params));
+                         cancellation_tokens.write().remove(&id);
+-                    });
++                    }).map_err(anyhow::Error::msg)?;
+                 }
+                 Message::OkResponse {
+                     id: NumberOrString::Integer(id),
+@@ -149,7 +150,16 @@
+                 }
+                 _ => {}
+             }
+-        }
++        } })();
++        // Release the map lock before cancellation and joins: workers remove their own tokens.
++        let tokens = std::mem::take(&mut *self.cancellation_tokens.write());
++        for (_id, token) in tokens { token.cancel(); }
++        let cleanup = workers.finish().map_err(anyhow::Error::msg);
++        match (result, cleanup) {
++            (Ok(()), Ok(())) => Ok(()),
++            (Err(error), Ok(())) | (Ok(()), Err(error)) => Err(error),
++            (Err(error), Err(cleanup)) => Err(error.context(format!("request worker cleanup also failed: {cleanup:#}"))),
++        }
+     }
+ 
+     fn initialize(&mut self, stdin: &mut stdio::Input) -> anyhow::Result<()> {
+--- a/crates/server/src/main.rs
++++ b/crates/server/src/main.rs
+@@ -4,6 +4,7 @@
+ mod message;
+ mod sent;
+ mod server;
++mod workers;
+ mod stdio;
+ 
+ fn main() -> anyhow::Result<()> {

@@ -1,0 +1,82 @@
+Subject: [AROS] Owner-task socket adapter for async-net 2.0.0
+
+Scope: exact published crate; private x86_64 ABIv11 networking consumer.
+Use the accepted libc-aros boundary and Exec notifications. Other targets
+retain their upstream paths. AROS numeric IPv4, local Async handles only;
+unsupported DNS, Unix sockets and worker-task I/O are not enabled.
+
+--- a/src/addr.rs
++++ b/src/addr.rs
+@@ -3,10 +3,13 @@
+ use std::io;
+ use std::mem;
+ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+-use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};
++use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
++#[cfg(not(target_os = "aros"))]
++use std::net::ToSocketAddrs;
+ use std::pin::Pin;
+ use std::task::{Context, Poll};
+ 
++#[cfg(not(target_os = "aros"))]
+ use blocking::unblock;
+ use futures_lite::future;
+ 
+@@ -146,12 +149,17 @@
+             return ToSocketAddrsFuture::Ready(Ok(vec![SocketAddr::V6(addr)].into_iter()));
+         }
+ 
++        #[cfg(target_os = "aros")]
++        { ToSocketAddrsFuture::Ready(Err(io::ErrorKind::Unsupported.into())) }
++        #[cfg(not(target_os = "aros"))]
++        {
+         let host = host.to_string();
+         let future = unblock(move || {
+             let addr = (host.as_str(), port);
+             ToSocketAddrs::to_socket_addrs(&addr)
+         });
+         ToSocketAddrsFuture::Resolving(Box::pin(future))
++        }
+     }
+ }
+ 
+@@ -175,9 +183,14 @@
+             return ToSocketAddrsFuture::Ready(Ok(vec![addr].into_iter()));
+         }
+ 
++        #[cfg(target_os = "aros")]
++        { ToSocketAddrsFuture::Ready(Err(io::ErrorKind::Unsupported.into())) }
++        #[cfg(not(target_os = "aros"))]
++        {
+         let addr = self.to_string();
+         let future = unblock(move || std::net::ToSocketAddrs::to_socket_addrs(addr.as_str()));
+         ToSocketAddrsFuture::Resolving(Box::pin(future))
++        }
+     }
+ }
+ 
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -36,7 +36,7 @@
+     html_logo_url = "https://raw.githubusercontent.com/smol-rs/smol/master/assets/images/logo_fullsize_transparent.png"
+ )]
+ 
+-#[cfg(unix)]
++#[cfg(all(unix, not(target_os = "aros")))]
+ pub mod unix;
+ 
+ mod addr;
+--- a/src/tcp.rs
++++ b/src/tcp.rs
+@@ -283,8 +283,11 @@
+ /// This stream is infinite, i.e awaiting the next connection will never result in [`None`]. It is
+ /// created by the [`TcpListener::incoming()`] method.
+ pub struct Incoming<'a> {
++    #[cfg(not(target_os = "aros"))]
+     incoming:
+         Pin<Box<dyn Stream<Item = io::Result<Async<std::net::TcpStream>>> + Send + Sync + 'a>>,
++    #[cfg(target_os = "aros")]
++    incoming: Pin<Box<dyn Stream<Item = io::Result<Async<std::net::TcpStream>>> + 'a>>,
+ }
+ 
+ impl Stream for Incoming<'_> {

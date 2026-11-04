@@ -21,7 +21,7 @@
   "position-independent-executables": false,
   "post-link-args": {
     "gnu-cc": [
-      "-Wl,--no-gc-sections"
+      "-Wl,--no-gc-sections"@AROS_EXTRA_LIBS@
     ]
   },
   "pre-link-args": {

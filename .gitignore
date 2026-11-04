@@ -1,3 +1,12 @@
 target/
+__pycache__/
 x86_64-aros.json
 aros-env.toml
+acceptance/**/Cargo.lock
+
+# Private host records and machine metadata are not public source.
+.DS_Store
+docs/evidence/
+docs/backlog/
+docs/superpowers/
+std-groundwork/probe/dwarf2.txt

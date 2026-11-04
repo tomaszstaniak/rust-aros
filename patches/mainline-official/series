@@ -1,0 +1,11 @@
+0001-explicit-x86_64-profile.patch
+0002-positioned-sdk-declarations.patch
+0003-installation-contract.patch
+0004-review-loader-and-tools.patch
+0005-reused-build-native-identity.patch
+0006-consumer-host-tools.patch
+0007-pthread-sdk-and-core-abi.patch
+0008-absolute-sdk-inputs.patch
+0009-retained-imports-and-sdk-inventory.patch
+0010-pinned-header-visibility.patch
+0011-seal-source-and-sdk-products.patch
