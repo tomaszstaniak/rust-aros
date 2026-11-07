@@ -781,6 +781,9 @@ extern "C" {
     pub fn fstatat(fd: c_int, path: *const c_char, st: *mut stat, fl: c_int) -> c_int;
     pub fn utimensat(fd: c_int, path: *const c_char, ts: *const timespec, fl: c_int) -> c_int;
     pub fn futimens(fd: c_int, ts: *const timespec) -> c_int;
+    /// Access and modification times by name, in microseconds: both C libraries have it (ABIv11
+    /// crt, mainline posixc); there is no lutimes (AmigaDOS links have no times of their own).
+    pub fn utimes(path: *const c_char, times: *const timeval) -> c_int;
     pub fn fdopendir(fd: c_int) -> *mut DIR;
     /// vfork: AROS has no fork. Bound directly (see compat.c for why no
     /// wrapper is possible); std only dup2s/closes/chdirs before exec.
