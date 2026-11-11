@@ -8,5 +8,4 @@ acceptance/**/Cargo.lock
 .DS_Store
 docs/evidence/
 docs/backlog/
-docs/superpowers/
 std-groundwork/probe/dwarf2.txt
