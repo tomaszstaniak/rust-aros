@@ -672,11 +672,35 @@ long rs_fd_writev(int fd, const struct iovec *v, int n) {
 
 #include "selector_aros.inc"
 
+#ifdef RS_AROS_ABIV1
+/* Mainline posixc writes the errno of a failed open() to its own stdc base instead of the
+ * calling thread's errno (since "stdc: make errno per thread", 956444232f, 2026-11-06; seen on
+ * the nightly 20261110): errno keeps whatever an earlier call left, so a missing file read as
+ * "File exists" or "No error". errno is cleared before the call; when the call fails and
+ * leaves it clear, the reason is taken from the path. With a fixed posixc errno is set and
+ * nothing here applies. */
+static int rs_open_errno(const char *p, int flags, mode_t mode) {
+    struct stat st;
+    int fd;
+    errno = 0;
+    fd = open(p, flags, mode);
+    if (fd < 0 && errno == 0) {
+        if (stat(p, &st) == 0)
+            errno = ((flags & O_CREAT) && (flags & O_EXCL)) ? EEXIST : S_ISDIR(st.st_mode) ? EISDIR : EACCES;
+        else if (errno == 0)
+            errno = ENOENT;
+    }
+    return fd;
+}
+#else
+#define rs_open_errno open
+#endif
+
 /* Names are distinct from CRT symbols: internal CRT calls cannot re-enter this gate. */
 int rs_fs_open(const char *p, int flags, ...) {
     mode_t mode = 0;
     if (flags & O_CREAT) { va_list ap; va_start(ap, flags); mode = (mode_t)va_arg(ap, int); va_end(ap); }
-    RS_FS(int, -1, open(p, flags, mode));
+    RS_FS(int, -1, rs_open_errno(p, flags, mode));
 }
 int rs_fs_stat(const char *p, struct stat *s) { RS_FS(int, -1, stat(p,s)); }
 int rs_fs_lstat(const char *p, struct stat *s) { RS_FS(int, -1, lstat(p,s)); }
