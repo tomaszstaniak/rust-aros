@@ -9,6 +9,7 @@ in application-specific branches. Profile-specific choices remain explicit.
 | x86_64 ABIv11 | std/runtime probes under QEMU; Helix aros3 and wat_server on AROS One 1.3 |
 | x86_64 ABIv1 | C/no_std/std and Cargo main under QEMU; later Helix candidate 6 acceptance on nightly 20261031 |
 | AArch64 ABIv1 | common std and thread/runtime probes under QEMU; physical Raspberry Pi acceptance still pending |
+| AArch64 ABIv1, unix (`aarch64-v1-raspi-unix`, 2026-11-14) | std probe under QEMU raspi3b on nightly 20261110: arguments, environment, files and directories, metadata, sleep, four threads with a channel, condition variable with and without timeout |
 
 These are historical, configuration-specific results, not a fresh native test
 of this consolidated checkout. Do not mix SDK headers and runtime versions.
@@ -28,6 +29,25 @@ of that installed toolchain.
   that triggered a C-runtime lifetime bug. This is a deliberate limitation.
 - wat_server port and build-path remapping, used by
   [Helix aros3](https://github.com/tomaszstaniak/aros-helix/releases/tag/aros3).
+
+## Unix std on AArch64 (2026-11-14)
+
+`profiles/aarch64-v1-raspi-unix.json` is the AArch64 counterpart of
+`x86_64-v1-pc`: `target-family = unix`, `target_abi = abiv1`, std's unix
+paths over posixc and the same `libc-aros` bindings. Programs written for
+`cfg(unix)` (command-line tools, their crates) build for the Raspberry Pi the
+way they do for PC. The older `aarch64-v1-raspi` profile keeps the imported
+PAL and its C bridge; the common sysroot serves both and selects the PAL only
+when the target is not unix.
+
+The mainline C headers of both architectures are identical. Of 130 measured
+sizes, alignments and offsets only `pthread_mutex_t`, `pthread_cond_t` and
+`pthread_rwlock_t` differ (136, 152 and 120 bytes on AArch64). The native
+toolchain has no unwinder library: `libc-aros` supplies weak entry points that
+report an empty stack, so a panic aborts without a backtrace. C build scripts
+that derive a Clang `--target` from the Rust target get an `abiv1` environment
+Clang does not know; the driver wrapper already selects the target, so drop
+that argument in a compiler wrapper.
 
 ## Separate build experiment, same repository
 

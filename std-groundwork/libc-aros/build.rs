@@ -24,6 +24,10 @@ fn main() {
     // (ISA_X8664_FLAGS in mainline configure.in), as is the Rust target.
     let v1 = env::var("CARGO_CFG_TARGET_ABI").as_deref() == Ok("abiv1");
     let mut sources = vec![csrc.join("compat.c"), csrc.join("exec_adapter.c")];
+    // The native AArch64 toolchain has no unwinder library; see the file.
+    if env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") {
+        sources.push(csrc.join("unwind_none.c"));
+    }
     let vendor = csrc.join("vendor/jitterentropy");
     if !v1 {
         sources.extend([csrc.join("entropy.c"), csrc.join("jent_adapter.c")]);

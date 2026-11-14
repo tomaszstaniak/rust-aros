@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPILER = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)'
 PAL = '2e2845efb6aaa111b5a26c9685e96d08fad340f4'
-PROFILES = ['aarch64-v1-raspi', 'x86_64-v11', 'x86_64-v1-pc']
+PROFILES = ['aarch64-v1-raspi', 'aarch64-v1-raspi-unix', 'x86_64-v11', 'x86_64-v1-pc']
 SOURCE = 'lib/rustlib/src/rust'
 
 
@@ -26,7 +26,7 @@ def digest_tree(root):
 def inputs(root=ROOT):
     files = [root / name for name in (
         'tools/common-sysroot.py', 'tools/jonx-sysroot.py', 'tools/sysroot_contract.py',
-        'profiles/aarch64-v1-raspi.json', 'profiles/x86_64-v1-pc.json', 'x86_64-aros.json.in')]
+        'profiles/aarch64-v1-raspi.json', 'profiles/aarch64-v1-raspi-unix.json', 'profiles/x86_64-v1-pc.json', 'x86_64-aros.json.in')]
     for name in ('patches/jonx', 'std-groundwork/std-patch', 'std-groundwork/libc-aros'):
         files += [p for p in (root / name).rglob('*') if p.is_file()
                   and not any(part in ('target', '__pycache__') for part in p.parts)]

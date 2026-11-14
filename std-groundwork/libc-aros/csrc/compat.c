@@ -14,8 +14,13 @@
  * those definitions are left to the system there. It lacks writev for files
  * (only net.lib's socket writev exists), fdatasync and
  * pthread_attr_getguardsize, which are supplied below. */
+/* unlinkat and the other *at() declarations of mainline posixc are behind this. */
+#ifdef RS_AROS_ABIV1
+#define _GNU_SOURCE
+#endif
 #include "terminal_abi.h"
 #include <errno.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>

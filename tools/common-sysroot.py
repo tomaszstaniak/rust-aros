@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build one private August std source tree with x86_64 (ABIv11 and mainline
-ABIv1) and Jonx ARM backends.
+ABIv1), unix AArch64 and Jonx ARM backends.
 
 Jonx files remain MIT OR Apache-2.0; copies keep their original content except
 the documented native socket gate. Dispatch edits only select ARM-specific
@@ -19,7 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sysroot_contract
 
 ROOT = Path(__file__).resolve().parents[1]
-ARM = 'all(target_os = "aros", target_arch = "aarch64")'
+# The imported PAL serves AArch64 profiles without target-family unix. A unix
+# AArch64 profile (aarch64-v1-raspi-unix) takes the same std paths and libc-aros
+# as x86_64 mainline.
+ARM = 'all(target_os = "aros", target_arch = "aarch64", not(target_family = "unix"))'
 VERSION = 'rustc 1.100.0-nightly (0dfb098f3 2026-08-31)'
 spec = importlib.util.spec_from_file_location('jonx_sysroot', ROOT / 'tools/jonx-sysroot.py')
 jonx = importlib.util.module_from_spec(spec)
@@ -61,13 +64,14 @@ def merge(std, source):
     alias = '#[cfg(feature = "rustc-dep-of-std")]\nextern crate rustc_std_workspace_core as core;'
     body = body.replace(alias, '#[cfg(feature = "rustc-dep-of-std")]\nuse crate::core;', 1)
     # One module serves both x86_64 SDK families (ABIv11 and, selected inside
-    # it by target_abi = "abiv1", mainline). ARM uses Jonx's C bridge.
+    # it by target_abi = "abiv1", mainline) and unix AArch64. Non-unix ARM uses
+    # Jonx's C bridge.
     (libc / 'src/aros_x86_64.rs').write_text(body)
     binding.write_text(text[:start] + alias + '\n#[cfg(not(' + ARM + '))]\nmod aros_x86_64;\n' +
                        '#[cfg(not(' + ARM + '))]\npub use aros_x86_64::*;\n')
     build = libc / 'build.rs'
     build.write_text(build.read_text().replace('fn main() {',
-                     'fn main() {\n    if env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") { return; }', 1))
+                     'fn main() {\n    if env::var_os("CARGO_CFG_UNIX").is_none() {\n        if env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") { return; }\n    }', 1))
     for src in (js / 'sys').rglob('aros.rs'):
         dest = std / src.relative_to(js)
         dest.parent.mkdir(parents=True, exist_ok=True)

@@ -6,6 +6,8 @@
 //! v1 layouts and constants were measured with the mainline cross compiler
 //! against the SDK of AROS 9802c8c0 (2026-10-28); see
 //! docs/evidence/2026-10-28-x86_64-v1. They are not interchangeable.
+//! Mainline AArch64 (profile `aarch64-v1-raspi-unix`) uses the v1 items; its
+//! headers are the same and only three pthread sizes differ.
 //!
 //! Every type layout here was read out of DWARF produced by the AROS cross
 //! compiler, and every constant was expanded from the SDK headers, rather
@@ -205,8 +207,11 @@ impl pthread_mutex_t {
 }
 #[cfg(not(target_abi = "abiv1"))]
 const PTHREAD_MUTEX_T_SIZE: usize = 120;
-#[cfg(target_abi = "abiv1")]
+// Mainline: the embedded SignalSemaphore is larger on x86_64 than on AArch64.
+#[cfg(all(target_abi = "abiv1", not(target_arch = "aarch64")))]
 const PTHREAD_MUTEX_T_SIZE: usize = 248;
+#[cfg(all(target_abi = "abiv1", target_arch = "aarch64"))]
+const PTHREAD_MUTEX_T_SIZE: usize = 136;
 
 #[repr(C, align(4))]
 #[derive(Copy, Clone)]
@@ -231,8 +236,11 @@ impl pthread_cond_t {
 }
 #[cfg(not(target_abi = "abiv1"))]
 const PTHREAD_COND_T_SIZE: usize = 136;
-#[cfg(target_abi = "abiv1")]
+// Mainline: the embedded SignalSemaphore is larger on x86_64 than on AArch64.
+#[cfg(all(target_abi = "abiv1", not(target_arch = "aarch64")))]
 const PTHREAD_COND_T_SIZE: usize = 264;
+#[cfg(all(target_abi = "abiv1", target_arch = "aarch64"))]
+const PTHREAD_COND_T_SIZE: usize = 152;
 
 #[repr(C, align(8))]
 #[derive(Copy, Clone)]
@@ -244,8 +252,11 @@ impl pthread_rwlock_t {
 }
 #[cfg(not(target_abi = "abiv1"))]
 const PTHREAD_RWLOCK_T_SIZE: usize = 104;
-#[cfg(target_abi = "abiv1")]
+// Mainline: the embedded SignalSemaphore is larger on x86_64 than on AArch64.
+#[cfg(all(target_abi = "abiv1", not(target_arch = "aarch64")))]
 const PTHREAD_RWLOCK_T_SIZE: usize = 232;
+#[cfg(all(target_abi = "abiv1", target_arch = "aarch64"))]
+const PTHREAD_RWLOCK_T_SIZE: usize = 120;
 
 // --- constants (expanded from the SDK headers) ------------------------
 pub const O_RDONLY: c_int = 1;
