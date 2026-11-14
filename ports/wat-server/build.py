@@ -15,6 +15,9 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("workspace", type=Path)
 p.add_argument("--toolchain", required=True)
 p.add_argument("--aros", action="store_true")
+p.add_argument("--target-json", type=Path,
+               help="target specification of another profile (mainline x86_64, AArch64); the caller's environment "
+                    "then supplies AROS_GCC, AROS_AR, AROS_SDK and the C compiler variables instead of aros-env.toml")
 p.add_argument("--libc-source", type=Path, help="build-owned libc-aros source (default: repository source)")
 profiles = p.add_mutually_exclusive_group()
 profiles.add_argument("--unwind", action="store_true", help="compatibility alias for --panic-profile unwind")
@@ -42,14 +45,14 @@ remap = [(str(work), "/wat"), (str(work.parent / (work.name + "-deps")), "/wat-d
          (sysroot, "/rust"), (str(repo), "/rust-aros")]
 remap += [tuple(x.split("=", 1)) for x in args.remap]
 try:
-    native = native_options(repo, profile, os.environ, remap) if args.aros else []
+    native = native_options(repo, profile, os.environ, remap, args.target_json and args.target_json.resolve()) if args.aros else []
 except ValueError as error:
     p.error(str(error))
 work = args.workspace.resolve()
 cargo = ["cargo", "+" + args.toolchain]
 config = []
 if args.aros:
-    config = ["--config", str(repo / "aros-env.toml"), "--config",
+    config = ([] if args.target_json else ["--config", str(repo / "aros-env.toml")]) + ["--config",
               'patch.crates-io.libc.path=' + json.dumps(str((args.libc_source or repo / "std-groundwork/libc-aros").resolve()))]
     cargo_home = Path(os.environ.get("CARGO_HOME", Path.home() / ".cargo"))
     archives = list((cargo_home / "registry/cache").glob("*/inventory-0.3.24.crate"))
@@ -60,7 +63,7 @@ if args.aros:
     if hashlib.sha256(archive.read_bytes()).hexdigest() != checksum:
         p.error("inventory archive checksum mismatch")
     dependency = work.parent / (work.name + "-deps") / "inventory-0.3.24"
-    patched_sha256 = "2ffb0302f8035019f43d24298d6d949ab08a6476553e31554f55b89e228839b2"
+    patched_sha256 = "e98ef5629b02246be9ef5dbe06d7b11af633e03698b75ac468491af33d9b8ae9"
     def tree_hash(root):
         digest = hashlib.sha256()
         for path in sorted(x for x in root.rglob("*") if x.is_file()):

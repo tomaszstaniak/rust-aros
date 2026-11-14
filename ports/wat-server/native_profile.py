@@ -1,6 +1,6 @@
 """Explicit native panic profiles shared by WAT and acceptance builds."""
 
-def native_options(repo, profile, environ, remap=()):
+def native_options(repo, profile, environ, remap=(), target_json=None):
     if profile not in ('abort', 'unwind'):
         raise ValueError('panic profile must be abort or unwind')
     overrides = [name for name in ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'CARGO_BUILD_RUSTFLAGS',
@@ -15,6 +15,6 @@ def native_options(repo, profile, environ, remap=()):
     # delivered binary carries no host path.
     flags += ['--remap-path-prefix=%s=%s' % pair for pair in remap]
     import json
-    return ['--target', str(repo / 'x86_64-aros.json'),
+    return ['--target', str(target_json or repo / 'x86_64-aros.json'),
             '-Zbuild-std=std,panic_' + profile, '-Zjson-target-spec',
             '--config', 'build.rustflags=' + json.dumps(flags)]
