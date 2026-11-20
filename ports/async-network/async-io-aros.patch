@@ -50,7 +50,12 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  mod reactor;
  
  pub mod os;
-@@ -625,6 +636,8 @@
+@@ -96,2 +107,4 @@
+ pub use driver::block_on;
++#[cfg(target_os = "aros")]
++pub use driver::poll_owner;
+ pub use reactor::{Readable, ReadableOwned, Writable, WritableOwned};
+@@ -625,6 +638,8 @@
  
      /// The inner I/O handle.
      io: Option<T>,
@@ -59,7 +64,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  }
  
  impl<T> Unpin for Async<T> {}
-@@ -687,6 +700,8 @@
+@@ -687,6 +702,8 @@
          Ok(Async {
              source: Reactor::get().insert_io(registration)?,
              io: Some(io),
@@ -68,7 +73,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
          })
      }
  }
-@@ -783,6 +798,8 @@
+@@ -783,6 +800,8 @@
          Ok(Async {
              source: Reactor::get().insert_io(registration)?,
              io: Some(io),
@@ -77,7 +82,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
          })
      }
  }
-@@ -1488,12 +1505,21 @@
+@@ -1488,12 +1507,21 @@
      /// }
      /// # std::io::Result::Ok(()) });
      /// ```
@@ -99,7 +104,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  }
  
  impl TryFrom<std::net::TcpListener> for Async<std::net::TcpListener> {
-@@ -1521,6 +1547,10 @@
+@@ -1521,6 +1549,10 @@
      pub async fn connect<A: Into<SocketAddr>>(addr: A) -> io::Result<Async<TcpStream>> {
          // Figure out how to handle this address.
          let addr = addr.into();
@@ -110,7 +115,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
          let (domain, sock_addr) = match addr {
              SocketAddr::V4(v4) => (rn::AddressFamily::INET, v4.as_any()),
              SocketAddr::V6(v6) => (rn::AddressFamily::INET6, v6.as_any()),
-@@ -1528,6 +1558,8 @@
+@@ -1528,6 +1560,8 @@
  
          // Begin async connect.
          let socket = connect(sock_addr, domain, Some(rn::ipproto::TCP))?;
@@ -119,7 +124,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
          // Use new_nonblocking because connect already sets socket to non-blocking mode.
          let stream = Async::new_nonblocking(TcpStream::from(socket))?;
  
-@@ -1825,12 +1857,21 @@
+@@ -1825,12 +1859,21 @@
      /// }
      /// # std::io::Result::Ok(()) });
      /// ```
@@ -141,7 +146,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  }
  
  #[cfg(unix)]
-@@ -1857,6 +1898,11 @@
+@@ -1857,6 +1900,11 @@
      /// # std::io::Result::Ok(()) });
      /// ```
      pub async fn connect<P: AsRef<Path>>(path: P) -> io::Result<Async<UnixStream>> {
@@ -153,7 +158,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
          let address = convert_path_to_socket_address(path.as_ref())?;
  
          // Begin async connect.
-@@ -1871,6 +1917,8 @@
+@@ -1871,6 +1919,8 @@
          // must do an extra check here and see if the peer address is retrievable.
          stream.get_ref().peer_addr()?;
          Ok(stream)
@@ -162,7 +167,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
      }
  
      /// Creates an unnamed pair of connected UDS stream sockets.
-@@ -2071,6 +2119,7 @@
+@@ -2071,6 +2121,7 @@
      .await
  }
  
@@ -170,7 +175,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  fn connect(
      addr: rn::SocketAddrAny,
      domain: rn::AddressFamily,
-@@ -2172,6 +2221,7 @@
+@@ -2172,6 +2223,7 @@
      Ok(socket)
  }
  
@@ -178,7 +183,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  #[inline]
  fn setup_networking() {
      #[cfg(windows)]
-@@ -2186,6 +2236,7 @@
+@@ -2186,6 +2238,7 @@
      }
  }
  
@@ -186,7 +191,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  #[inline]
  fn set_nonblocking(
      #[cfg(unix)] fd: BorrowedFd<'_>,
-@@ -2215,7 +2266,7 @@
+@@ -2215,7 +2268,7 @@
  /// Converts a `Path` to its socket address representation.
  ///
  /// This function is abstract socket-aware.
@@ -195,3 +200,21 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
  #[inline]
  fn convert_path_to_socket_address(path: &Path) -> io::Result<rn::SocketAddrUnix> {
      // SocketAddrUnix::new() will throw EINVAL when a path with a zero in it is passed in.
+--- a/src/reactor.rs
++++ b/src/reactor.rs
+@@ -91,8 +91,13 @@
++static REACTOR: OnceLock<Reactor> = OnceLock::new();
++
+ impl Reactor {
++    #[cfg(target_os = "aros")]
++    pub(crate) fn initialized() -> Option<&'static Reactor> {
++        REACTOR.get()
++    }
++
+     /// Returns a reference to the reactor.
+     pub(crate) fn get() -> &'static Reactor {
+-        static REACTOR: OnceLock<Reactor> = OnceLock::new();
+-
+         REACTOR.get_or_init(|| {
+             crate::driver::init();
+             Reactor {

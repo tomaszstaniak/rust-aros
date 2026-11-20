@@ -1,6 +1,7 @@
 //! Owner-task block_on for AROS. No fallback thread can drive this SocketBase.
 use std::{cell::Cell, future::Future, pin::pin, sync::Arc, task::{Context, Poll, Wake, Waker}};
 use crate::reactor::Reactor;
+use std::{io, time::Duration};
 unsafe extern "C" { fn rs_selector_owner() -> i32; }
 pub(crate) fn init() {}
 struct Notify(&'static Reactor);
@@ -11,6 +12,26 @@ impl Wake for Notify {
 thread_local! { static DRIVING: Cell<bool> = const { Cell::new(false) }; }
 struct Driving;
 impl Drop for Driving { fn drop(&mut self) { DRIVING.with(|flag| flag.set(false)); } }
+/// Process ready I/O and timers once from an external event loop.
+///
+/// Call this on the task that owns SocketBase. The call does not wait for
+/// readiness or create a reactor before the first registration. The event
+/// loop must call it again to service future readiness. Calling during
+/// another reactor drive reports [`io::ErrorKind::WouldBlock`].
+pub fn poll_owner() -> io::Result<()> {
+    if unsafe { rs_selector_owner() } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let Some(reactor) = Reactor::initialized() else {
+        return Ok(());
+    };
+    if DRIVING.with(|flag| flag.replace(true)) {
+        return Err(io::ErrorKind::WouldBlock.into());
+    }
+    let _guard = Driving;
+    reactor.lock().react(Some(Duration::ZERO))
+}
+
 /// Drive futures on the socket-owning task. Nested calls and foreign-task
 /// calls panic explicitly; use concurrent local futures inside one block_on.
 pub fn block_on<T>(future: impl Future<Output=T>) -> T {

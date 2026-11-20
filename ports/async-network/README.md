@@ -63,9 +63,12 @@ a refusal fixture. Never repair the guest based on that timeout.
   cleanup to the owner; shutdown releases remaining signal allocations.
 - async-io2.6.0 uses the owner-task driver, without the upstream fallback
   thread or its 500us handoff. Drive local concurrent futures with
-  async_io::block_on on the socket-owning task. Nested calls panic explicitly;
-  external executors and timer-only operation without an available SocketBase
-  require separate integration/acceptance.
+  async_io::block_on on the socket-owning task. An external event loop can call
+  async_io::poll_owner on that task to service ready I/O and timers without
+  waiting. It returns WouldBlock when another reactor drive is active.
+  The x86_64 ABIv1 GPUI probe exercised four concurrent TCP reads, one
+  cancellation, an async-io timer and foreign-task rejection. Timer-only
+  operation without an available SocketBase remains outside this contract.
 - Async handles are !Send and !Sync on this target, enforced by the compiler.
   Async-net TCP clones share the same local handle. Test notification workers
   are explicitly joined. Application notifier workers must finish before
