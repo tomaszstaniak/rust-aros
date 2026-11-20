@@ -1,0 +1,65 @@
+Title: socket2: follow the native x86_64 ABIv1 socket ABI
+Base: crates.io socket2 0.6.5 SHA-256 c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4 plus PomAROS rust-aros 33325cbf1e271d2df213b65b2bcab0efc02b1a3d crate-store patch
+Date: 2026-11-20
+Status: local
+
+ABIv1 has ip_mreq_source but not ip_mreqn. Do not select the
+interface-index multicast API. The tagged socket adapter does not
+implement sendmsg or recvmsg. Report Unsupported at those call sites.
+Verification: SDK C and Rust ABI assertions, all-feature build, UDP
+loopback payload and explicit message errors on x86_64 ABIv1.
+
+--- a/src/sys/unix.rs
++++ b/src/sys/unix.rs
+@@ -1165,6 +1165,12 @@
+     msg: &mut MsgHdrMut<'_, '_, '_>,
+     flags: c_int,
+ ) -> io::Result<usize> {
++    #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++    {
++        let _ = (fd, msg, flags);
++        Err(io::ErrorKind::Unsupported.into())
++    }
++    #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+     syscall!(recvmsg(fd, &mut msg.inner, flags)).map(|n| n as usize)
+ }
+ 
+@@ -1218,6 +1224,12 @@
+ 
+ #[cfg(not(any(target_os = "redox", target_os = "wasi", target_os = "horizon")))]
+ pub(crate) fn sendmsg(fd: RawSocket, msg: &MsgHdr<'_, '_, '_>, flags: c_int) -> io::Result<usize> {
++    #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++    {
++        let _ = (fd, msg, flags);
++        Err(io::ErrorKind::Unsupported.into())
++    }
++    #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+     syscall!(sendmsg(fd, &msg.inner, flags)).map(|n| n as usize)
+ }
+ 
+@@ -1428,6 +1440,7 @@
+ }
+ 
+ #[cfg(not(any(
++    all(target_os = "aros", target_abi = "abiv1"),
+     target_os = "aix",
+     target_os = "haiku",
+     target_os = "illumos",
+--- a/src/socket.rs
++++ b/src/socket.rs
+@@ -1344,6 +1344,7 @@
+     /// the local interface with which the system should join the multicast
+     /// group. See [`InterfaceIndexOrAddress`].
+     #[cfg(not(any(
++        all(target_os = "aros", target_abi = "abiv1"),
+         target_os = "aix",
+         target_os = "haiku",
+         target_os = "illumos",
+@@ -1380,6 +1381,7 @@
+     ///
+     /// [`join_multicast_v4_n`]: Socket::join_multicast_v4_n
+     #[cfg(not(any(
++        all(target_os = "aros", target_abi = "abiv1"),
+         target_os = "aix",
+         target_os = "haiku",
+         target_os = "illumos",

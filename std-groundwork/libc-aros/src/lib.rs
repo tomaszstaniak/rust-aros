@@ -646,6 +646,83 @@ pub const SO_RCVTIMEO: c_int = 4102;
 pub const SO_SNDTIMEO: c_int = 4101;
 pub const SOCK_DGRAM: c_int = 2;
 pub const SOCK_STREAM: c_int = 1;
+
+// Socket ABI declarations from the mainline SDK. A declared option may
+// still be rejected by the network stack for a particular socket.
+#[cfg(target_abi = "abiv1")]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct ip_mreq_source {
+    pub imr_multiaddr: in_addr,
+    pub imr_sourceaddr: in_addr,
+    pub imr_interface: in_addr,
+}
+
+#[cfg(target_abi = "abiv1")]
+#[repr(C)]
+pub struct msghdr {
+    pub msg_name: *mut c_void,
+    pub msg_namelen: socklen_t,
+    pub msg_iov: *mut iovec,
+    pub msg_iovlen: c_int,
+    pub msg_control: *mut c_void,
+    pub msg_controllen: socklen_t,
+    pub msg_flags: c_int,
+}
+
+#[cfg(target_abi = "abiv1")]
+pub const AF_UNSPEC: c_int = 0;
+#[cfg(target_abi = "abiv1")]
+pub const IPPROTO_ICMP: c_int = 1;
+#[cfg(target_abi = "abiv1")]
+pub const IPPROTO_ICMPV6: c_int = 58;
+#[cfg(target_abi = "abiv1")]
+pub const IPV6_MULTICAST_HOPS: c_int = 10;
+#[cfg(target_abi = "abiv1")]
+pub const IPV6_MULTICAST_IF: c_int = 9;
+#[cfg(target_abi = "abiv1")]
+pub const IPV6_RECVHOPLIMIT: c_int = 37;
+#[cfg(target_abi = "abiv1")]
+pub const IPV6_RECVTCLASS: c_int = 57;
+#[cfg(target_abi = "abiv1")]
+pub const IPV6_UNICAST_HOPS: c_int = 4;
+#[cfg(target_abi = "abiv1")]
+pub const IP_ADD_SOURCE_MEMBERSHIP: c_int = 25;
+#[cfg(target_abi = "abiv1")]
+pub const IP_DROP_SOURCE_MEMBERSHIP: c_int = 26;
+#[cfg(target_abi = "abiv1")]
+pub const IP_HDRINCL: c_int = 2;
+#[cfg(target_abi = "abiv1")]
+pub const IP_MULTICAST_IF: c_int = 9;
+#[cfg(target_abi = "abiv1")]
+pub const IP_RECVTOS: c_int = 68;
+#[cfg(target_abi = "abiv1")]
+pub const IP_TOS: c_int = 3;
+#[cfg(target_abi = "abiv1")]
+pub const MSG_EOR: c_int = 0x00000008;
+#[cfg(target_abi = "abiv1")]
+pub const MSG_OOB: c_int = 0x00000001;
+#[cfg(target_abi = "abiv1")]
+pub const MSG_TRUNC: c_int = 0x00000010;
+#[cfg(target_abi = "abiv1")]
+pub const SOCK_RAW: c_int = 3;
+#[cfg(target_abi = "abiv1")]
+pub const SOCK_RDM: c_int = 4;
+#[cfg(target_abi = "abiv1")]
+pub const SOCK_SEQPACKET: c_int = 5;
+#[cfg(target_abi = "abiv1")]
+pub const SO_OOBINLINE: c_int = 0x00000100;
+#[cfg(target_abi = "abiv1")]
+pub const SO_REUSEPORT: c_int = 0x00000200;
+#[cfg(target_abi = "abiv1")]
+pub const SO_SNDBUF: c_int = 0x1001;
+#[cfg(target_abi = "abiv1")]
+pub const SO_TYPE: c_int = 0x1008;
+#[cfg(target_abi = "abiv1")]
+pub const TCP_KEEPIDLE: c_int = 256;
+#[cfg(target_abi = "abiv1")]
+pub const TCP_MAXSEG: c_int = 2;
+
 pub const SOL_SOCKET: c_int = 65535;
 pub const SOMAXCONN: c_int = 128;
 pub const TCP_NODELAY: c_int = 1;
