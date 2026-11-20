@@ -1,0 +1,61 @@
+Subject: Build the Exec stack switch helpers on x86_64 ABIv1
+
+Apply after the PomAROS crate store at 33325cbf1e271d2df213b65b2bcab0efc02b1a3d.
+The C source is toolchain/sys/stack.c from that same revision (MIT).
+Verified in a native x86_64 ABIv1 combined SHA-256 and stack-bounds probe.
+
+diff --git a/build.rs b/build.rs
+index 38e465f..5d00590 100644
+--- a/build.rs
++++ b/build.rs
+@@ -7,5 +7,15 @@ fn main() {
+         cfg.define("WINDOWS", None);
+         cfg.file("src/arch/windows.c");
+         cfg.include("src/arch").compile("libstacker.a");
++    } else if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("aros")
++        && env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
++        && env::var("CARGO_CFG_TARGET_ABI").as_deref() == Ok("abiv1")
++    {
++        let source = "src/backends/aros_abiv1.c";
++        println!("cargo:rerun-if-changed={source}");
++        cfg.file(source)
++            .flag("-Werror=implicit-function-declaration")
++            .flag("-Werror=incompatible-pointer-types")
++            .compile("stacker_aros");
+     }
+ }
+diff --git a/src/backends/aros_abiv1.c b/src/backends/aros_abiv1.c
+new file mode 100644
+index 0000000..53145ec
+--- /dev/null
++++ b/src/backends/aros_abiv1.c
+@@ -0,0 +1,29 @@
++/*
++    Copyright (C) 2026 John KNIPPER <code@jkn.me>.
++    SPDX-License-Identifier: MIT
++
++    Stack bounds and stack switching for Rust crates that grow the stack
++    (stacker). An exec task's stack is tc_SPLower..tc_SPUpper, and the
++    kernel suspends a task whose stack pointer is outside that range at a
++    task switch, so a new stack is entered with NewStackSwap(), which moves
++    the bounds along and restores them on return.
++*/
++#include <exec/tasks.h>
++#include <proto/exec.h>
++#include <stddef.h>
++
++void *aros_rs_stack_lower(void)
++{
++    return FindTask(NULL)->tc_SPLower;
++}
++
++void aros_rs_call_on_stack(void *lower, size_t size, void (*entry)(void *), void *arg)
++{
++    struct StackSwapStruct sss;
++    struct StackSwapArgs args = {{ (IPTR)arg }};
++
++    sss.stk_Lower = lower;
++    sss.stk_Upper = (UBYTE *)lower + size;
++    sss.stk_Pointer = sss.stk_Upper;
++    NewStackSwap(&sss, (APTR)entry, &args);
++}
