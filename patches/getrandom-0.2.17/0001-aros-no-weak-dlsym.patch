@@ -1,0 +1,40 @@
+Title: getrandom: omit unused weak dynamic symbol lookup on AROS
+Base: crates.io getrandom 0.2.17 plus PomAROS rust-aros 33325cbf1e271d2df213b65b2bcab0efc02b1a3d crate-store patch
+Date: 2026-11-20
+Status: local
+
+The AROS getentropy backend does not call the weak symbol helper.
+Compile it out to avoid requiring dlsym and RTLD_DEFAULT.
+Verification: cargo check getrandom 0.2.17 for x86_64 ABIv1 with our
+dual libc. No entropy runtime claim. Retire when the base port carries
+the same target restriction.
+
+--- a/src/util_libc.rs
++++ b/src/util_libc.rs
+@@ -3,10 +3,10 @@
+ use core::{
+     mem::MaybeUninit,
+     num::NonZeroU32,
+-    ptr::NonNull,
+-    sync::atomic::{fence, AtomicPtr, Ordering},
+ };
+ use libc::c_void;
++#[cfg(not(target_os = "aros"))]
++use core::{ptr::NonNull, sync::atomic::{fence, AtomicPtr, Ordering}};
+ 
+ cfg_if! {
+     if #[cfg(any(target_os = "netbsd", target_os = "openbsd", target_os = "android", target_os = "cygwin"))] {
+@@ -83,11 +83,13 @@
+ // Based off of the DlsymWeak struct in libstd:
+ // https://github.com/rust-lang/rust/blob/1.61.0/library/std/src/sys/unix/weak.rs#L84
+ // except that the caller must manually cast self.ptr() to a function pointer.
++#[cfg(not(target_os = "aros"))]
+ pub struct Weak {
+     name: &'static str,
+     addr: AtomicPtr<c_void>,
+ }
+ 
++#[cfg(not(target_os = "aros"))]
+ impl Weak {
+     // A non-null pointer value which indicates we are uninitialized. This
+     // constant should ideally not be a valid address of a function pointer.
