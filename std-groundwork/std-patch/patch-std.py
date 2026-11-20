@@ -107,6 +107,25 @@ def cloexec_with_fcntl(s):
     return s[:start] + block + s[end:]
 edit("sys/fd/unix.rs", cloexec_with_fcntl)
 
+# x86_64 ABIv1 does not support the fork/exec fallback. Its libc binding
+# uses vfork(), which cannot satisfy the Unix std's child error-pipe contract.
+# Leave any future posix_spawn implementation ahead of this check.
+def reject_abiv1_process_fork(s):
+    anchor = "        if let Some(ret) = self.posix_spawn(&theirs, envp.as_ref())? {\n" \
+             "            return Ok((ret, ours));\n        }"
+    assert s.count(anchor) == 1, "process spawn fallback anchor changed"
+    return add_after(s, anchor, """
+
+        if cfg!(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")) {
+            return Err(io::const_error!(
+                ErrorKind::Unsupported,
+                "process spawning requires a native AROS backend",
+            ));
+        }""")
+
+
+edit("sys/process/unix/unix.rs", reject_abiv1_process_fork)
+
 # 9d. The null device is NIL: on AROS.
 edit("sys/process/unix/common.rs", lambda s: add_after(s, '    target_os = "vxworks" => {\n        const DEV_NULL: &CStr = c"/null";\n    }', '\n    target_os = "aros" => {\n        const DEV_NULL: &CStr = c"NIL:";\n    }'))
 
