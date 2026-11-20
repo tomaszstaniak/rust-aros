@@ -1,0 +1,29 @@
+Use rand’s existing no-fork branch on x86_64 AROS ABIv1. The POSIX C runtime exposes vfork with a shared address space and has no POSIX fork or pthread_atfork. Keep OS entropy, periodic reseeding and other targets unchanged.
+
+--- a/src/rngs/adapter/reseeding.rs
++++ b/src/rngs/adapter/reseeding.rs
+@@ -277,7 +277,10 @@
+ }
+ 
+ 
+-#[cfg(all(unix, not(target_os = "emscripten")))]
++#[cfg(all(unix, not(any(
++    target_os = "emscripten",
++    all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"),
++))))]
+ mod fork {
+     use core::sync::atomic::{AtomicUsize, Ordering};
+     use std::sync::Once;
+@@ -322,7 +325,11 @@
+     }
+ }
+ 
+-#[cfg(not(all(unix, not(target_os = "emscripten"))))]
++// AROS ABIv1 cannot duplicate the process address space with POSIX fork().
++#[cfg(not(all(unix, not(any(
++    target_os = "emscripten",
++    all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"),
++)))))]
+ mod fork {
+     pub fn get_fork_counter() -> usize {
+         0
