@@ -6,6 +6,8 @@ struct rs_selector {
     struct Task *owner;
     ULONG mask;
     BYTE bit;
+    struct MsgPort *timer_port;
+    struct timerequest *timer;
     volatile int retired;
     struct rs_selector *next;
 };
@@ -17,14 +19,25 @@ static void rs_selector_reap(void) {
         struct rs_selector *s = *link;
         if (!s->retired) { link = &s->next; continue; }
         *link = s->next;
+        if (s->timer) {
+            struct IORequest *io = (struct IORequest *)s->timer;
+            CloseDevice(io);
+            DeleteIORequest(io);
+            DeleteMsgPort(s->timer_port);
+        }
         SetSignal(0, s->mask);
         FreeSignal(s->bit);
         free(s);
     }
 }
 int rs_selector_owner(void) { return rs_socket_ready(); }
+int rs_reactor_owner(void) {
+    if (FindTask(NULL) == rs_socket_owner) return 0;
+    errno = ENOTSUP;
+    return -1;
+}
 void *rs_selector_new(void) {
-    if (rs_socket_ready() < 0) return NULL;
+    if (rs_reactor_owner() < 0) return NULL;
     rs_selector_reap();
     struct rs_selector *s = calloc(1, sizeof *s);
     if (!s) { errno = ENOMEM; return NULL; }
@@ -38,7 +51,6 @@ int rs_selector_check(void *context) {
     struct rs_selector *s = context;
     if (!s || s->retired) { errno = EINVAL; return -1; }
     if (s->owner != FindTask(NULL)) { errno = ENOTSUP; return -1; }
-    if (rs_socket_ready() < 0) return -1;
     rs_selector_reap();
     return 0;
 }
@@ -65,13 +77,58 @@ int rs_selector_notify(void *context) {
     return 0;
 }
 int rs_selector_validate(void *context, int fd) {
-    if (rs_selector_check(context) < 0) return -1;
+    if (rs_selector_check(context) < 0 || rs_socket_ready() < 0) return -1;
     return rs_socket_index(fd) < 0 ? -1 : 0;
+}
+/* The owner can run an executor with no network library. Keep the timer
+ * request on its task and reap every reply before the next wait. */
+static int rs_selector_wait_local(struct rs_selector *s, int64_t micros) {
+    if (micros < 0) {
+        Wait(s->mask);
+        return 0;
+    }
+    if ((SetSignal(0, s->mask) & s->mask) || micros == 0) return 0;
+
+    if (!s->timer) {
+        struct MsgPort *port = CreateMsgPort();
+        if (!port) { errno = EAGAIN; return -1; }
+        struct IORequest *io = CreateIORequest(port, sizeof(struct timerequest));
+        if (!io) { DeleteMsgPort(port); errno = ENOMEM; return -1; }
+        if (OpenDevice(TIMERNAME, UNIT_MICROHZ, io, 0) != 0) {
+            DeleteIORequest(io);
+            DeleteMsgPort(port);
+            errno = EIO;
+            return -1;
+        }
+        s->timer_port = port;
+        s->timer = (struct timerequest *)io;
+    }
+
+    struct IORequest *io = (struct IORequest *)s->timer;
+    ULONG timer_mask = (ULONG)1 << s->timer_port->mp_SigBit;
+    SetSignal(0, timer_mask);
+    io->io_Command = TR_ADDREQUEST;
+    s->timer->tr_time.tv_secs = micros / 1000000;
+    s->timer->tr_time.tv_micro = micros % 1000000;
+    SendIO(io);
+    ULONG signals = Wait(s->mask | timer_mask);
+    if (!CheckIO(io)) AbortIO(io);
+    int result = WaitIO(io);
+    SetSignal(0, timer_mask);
+    if ((signals & timer_mask) && result != 0) { errno = EIO; return -1; }
+    return 0;
 }
 int rs_selector_wait(void *context, struct rs_pollfd *fds, size_t n, int64_t micros) {
     if (rs_selector_check(context) < 0) return -1;
     if (n && !fds) { errno = EFAULT; return -1; }
     struct rs_selector *s = context;
+    /* Bound a single timer request. The Rust caller recomputes the deadline. */
+    if (micros > 3600000000LL) micros = 3600000000LL;
+    if (!SocketBase) {
+        if (n) { errno = ENETDOWN; return -1; }
+        return rs_selector_wait_local(s, micros);
+    }
+    if (rs_socket_ready() < 0) return -1;
     fd_set readset, writeset;
     FD_ZERO(&readset); FD_ZERO(&writeset);
     int max = -1;
@@ -85,9 +142,6 @@ int rs_selector_wait(void *context, struct rs_pollfd *fds, size_t n, int64_t mic
         if (fds[i].events && raw > max) max = raw;
     }
     struct timeval timeout;
-    /* Bound a single timer request without truncating a distant deadline.
-       The Rust caller recomputes its remaining deadline on every wait. */
-    if (micros > 3600000000LL) micros = 3600000000LL;
     timeout.tv_sec = micros < 0 ? 0 : micros / 1000000;
     timeout.tv_usec = micros < 0 ? 0 : micros % 1000000;
     ULONG signals = s->mask;

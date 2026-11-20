@@ -67,8 +67,12 @@ a refusal fixture. Never repair the guest based on that timeout.
   async_io::poll_owner on that task to service ready I/O and timers without
   waiting. It returns WouldBlock when another reactor drive is active.
   The x86_64 ABIv1 GPUI probe exercised four concurrent TCP reads, one
-  cancellation, an async-io timer and foreign-task rejection. Timer-only
-  operation without an available SocketBase remains outside this contract.
+  cancellation, an async-io timer and foreign-task rejection. Event loops
+  call async_io::init_owner on the startup task before launching workers.
+  AROS x86_64 ABIv1 also passed owner and worker timer completion with
+  SocketBase absent. With no socket library, the selector serves timer and
+  wake requests using Exec signals and timer.device. Socket operations
+  still report NetworkDown in that case.
 - Async handles are !Send and !Sync on this target, enforced by the compiler.
   Async-net TCP clones share the same local handle. Test notification workers
   are explicitly joined. Application notifier workers must finish before

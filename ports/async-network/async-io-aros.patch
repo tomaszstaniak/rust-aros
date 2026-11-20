@@ -53,7 +53,7 @@ unsupported DNS, Unix sockets and worker-task I/O are not enabled.
 @@ -96,2 +107,4 @@
  pub use driver::block_on;
 +#[cfg(target_os = "aros")]
-+pub use driver::poll_owner;
++pub use driver::{init_owner, poll_owner};
  pub use reactor::{Readable, ReadableOwned, Writable, WritableOwned};
 @@ -625,6 +638,8 @@
  

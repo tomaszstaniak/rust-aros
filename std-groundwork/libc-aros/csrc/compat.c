@@ -46,6 +46,7 @@
 #include <limits.h>
 #include <dos/dosextens.h>
 #include <exec/memory.h>
+#include <devices/timer.h>
 #include <arpa/inet.h>
 
 /* The selected v11 CRT shares its path-conversion buffer and descriptor array.
@@ -129,9 +130,9 @@ static ULONG rs_open_sockets(void)
 
 static void rs_close_sockets(void)
 {
+    if (SocketBase) rs_socket_drain();
+    rs_selector_shutdown();
     if (SocketBase) {
-        rs_socket_drain();
-        rs_selector_shutdown();
         CloseLibrary(SocketBase);
         SocketBase = NULL;
     }
