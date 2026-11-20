@@ -1,0 +1,153 @@
+Title: signal-hook-registry: accept AROS signals without an info payload
+Source: crates.io signal-hook-registry 1.4.6
+SHA256: b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b
+Date: 2026-11-20
+Status: local
+
+ABIv1 raise can pass null siginfo. Dispatch plain callbacks without
+metadata and reject registrations which require it. Chain the prior
+handler with its original arguments. Uses rust-aros ABIv1 bindings.
+Validation: macOS cargo check, x86_64 ABIv1 compile/link and native
+SIGUSR2 registration, dispatch, previous-handler chaining and removal.
+
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -132,10 +132,16 @@
+     action: ActionId,
+ }
+ 
++// AROS raise() can invoke a SA_SIGINFO handler without an info payload.
++#[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++type SignalInfo<'a> = Option<&'a siginfo_t>;
++#[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
++type SignalInfo<'a> = &'a siginfo_t;
++
+ // This should be dyn Fn(...), but we want to support Rust 1.26.0 and that one doesn't allow dyn
+ // yet.
+ #[allow(unknown_lints, bare_trait_objects)]
+-type Action = Fn(&siginfo_t) + Send + Sync;
++type Action = for<'a> Fn(SignalInfo<'a>) + Send + Sync;
+ 
+ #[derive(Clone)]
+ struct Slot {
+@@ -177,21 +183,30 @@
+         //
+         // See #169.
+ 
+-        new.sa_sigaction = handler as usize; // If it doesn't compile on AIX, upgrade the libc dependency
++        #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++        new.set_siginfo_handler(handler);
++        #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
++        {
++            new.sa_sigaction = handler as usize; // If it doesn't compile on AIX, upgrade the libc dependency
+ 
+-        // Android is broken and uses different int types than the rest (and different depending on
+-        // the pointer width). This converts the flags to the proper type no matter what it is on
+-        // the given platform.
+-        #[cfg(target_os = "nto")]
+-        let flags = 0;
+-        // SA_RESTART is supported by qnx https://www.qnx.com/support/knowledgebase.html?id=50130000000SmiD
+-        #[cfg(not(target_os = "nto"))]
+-        let flags = libc::SA_RESTART;
+-        #[allow(unused_assignments)]
+-        let mut siginfo = flags;
+-        siginfo = libc::SA_SIGINFO as _;
+-        let flags = flags | siginfo;
+-        new.sa_flags = flags as _;
++            // Android is broken and uses different int types than the rest (and different depending on
++            // the pointer width). This converts the flags to the proper type no matter what it is on
++            // the given platform.
++            #[cfg(target_os = "nto")]
++            let flags = 0;
++            // SA_RESTART is supported by qnx https://www.qnx.com/support/knowledgebase.html?id=50130000000SmiD
++            #[cfg(not(target_os = "nto"))]
++            let flags = libc::SA_RESTART;
++            #[allow(unused_assignments)]
++            let mut siginfo = flags;
++            siginfo = libc::SA_SIGINFO as _;
++            let flags = flags | siginfo;
++            new.sa_flags = flags as _;
++        }
++        #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++        {
++            new.sa_flags |= libc::SA_RESTART;
++        }
+         // C data structure, expected to be zeroed out.
+         let mut old: libc::sigaction = unsafe { mem::zeroed() };
+         // FFI ‒ pointers are valid, it doesn't take ownership.
+@@ -256,6 +271,9 @@
+ 
+     #[cfg(not(windows))]
+     unsafe fn execute(&self, sig: c_int, info: *mut siginfo_t, data: *mut c_void) {
++        #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++        let fptr = self.info.sa_handler;
++        #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+         let fptr = self.info.sa_sigaction;
+         if fptr != 0 && fptr != libc::SIG_DFL && fptr != libc::SIG_IGN {
+             // Android is broken and uses different int types than the rest (and different
+@@ -379,6 +397,7 @@
+         unsafe { slot.prev.execute(sig, info, data) };
+ 
+         let info = unsafe { info.as_ref() };
++        #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+         let info = info.unwrap_or_else(|| {
+             // The info being null seems to be illegal according to POSIX, but has been observed on
+             // some probably broken platform. We can't do anything about that, that is just broken,
+@@ -542,7 +561,7 @@
+ where
+     F: Fn() + Sync + Send + 'static,
+ {
+-    register_sigaction_impl(signal, move |_: &_| action())
++    register_sigaction_impl(signal, move |_| action())
+ }
+ 
+ /// Register a signal action.
+@@ -559,12 +578,18 @@
+ where
+     F: Fn(&siginfo_t) + Sync + Send + 'static,
+ {
++    #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++    {
++        let _ = (signal, action);
++        Err(Error::new(std::io::ErrorKind::Unsupported, "AROS does not guarantee signal metadata"))
++    }
++    #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+     register_sigaction_impl(signal, action)
+ }
+ 
+ unsafe fn register_sigaction_impl<F>(signal: c_int, action: F) -> Result<SigId, Error>
+ where
+-    F: Fn(&siginfo_t) + Sync + Send + 'static,
++    F: for<'a> Fn(SignalInfo<'a>) + Sync + Send + 'static,
+ {
+     assert!(
+         !FORBIDDEN.contains(&signal),
+@@ -587,7 +612,7 @@
+ where
+     F: Fn() + Sync + Send + 'static,
+ {
+-    register_unchecked_impl(signal, move |_: &_| action())
++    register_unchecked_impl(signal, move |_| action())
+ }
+ 
+ /// Register a signal action without checking for forbidden signals.
+@@ -608,12 +633,18 @@
+ where
+     F: Fn(&siginfo_t) + Sync + Send + 'static,
+ {
++    #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++    {
++        let _ = (signal, action);
++        Err(Error::new(std::io::ErrorKind::Unsupported, "AROS does not guarantee signal metadata"))
++    }
++    #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+     register_unchecked_impl(signal, action)
+ }
+ 
+ unsafe fn register_unchecked_impl<F>(signal: c_int, action: F) -> Result<SigId, Error>
+ where
+-    F: Fn(&siginfo_t) + Sync + Send + 'static,
++    F: for<'a> Fn(SignalInfo<'a>) + Sync + Send + 'static,
+ {
+     let globals = GlobalData::ensure();
+     let action = Arc::from(action);
