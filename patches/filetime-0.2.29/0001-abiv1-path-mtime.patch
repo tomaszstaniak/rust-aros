@@ -1,0 +1,36 @@
+Title: filetime: set AROS ABIv1 mtime through utimes
+Base: crates.io filetime 0.2.29 SHA-256 5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759
+Date: 2026-11-20
+Status: local
+
+AROS ABIv1 has path-based utimes, not the descriptor setter used by
+std or lutimes. Use the path helper for mtime and reject no-follow
+updates rather than modifying the target of a symlink.
+Verification: ABIv1 compiled and stored the expected mtime on RAM:.
+The no-follow API reported Unsupported. Handle and atime semantics
+are outside this patch.
+
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -302,6 +302,9 @@
+ where
+     P: AsRef<Path>,
+ {
++    #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++    return imp::set_times(p.as_ref(), None, Some(mtime), false);
++    #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+     imp::open(p.as_ref())?.set_times(fs::FileTimes::new().set_modified(mtime.into()))
+ }
+ 
+--- a/src/unix/utimes.rs
++++ b/src/unix/utimes.rs
+@@ -44,6 +44,9 @@
+     let times = [to_timeval(&atime), to_timeval(&mtime)];
+     let rc = unsafe {
+         if symlink {
++            #[cfg(all(target_os = "aros", target_abi = "abiv1"))]
++            return Err(io::ErrorKind::Unsupported.into());
++            #[cfg(not(all(target_os = "aros", target_abi = "abiv1")))]
+             libc::lutimes(p.as_ptr(), times.as_ptr())
+         } else {
+             libc::utimes(p.as_ptr(), times.as_ptr())
