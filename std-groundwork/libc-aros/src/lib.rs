@@ -671,6 +671,21 @@ pub struct msghdr {
 }
 
 #[cfg(target_abi = "abiv1")]
+pub const F_OK: c_int = 0;
+#[cfg(target_abi = "abiv1")]
+pub const X_OK: c_int = 1;
+#[cfg(target_abi = "abiv1")]
+pub const W_OK: c_int = 2;
+#[cfg(target_abi = "abiv1")]
+pub const R_OK: c_int = 4;
+
+#[cfg(target_abi = "abiv1")]
+extern "C" {
+    #[link_name = "rs_fs_access"]
+    pub fn access(path: *const c_char, mode: c_int) -> c_int;
+}
+
+#[cfg(target_abi = "abiv1")]
 pub const AF_UNSPEC: c_int = 0;
 #[cfg(target_abi = "abiv1")]
 pub const IPPROTO_ICMP: c_int = 1;

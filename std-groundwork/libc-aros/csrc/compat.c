@@ -715,6 +715,9 @@ ssize_t rs_fs_readlink(const char *p, char *b, size_t n) { RS_FS(ssize_t, -1, re
 char *rs_fs_realpath(const char *p, char *b) { RS_FS(char *, NULL, realpath(p,b)); }
 int rs_fs_chdir(const char *p) { RS_FS(int, -1, chdir(p)); }
 char *rs_fs_getcwd(char *b, size_t n) { RS_FS(char *, NULL, getcwd(b,n)); }
+#ifdef RS_AROS_ABIV1
+int rs_fs_access(const char *path, int mode) { RS_FS(int, -1, access(path, mode)); }
+#endif
 DIR *rs_fs_opendir(const char *p) { RS_FS(DIR *, NULL, opendir(p)); }
 int rs_fs_closedir(DIR *d) { RS_FS(int, -1, closedir(d)); }
 int rs_fs_pipe(int p[2]) { RS_FS(int, -1, pipe(p)); }
