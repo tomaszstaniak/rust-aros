@@ -1,0 +1,21 @@
+Subject: Select the bundled x86-64 ELF assembly on AROS
+
+Apply after the PomAROS crate store at 33325cbf1e271d2df213b65b2bcab0efc02b1a3d.
+Verified in a native x86_64 ABIv1 combined SHA-256 and stack-bounds probe.
+
+diff --git a/build.rs b/build.rs
+index 2f71b15..45ebe38 100644
+--- a/build.rs
++++ b/build.rs
+@@ -170,6 +170,11 @@ fn cpp_flags(compiler: &cc::Tool) -> &'static [&'static str] {
+ // None means "any OS" or "any target". The first match in sequence order is
+ // taken.
+ const ASM_TARGETS: &[AsmTarget] = &[
++    AsmTarget {
++        oss: &["aros"],
++        arch: X86_64,
++        perlasm_format: "elf",
++    },
+     // AROS is ELF/aarch64; use the same asm as Linux (the Rust side references
+     // the aarch64 asm symbols unconditionally, so it must be compiled).
+     AsmTarget {
