@@ -161,6 +161,10 @@ def populate(dest, source):
                      '[patch.crates-io]\nlibc = { path = "libc-aros" }\n', 1))
     subprocess.run(['python3', ROOT / 'std-groundwork/std-patch/patch-std.py', lib / 'std/src'], check=True)
     merge(lib / 'std/src', source)
+    # ABIv1 DOS paths use the newer Jonx grammar; the imported ARM PAL has
+    # a separate path backend.
+    subprocess.run(['patch', '-p1', '-i', ROOT / 'patches/jonx/0004-abiv1-dos-paths.patch'],
+                   cwd=lib / 'std/src', check=True)
     sysroot_contract.record(dest)
 
 
