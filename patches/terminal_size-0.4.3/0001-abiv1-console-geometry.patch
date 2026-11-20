@@ -1,0 +1,93 @@
+Use the existing rust-aros console geometry ioctl for terminal_size on
+x86_64 ABIv1. The crate needs only the row and column count. Pulling in
+the rustix termios backend also builds Unix interfaces unavailable on
+this target.
+
+Base: terminal_size 0.4.3, 0ce71baafafdb1072afbd7c97bc3fc5bedef5c49
+Crate SHA-256: 60b8cb979cb11c32ce1603f8137b22262a9d131aaa5c37b5678025f22b8becd0
+Upstream: https://github.com/eminence/terminal-size
+
+diff --git a/Cargo.toml b/Cargo.toml
+index d6bef4e..7a3b2b3 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -42,10 +42,13 @@ path = "src/lib.rs"
+ name = "get_size"
+ path = "examples/get_size.rs"
+ 
+-[target."cfg(unix)".dependencies.rustix]
++[target.'cfg(all(unix, not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))'.dependencies.rustix]
+ version = "1.0.1"
+ features = ["termios"]
+ 
++[target.'cfg(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))'.dependencies]
++libc = "0.2"
++
+ [target."cfg(windows)".dependencies.windows-sys]
+ version = "0.60.0"
+ features = [
+diff --git a/Cargo.toml.orig b/Cargo.toml.orig
+index bdac907..11c56e0 100644
+--- a/Cargo.toml.orig
++++ b/Cargo.toml.orig
+@@ -11,9 +11,12 @@ edition = "2021"
+ rust-version = "1.63"
+ 
+ 
+-[target.'cfg(unix)'.dependencies]
++[target.'cfg(all(unix, not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))'.dependencies]
+ rustix = { version = "1.0.1", features = ["termios"] }
+ 
++[target.'cfg(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))'.dependencies]
++libc = "0.2"
++
+ [target.'cfg(windows)'.dependencies.windows-sys]
+ version = "0.60.0"
+ features = [
+diff --git a/src/unix.rs b/src/unix.rs
+index a07b5e8..c548f20 100644
+--- a/src/unix.rs
++++ b/src/unix.rs
+@@ -22,16 +22,35 @@ pub fn terminal_size() -> Option<(Width, Height)> {
+ ///
+ /// If the given file descriptor is not a tty, returns `None`
+ pub fn terminal_size_of<Fd: AsFd>(fd: Fd) -> Option<(Width, Height)> {
+-    use rustix::termios::{isatty, tcgetwinsize};
++    #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++    let (rows, cols) = {
++        use rustix::termios::{isatty, tcgetwinsize};
+ 
+-    if !isatty(&fd) {
+-        return None;
+-    }
++        if !isatty(&fd) {
++            return None;
++        }
++        let winsize = tcgetwinsize(&fd).ok()?;
++        (winsize.ws_row, winsize.ws_col)
++    };
+ 
+-    let winsize = tcgetwinsize(&fd).ok()?;
++    #[cfg(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))]
++    let (rows, cols) = {
++        use std::os::unix::io::AsRawFd;
+ 
+-    let rows = winsize.ws_row;
+-    let cols = winsize.ws_col;
++        let fd = fd.as_fd();
++        let mut winsize = libc::winsize {
++            ws_row: 0,
++            ws_col: 0,
++            ws_xpixel: 0,
++            ws_ypixel: 0,
++        };
++        // The borrowed descriptor stays valid and the ioctl writes to
++        // this initialized winsize. The AROS libc adapter queries DOS geometry.
++        if unsafe { libc::ioctl(fd.as_raw_fd(), libc::TIOCGWINSZ, &mut winsize) } != 0 {
++            return None;
++        }
++        (winsize.ws_row, winsize.ws_col)
++    };
+ 
+     if rows > 0 && cols > 0 {
+         Some((Width(cols), Height(rows)))
