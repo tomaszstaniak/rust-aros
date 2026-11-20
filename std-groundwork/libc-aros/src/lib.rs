@@ -519,7 +519,58 @@ pub type c_float = f32;
 /// Field order measured on both SDKs (pw_uid at 8, pw_passwd at 32). The
 /// earlier declaration followed BSD order; only a stub ever filled it on v11.
 #[repr(C)] pub struct passwd { pub pw_name: *mut c_char, pub pw_uid: uid_t, pub pw_gid: gid_t, pub pw_dir: *mut c_char, pub pw_shell: *mut c_char, pub pw_passwd: *mut c_char, pub pw_gecos: *mut c_char }
-#[repr(C)] pub struct sigaction { pub sa_handler: sighandler_t, pub sa_mask: sigset_t, pub sa_flags: c_int }
+/// The two C handler members overlap. `sa_handler` stores either address;
+/// `sa_flags` determines the calling convention.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct sigaction {
+    pub sa_handler: sighandler_t,
+    pub sa_mask: sigset_t,
+    pub sa_flags: c_int,
+}
+
+#[cfg(target_abi = "abiv1")]
+pub const SA_RESTART: c_int = 0x0008;
+#[cfg(target_abi = "abiv1")]
+pub const SA_SIGINFO: c_int = 0x0010;
+
+#[cfg(target_abi = "abiv1")]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union sigval {
+    pub sigval_int: c_int,
+    pub sigval_ptr: *mut c_void,
+}
+
+/// POSIX signal payload from the mainline SDK. AROS `raise()` may pass a
+/// null payload pointer even when `SA_SIGINFO` is set.
+#[cfg(target_abi = "abiv1")]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct siginfo_t {
+    pub si_signo: c_int,
+    pub si_code: c_int,
+    pub si_errno: c_int,
+    pub si_pid: pid_t,
+    pub si_uid: uid_t,
+    pub si_addr: *mut c_void,
+    pub si_status: c_int,
+    pub si_band: c_long,
+    pub si_value: sigval,
+}
+
+#[cfg(target_abi = "abiv1")]
+impl sigaction {
+    /// Install the three-argument callback in this action. The callback
+    /// must handle a null payload. This does not register it with the OS.
+    pub fn set_siginfo_handler(
+        &mut self,
+        handler: unsafe extern "C" fn(c_int, *mut siginfo_t, *mut c_void),
+    ) {
+        self.sa_handler = handler as sighandler_t;
+        self.sa_flags |= SA_SIGINFO;
+    }
+}
 pub const AF_INET: c_int = 2;
 pub const AF_INET6: c_int = 24;
 pub const IPPROTO_IP: c_int = 0;
