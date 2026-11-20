@@ -371,6 +371,24 @@ pub const EMSGSIZE: c_int = 40;
 //   O_CLOEXEC, O_DIRECTORY, O_NOFOLLOW, AT_FDCWD, _SC_PAGESIZE, _SC_NPROCESSORS_ONLN
 // Mainline defines all of them; see the abiv1 values below.
 
+// Resource limits from mainline posixc <sys/resource.h>.
+#[cfg(all(target_arch = "x86_64", target_abi = "abiv1"))]
+pub const RLIMIT_NOFILE: c_int = 4;
+
+#[cfg(all(target_arch = "x86_64", target_abi = "abiv1"))]
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct rlimit {
+    pub rlim_cur: i64,
+    pub rlim_max: i64,
+}
+
+#[cfg(all(target_arch = "x86_64", target_abi = "abiv1"))]
+extern "C" {
+    pub fn getrlimit(resource: c_int, limit: *mut rlimit) -> c_int;
+    pub fn setrlimit(resource: c_int, limit: *const rlimit) -> c_int;
+}
+
 // --- functions (each verified to exist in the SDK link libraries) ------
 extern "C" {
     /// AROS' C library exports this only under an internal name: the plain
