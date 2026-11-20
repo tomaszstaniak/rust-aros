@@ -608,6 +608,8 @@ pub const FIOCLEX: c_ulong = 536897025;
 pub const FIONBIO: c_ulong = 2148034174;
 pub const IPPROTO_TCP: c_int = 6;
 pub const MSG_PEEK: c_int = 2;
+#[cfg(all(target_arch = "x86_64", target_abi = "abiv1"))]
+pub const MSG_DONTWAIT: c_int = 0x00000080;
 pub const S_IRGRP: mode_t = 32;
 pub const S_IROTH: mode_t = 4;
 pub const S_ISGID: mode_t = 1024;
@@ -852,6 +854,8 @@ extern "C" {
     pub fn sysconf(name: c_int) -> c_long;
     pub fn strnlen(s: *const c_char, n: size_t) -> size_t;
     pub fn signal(sig: c_int, handler: sighandler_t) -> sighandler_t;
+    #[cfg(all(target_arch = "x86_64", target_abi = "abiv1"))]
+    pub fn raise(sig: c_int) -> c_int;
     pub fn sigemptyset(set: *mut sigset_t) -> c_int;
     pub fn sigaddset(set: *mut sigset_t, sig: c_int) -> c_int;
     pub fn sigaction(sig: c_int, act: *const sigaction, old: *mut sigaction) -> c_int;

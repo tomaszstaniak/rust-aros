@@ -1,0 +1,39 @@
+Use our libc's handler slot when resetting an AROS ABIv1 action. Skip the best-effort mask call on that target because the posixc entry returns ENOSYS.
+
+--- a/src/low_level/signal_details.rs
++++ b/src/low_level/signal_details.rs
+@@ -7,7 +7,7 @@
+ use std::ptr;
+ 
+ use libc::{c_int, EINVAL};
+-#[cfg(not(windows))]
++#[cfg(not(any(windows, all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))]
+ use libc::{sigset_t, SIG_UNBLOCK};
+ 
+ use crate::consts::signal::*;
+@@ -116,7 +116,14 @@
+     unsafe {
+         // A C structure, supposed to be memset to 0 before use.
+         let mut action: libc::sigaction = mem::zeroed();
+-        action.sa_sigaction = libc::SIG_DFL as _;
++        #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++        {
++            action.sa_sigaction = libc::SIG_DFL as _;
++        }
++        #[cfg(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))]
++        {
++            action.sa_handler = libc::SIG_DFL;
++        }
+         if libc::sigaction(signal, &action, ptr::null_mut()) == 0 {
+             Ok(())
+         } else {
+@@ -187,7 +194,8 @@
+         DefaultKind::Stop => low_level::raise(SIGSTOP),
+         DefaultKind::Term => {
+             if let Ok(()) = restore_default(signal) {
+-                #[cfg(not(windows))]
++                // AROS posixc sigprocmask returns ENOSYS.
++                #[cfg(not(any(windows, all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))]
+                 unsafe {
+                     #[allow(deprecated)]
+                     let mut newsigs: sigset_t = mem::zeroed();
