@@ -1,0 +1,45 @@
+Title: Mio: use rust-aros socket readiness on ABIv1
+Base: crates.io mio 1.2.1, SHA-256 02bd0af71c67b473010cbbc60715ee815645a4dc942899111f494b4b737d6fda, plus PomAROS rust-aros 33325cbf1e271d2df213b65b2bcab0efc02b1a3d crate-store patch
+Date: 2026-11-20
+Status: local
+
+Reuse the tagged descriptor ioctl adapter for FIONBIO. Mio exposes
+no priority interests on AROS, so ABIv1 needs no POLLPRI binding.
+Verification: x86_64 ABIv1 compile/link; loopback listen and accept,
+readiness, idle re-poll and Waker on AROS posixc 0.41.
+
+--- a/src/sys/unix/net.rs
++++ b/src/sys/unix/net.rs
+@@ -58,7 +58,15 @@
+     // AROS applies nonblocking/close-on-exec through its native fd provider.
+     #[cfg(target_os = "aros")]
+     {
+-        if unsafe { libc::aros_socket_nonblocking(socket, 1) } < 0 {
++        #[cfg(target_abi = "abiv1")]
++        let result = {
++            let mut enabled: libc::c_int = 1;
++            // Our libc's ioctl routes the tagged socket to IoctlSocket.
++            unsafe { libc::ioctl(socket, libc::FIONBIO, &mut enabled as *mut libc::c_int) }
++        };
++        #[cfg(not(target_abi = "abiv1"))]
++        let result = unsafe { libc::aros_socket_nonblocking(socket, 1) };
++        if result < 0 {
+             let error = io::Error::last_os_error();
+             let _ = syscall!(close(socket));
+             return Err(error);
+--- a/src/sys/unix/selector/poll.rs
++++ b/src/sys/unix/selector/poll.rs
+@@ -545,9 +545,11 @@
+ #[cfg(not(target_os = "linux"))]
+ const POLLRDHUP: PollFlagInt = 0;
+ 
+-#[cfg(not(target_os = "wasi"))]
++#[cfg(not(any(target_os = "wasi", all(target_os = "aros", target_abi = "abiv1"))))]
+ const POLLPRI: PollFlagInt = libc::POLLPRI;
+-#[cfg(target_os = "wasi")]
++// Mio does not expose priority interests on AROS. The ABIv1 adapter
++// supports the read and write readiness used by this selector.
++#[cfg(any(target_os = "wasi", all(target_os = "aros", target_abi = "abiv1")))]
+ const POLLPRI: PollFlagInt = 0;
+ 
+ #[cfg(not(any(target_os = "aros", target_os = "wasi")))]

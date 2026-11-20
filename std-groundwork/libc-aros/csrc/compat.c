@@ -605,9 +605,10 @@ int poll(struct rs_pollfd *fds, unsigned long n, int timeout) {
         if (fds[i].fd < 0) continue;
         int raw = rs_socket_index(fds[i].fd);
         if (raw < 0) { fds[i].revents = 0x20; invalid++; continue; }
-        /* This adapter accepts socket IN/OUT readiness only. select's
-           exceptfds means urgent data, not POLLERR; do not mislabel it. */
-        if (!fds[i].events || (fds[i].events & ~0x5)) { errno = ENOTSUP; return -1; }
+        /* This adapter accepts socket IN/OUT readiness only. An empty
+           mask leaves a registered socket idle, as used by edge-triggered
+           selectors until they rearm it. */
+        if (fds[i].events & ~0x5) { errno = ENOTSUP; return -1; }
         if (fds[i].events & 0x1) FD_SET(raw, &r);
         if (fds[i].events & 0x4) FD_SET(raw, &w);
         if (raw > max) max = raw;
@@ -621,8 +622,8 @@ int poll(struct rs_pollfd *fds, unsigned long n, int timeout) {
         if (fds[i].fd < 0 || fds[i].revents) continue;
         int raw = rs_socket_index(fds[i].fd);
         if (raw < 0) { fds[i].revents = 0x20; cnt++; continue; }
-        if (FD_ISSET(raw, &r)) fds[i].revents |= 0x1;
-        if (FD_ISSET(raw, &w)) fds[i].revents |= 0x4;
+        if ((fds[i].events & 0x1) && FD_ISSET(raw, &r)) fds[i].revents |= 0x1;
+        if ((fds[i].events & 0x4) && FD_ISSET(raw, &w)) fds[i].revents |= 0x4;
         if (fds[i].revents) cnt++;
     }
     return cnt;
