@@ -1,0 +1,142 @@
+Expose only the temporary-directory API on x86_64 AROS ABIv1. The
+stock CRT implements O_EXCL with separate lookup and creation, and
+DOS has no qualified open-file unlink or atomic replacement contract.
+A newly created temporary directory is the staging unit on this ABI.
+
+Base: tempfile 3.27.0, 5c8fa12eb584931b4f1bccfde87eb72fbfa7dc61
+Crate SHA-256: 32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd
+Apply after: PomAROS rust-aros 33325cbf1e271d2df213b65b2bcab0efc02b1a3d
+Upstream: https://github.com/Stebalien/tempfile
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -88,7 +88,7 @@
+ [dev-dependencies.doc-comment]
+ version = "0.3"
+ 
+-[target.'cfg(any(unix, target_os = "wasi"))'.dependencies.rustix]
++[target.'cfg(all(any(unix, target_os = "wasi"), not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))'.dependencies.rustix]
+ version = "1.1.4"
+ features = ["fs"]
+ 
+@@ -103,3 +103,7 @@
+     "Win32_Storage_FileSystem",
+     "Win32_Foundation",
+ ]
++
++[lints.rust.unexpected_cfgs]
++level = "warn"
++check-cfg = ['cfg(target_os, values("aros"))', 'cfg(target_abi, values("abiv1"))']
+--- a/Cargo.toml.orig
++++ b/Cargo.toml.orig
+@@ -26,7 +26,7 @@
+ [target.'cfg(any(unix, windows, target_os = "wasi"))'.dependencies]
+ getrandom = { version = ">=0.3.0, <0.5", default-features = false, optional = true }
+ 
+-[target.'cfg(any(unix, target_os = "wasi"))'.dependencies]
++[target.'cfg(all(any(unix, target_os = "wasi"), not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1"))))'.dependencies]
+ rustix = { version = "1.1.4", features = ["fs"] }
+ 
+ [target.'cfg(windows)'.dependencies.windows-sys]
+@@ -45,3 +45,7 @@
+ 
+ [package.metadata.docs.rs]
+ rustdoc-args = ["--generate-link-to-definition"]
++
++[lints.rust.unexpected_cfgs]
++level = "warn"
++check-cfg = ['cfg(target_os, values("aros"))', 'cfg(target_abi, values("abiv1"))']
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1,3 +1,5 @@
++//! On AROS x86_64 ABIv1 this crate exposes only temporary directory APIs.
++//!
+ //! This is a library for creating temporary files and directories that are automatically deleted
+ //! when no longer referenced (i.e., on drop).
+ //!
+@@ -195,22 +197,28 @@
+ const NUM_RAND_CHARS: usize = 6;
+ 
+ use std::ffi::OsStr;
+-use std::fs::{OpenOptions, Permissions};
++#[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++use std::fs::OpenOptions;
++use std::fs::Permissions;
+ use std::io;
+ use std::path::Path;
+ 
+ mod dir;
+ mod error;
++#[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+ mod file;
++#[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+ mod spooled;
+ mod util;
+ 
+ pub mod env;
+ 
+ pub use crate::dir::{tempdir, tempdir_in, TempDir};
++#[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+ pub use crate::file::{
+     tempfile, tempfile_in, NamedTempFile, PathPersistError, PersistError, TempPath,
+ };
++#[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+ pub use crate::spooled::{spooled_tempfile, spooled_tempfile_in, SpooledData, SpooledTempFile};
+ 
+ /// Create a new temporary file or directory with custom options.
+@@ -523,6 +531,7 @@
+     ///
+     /// [security]: struct.NamedTempFile.html#security
+     /// [resource-leaking]: struct.NamedTempFile.html#resource-leaking
++    #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+     pub fn tempfile(&self) -> io::Result<NamedTempFile> {
+         self.tempfile_in(env::temp_dir())
+     }
+@@ -552,6 +561,7 @@
+     ///
+     /// [security]: struct.NamedTempFile.html#security
+     /// [resource-leaking]: struct.NamedTempFile.html#resource-leaking
++    #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+     pub fn tempfile_in<P: AsRef<Path>>(&self, dir: P) -> io::Result<NamedTempFile> {
+         util::create_helper(
+             dir.as_ref(),
+@@ -713,6 +723,7 @@
+     /// [TOCTOU]: https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
+     /// [security]: struct.NamedTempFile.html#security
+     /// [resource-leaking]: struct.NamedTempFile.html#resource-leaking
++    #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+     pub fn make<F, R>(&self, f: F) -> io::Result<NamedTempFile<R>>
+     where
+         F: FnMut(&Path) -> io::Result<R>,
+@@ -736,6 +747,7 @@
+     /// # }
+     /// # Ok::<(), std::io::Error>(())
+     /// ```
++    #[cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
+     pub fn make_in<F, R, P>(&self, dir: P, mut f: F) -> io::Result<NamedTempFile<R>>
+     where
+         F: FnMut(&Path) -> io::Result<R>,
+--- a/tests/namedtempfile.rs
++++ b/tests/namedtempfile.rs
+@@ -1,3 +1,5 @@
++#![cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++
+ #![deny(rust_2018_idioms)]
+ 
+ use std::ffi::{OsStr, OsString};
+--- a/tests/spooled.rs
++++ b/tests/spooled.rs
+@@ -1,3 +1,5 @@
++#![cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++
+ #![deny(rust_2018_idioms)]
+ 
+ use std::io::{Read, Seek, SeekFrom, Write};
+--- a/tests/tempfile.rs
++++ b/tests/tempfile.rs
+@@ -1,3 +1,5 @@
++#![cfg(not(all(target_os = "aros", target_arch = "x86_64", target_abi = "abiv1")))]
++
+ #![deny(rust_2018_idioms)]
+ 
+ use std::fs;
