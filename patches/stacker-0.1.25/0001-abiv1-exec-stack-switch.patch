@@ -1,19 +1,20 @@
-Subject: Build the Exec stack switch helpers on x86_64 ABIv1
+Subject: Build the Exec stack switch helpers on x86_64 and AArch64 ABIv1
 
 Apply after the PomAROS crate store at 33325cbf1e271d2df213b65b2bcab0efc02b1a3d.
 The C source is toolchain/sys/stack.c from that same revision (MIT).
-Verified in a native x86_64 ABIv1 combined SHA-256 and stack-bounds probe.
+Verified in native x86_64 and Raspberry Pi AArch64 ABIv1 SHA-256 and
+stack-bounds probes.
 
 diff --git a/build.rs b/build.rs
-index 38e465f..5d00590 100644
 --- a/build.rs
 +++ b/build.rs
-@@ -7,5 +7,15 @@ fn main() {
+@@ -7,5 +7,16 @@ fn main() {
          cfg.define("WINDOWS", None);
          cfg.file("src/arch/windows.c");
          cfg.include("src/arch").compile("libstacker.a");
 +    } else if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("aros")
-+        && env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
++        && env::var("CARGO_CFG_TARGET_ARCH").as_deref()
++            .is_ok_and(|arch| matches!(arch, "x86_64" | "aarch64"))
 +        && env::var("CARGO_CFG_TARGET_ABI").as_deref() == Ok("abiv1")
 +    {
 +        let source = "src/backends/aros_abiv1.c";
